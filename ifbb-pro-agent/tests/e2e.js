@@ -97,9 +97,58 @@ const server = http.createServer((req, res) => {
   if (!/platebar-weight/.test(platebarHtml)) throw new Error('la barra cargada no dibujó discos con una "última vez" ya registrada');
   if (!/<svg class="platebar"/.test(platebarHtml)) throw new Error('no se encontró el SVG de la barra cargada');
   await shot('09-platebar');
-  page.once('dialog', d => d.accept());
-  await page.click('#sm-close');
+
+  // DEC-015: sesión persistente. Se registra una serie, se "cierra la app" (recarga) a mitad y
+  // al volver se ofrece Reanudar; se reanuda sin duplicar, se termina y no queda nada en curso.
+  const sessionKey = () => page.evaluate(() => localStorage.getItem('ifbb-agent:session:v1'));
+  if (!(await sessionKey())) throw new Error('la sesión en curso no se guardó al empezar');
+  await page.fill('[data-sm-weight="0"]', '70');
+  await page.fill('[data-sm-reps="0"]', '6');
+  await page.click('[data-sm-done="0"]');
+  await page.waitForSelector('.timer-overlay');
+  await page.click('#sm-timer-skip');
+  const saved = JSON.parse(await sessionKey());
+  if (saved.status !== 'en_curso' || !saved.values[0][0].done || saved.values[0][0].weight !== 70 || !saved.values[0][0].doneAt) throw new Error('la serie no quedó autoguardada: ' + JSON.stringify(saved.values[0][0]));
+  await page.reload();
+  await page.waitForSelector('#resume-prompt');
+  const promptTxt = await page.textContent('#resume-prompt');
+  if (!/1\/\d+ series hechas/.test(promptTxt)) throw new Error('el aviso de reanudar no cuenta la serie hecha: ' + promptTxt);
+  await shot('10-resume-prompt');
+  await page.click('#resume-yes');
+  await page.waitForSelector('.session-mode');
+  if (await page.getAttribute('[data-sm-weight="0"]', 'disabled') === null) throw new Error('la serie ya hecha debería verse registrada al reanudar');
+  if ((await page.inputValue('[data-sm-weight="0"]')) !== '70') throw new Error('al reanudar no volvió el peso registrado');
+  await page.click('#sm-finish');
+  await page.waitForSelector('#sm-back-to-plan');
+  if (await sessionKey()) throw new Error('al terminar, la sesión no debería seguir en curso');
+  const after = await page.evaluate(() => { const pr = JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0]; return { sessions: pr.sessions, workouts: pr.workouts }; });
+  const mine = after.sessions.filter(x => x.sessionId === saved.sessionId);
+  if (after.sessions.length !== 2 || mine.length !== 1 || mine[0].status !== 'completada') throw new Error('la sesión reanudada debería quedar completada una sola vez: ' + JSON.stringify(after.sessions));
+  const keys = after.workouts.filter(w => w.sessionId === saved.sessionId).map(w => w.setKey);
+  if (keys.length !== 1 || !keys[0]) throw new Error('series duplicadas tras reanudar: ' + keys.join(','));
+  await page.click('#sm-back-to-plan');
   await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await page.reload();
+  await page.waitForSelector('.subtabs');
+  if (await page.$('#resume-prompt')) throw new Error('no debería ofrecer reanudar una sesión ya completada');
+
+  // Descartar: empezar otra, registrar una serie, recargar y descartar borra sus series.
+  await page.click('[data-pt=training]');
+  await page.waitForSelector('.session-body:not([inert]) [data-start-session]');
+  await page.click('.session-body:not([inert]) [data-start-session]');
+  await page.waitForSelector('.session-mode');
+  await page.fill('[data-sm-weight="0"]', '40');
+  await page.fill('[data-sm-reps="0"]', '10');
+  await page.click('[data-sm-done="0"]');
+  await page.click('#sm-timer-skip');
+  await page.reload();
+  await page.waitForSelector('#resume-prompt');
+  page.once('dialog', d => d.accept());
+  await page.click('#resume-no');
+  await page.waitForSelector('#resume-prompt', { state: 'detached' });
+  if (await sessionKey()) throw new Error('descartar debería borrar la sesión en curso');
+  const discarded = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts.filter(w => w.setKey).length);
+  if (discarded !== 2) throw new Error('descartar debería dejar solo las series de las 2 sesiones completadas, hay ' + discarded);
 
   // Progreso
   await page.click('.tab[data-tab=progress]');

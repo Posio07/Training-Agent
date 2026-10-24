@@ -962,15 +962,22 @@
   }
   function releaseWakeLock() { try { if (smWakeLock) { smWakeLock.release(); smWakeLock = null; } } catch (e) { /* noop */ } }
 
+  /* DEC-015 · sesión persistente: la sesión en curso se guarda aparte (SESSION_STORE) cada vez que
+   * cambia, así sobrevive a un cierre de la app o a que se apague el teléfono. */
+  const SS = window.SESSION_STORE;
+  const persistSm = () => {
+    if (!sm || sm.status !== SS.STATUS.ACTIVE) return;
+    if (!SS.saveActive(localStorage, sm, Date.now())) toast('No se pudo guardar la sesión en curso.');
+  };
+
   function startSessionMode(profile, plan, dayIndex, short) {
+    const pending = SS.loadActive(localStorage);
+    if (pending) { toast('Tienes una sesión en curso: reanúdala o descártala primero.'); offerResume(); return; }
     const session = plan.training.sessions[dayIndex];
     const exercises = buildSmExercises(session, short, profile);
     if (!exercises.length) { toast('Este día no tiene multiarticulares para la versión corta.'); return; }
-    sm = {
-      profileId: profile.id, sessionId: uid(), dayIndex, dayName: session.name, short,
-      exercises, exIndex: 0, startedAt: Date.now(), finished: false,
-      values: exercises.map(e => e.sets.map(() => ({ weight: '', reps: '', done: false, pain: '' }))),
-    };
+    sm = SS.newSession({ profileId: profile.id, sessionId: uid(), dayIndex, dayName: session.name, short, exercises, now: Date.now() });
+    persistSm();
     requestWakeLock();
     let root = document.getElementById('session-mode-root');
     if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
@@ -983,6 +990,58 @@
     const root = document.getElementById('session-mode-root');
     if (root) root.remove();
     sm = null;
+  }
+
+  // Terminar: la sesión pasa a 'completada' (una sola vez) y deja de ser reanudable.
+  function finishSm(profile) {
+    if (sm.status === SS.STATUS.ACTIVE) {
+      profile.sessions = profile.sessions || [];
+      profile.workouts = profile.workouts || [];
+      SS.complete(sm, profile.sessions, profile.workouts, Date.now(), todayIso());
+      profile.updatedAt = todayIso();
+      save();
+      SS.clearActive(localStorage);
+    }
+    sm.finished = true;
+    renderSessionMode(profile);
+  }
+
+  /* Al abrir la app: si quedó una sesión 'en_curso', ofrecer Reanudar o Descartar. */
+  function offerResume() {
+    if (document.getElementById('resume-prompt')) return;
+    if (SS.peekCorrupt(localStorage)) { toast('Hay una sesión guardada que no se pudo leer.'); return; }
+    const rec = SS.loadActive(localStorage);
+    if (!rec) return;
+    const profile = state.profiles.find(p => p.id === rec.profileId);
+    if (!profile) { SS.clearActive(localStorage); return; } // el perfil ya no existe
+    const pr = SS.progress(rec);
+    const ov = document.createElement('div');
+    ov.id = 'resume-prompt'; ov.className = 'card accent'; ov.setAttribute('role', 'alertdialog');
+    ov.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.35)';
+    ov.innerHTML = `<h3>Tienes una sesión en curso</h3>
+      <p>${esc(rec.dayName)}${rec.short ? ' · versión corta' : ''} · ${pr.done}/${pr.total} series hechas · empezó ${esc(new Date(rec.startedAt).toLocaleString('es'))}.</p>
+      <div class="btn-row"><button class="btn btn-primary" id="resume-yes">Reanudar</button><button class="btn" id="resume-no">Descartar</button></div>`;
+    document.body.appendChild(ov);
+    $('#resume-yes').onclick = () => {
+      ov.remove();
+      state.activeId = profile.id;
+      if (SS.reconcile(rec, profile.workouts = profile.workouts || [], todayIso())) { profile.updatedAt = todayIso(); save(); }
+      sm = rec;
+      persistSm();
+      requestWakeLock();
+      let root = document.getElementById('session-mode-root');
+      if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
+      renderSessionMode(profile);
+    };
+    $('#resume-no').onclick = () => {
+      const n = pr.done;
+      if (!confirm(n ? `Se descartará la sesión y se borrarán sus ${n} series registradas. ¿Continuar?` : '¿Descartar la sesión en curso?')) return;
+      ov.remove();
+      const removed = SS.discard(rec, profile.workouts = profile.workouts || []);
+      if (removed) { profile.updatedAt = todayIso(); save(); }
+      SS.clearActive(localStorage);
+      toast('Sesión descartada');
+    };
   }
 
   function lastTimeFor(profile, exerciseName) {
@@ -1047,18 +1106,19 @@
 
   function wireSessionMode(profile) {
     const root = document.getElementById('session-mode-root');
-    $('#sm-close').onclick = () => { if (confirm('¿Salir del modo sesión? Lo ya registrado queda guardado.')) endSessionMode(); };
-    $('#sm-finish').onclick = () => { sm.finished = true; renderSessionMode(profile); };
-    $('#sm-prev').onclick = () => { sm.exIndex = Math.max(0, sm.exIndex - 1); renderSessionMode(profile); };
+    // ✕ no termina la sesión: queda 'en_curso' y se puede reanudar al volver a abrir la app.
+    $('#sm-close').onclick = () => { if (confirm('¿Salir del modo sesión? La sesión queda guardada y podrás reanudarla.')) endSessionMode(); };
+    $('#sm-finish').onclick = () => finishSm(profile);
+    $('#sm-prev').onclick = () => { sm.exIndex = Math.max(0, sm.exIndex - 1); persistSm(); renderSessionMode(profile); };
     const next = () => {
-      if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; renderSessionMode(profile); }
-      else { sm.finished = true; renderSessionMode(profile); }
+      if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); }
+      else finishSm(profile);
     };
     $('#sm-next').onclick = next;
-    const nextArrow = $('#sm-next-arrow'); if (nextArrow) nextArrow.onclick = () => { if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; renderSessionMode(profile); } };
-    root.querySelectorAll('[data-sm-weight]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smWeight)].weight = inp.value; });
-    root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; });
-    root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; });
+    const nextArrow = $('#sm-next-arrow'); if (nextArrow) nextArrow.onclick = () => { if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); } };
+    root.querySelectorAll('[data-sm-weight]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smWeight)].weight = inp.value; persistSm(); });
+    root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; persistSm(); });
+    root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; persistSm(); });
     root.querySelectorAll('[data-sm-done]').forEach(btn => btn.onclick = () => smLogSet(profile, Number(btn.dataset.smDone)));
   }
 
@@ -1076,18 +1136,18 @@
     const ex = sm.exercises[sm.exIndex], st = ex.sets[setIdx], v = sm.values[sm.exIndex][setIdx];
     const reps = parseInt(v.reps, 10);
     if (!reps || reps <= 0) { toast('Poné las repeticiones hechas.'); return; }
+    if (v.done) return; // ya registrada: no se vuelve a registrar (sin duplicados)
     const weight = parseFloat(v.weight) || 0;
-    v.weight = weight; v.reps = reps; v.done = true;
     let pain = null;
-    if (ex.painScale) { pain = v.pain === '' || v.pain == null ? null : Math.min(10, Math.max(0, parseInt(v.pain, 10))); v.pain = pain; if (pain != null) logPain(profile, ex.pattern, pain); }
+    if (ex.painScale) { pain = v.pain === '' || v.pain == null ? null : Math.min(10, Math.max(0, parseInt(v.pain, 10))); if (pain != null) logPain(profile, ex.pattern, pain); }
+    SS.markDone(sm, sm.exIndex, setIdx, { weight, reps, pain }, Date.now());
+    // Primero la fila del historial (clave estable: upsert, nunca duplica) y después la sesión.
+    // Si se corta entre las dos escrituras, SS.reconcile lo repara al reanudar.
     profile.workouts = profile.workouts || [];
-    profile.workouts.push({
-      sessionId: sm.sessionId, date: todayIso(), dayIndex: sm.dayIndex, dayName: sm.dayName,
-      exercise: ex.name, exerciseId: ex.exerciseId, muscle: ex.muscle, setType: st.setType, setNumber: st.setNumber,
-      weight, reps, pain, short: sm.short, savedAt: Date.now(),
-    });
+    SS.upsertWorkout(profile.workouts, SS.workoutRow(sm, sm.exIndex, setIdx, todayIso()));
     profile.updatedAt = todayIso();
     save();
+    persistSm();
     renderSessionMode(profile);
     startRestTimer(st.restLabel);
     if (st.setType === 'top') maybeShowRecord(profile, ex, weight, reps);
@@ -1099,14 +1159,15 @@
    * mejor 1RM estimado del mismo ejercicio en sesiones ANTERIORES
    * (nunca la actual). Máximo una vez por ejercicio y por sesión. */
   function maybeShowRecord(profile, ex, weight, reps) {
-    sm.recordShown = sm.recordShown || new Set();
-    if (sm.recordShown.has(ex.name) || !weight) return;
+    sm.recordShown = sm.recordShown || [];
+    if (sm.recordShown.includes(ex.name) || !weight) return;
     const prior = (profile.workouts || []).filter(w => w.exercise === ex.name && w.setType === 'top' && w.sessionId !== sm.sessionId);
     if (!prior.length) return;
     const epley = (w, r) => w * (1 + r / 30);
     const priorBest = Math.max(...prior.map(w => epley(w.weight, w.reps)));
     if (epley(weight, reps) <= priorBest) return;
-    sm.recordShown.add(ex.name);
+    sm.recordShown.push(ex.name);
+    persistSm();
     showRecordMoment(profile, weight, reps);
   }
 
@@ -1448,4 +1509,5 @@
   /* ---------- Arranque ---------- */
   if (active()) ui.tab = 'plan';
   go(ui.tab);
+  offerResume(); // DEC-015
 })();

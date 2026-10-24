@@ -1,6 +1,6 @@
 /* Service worker: precarga todos los recursos para que la app funcione sin conexión.
  * Sube CACHE_VERSION en cada despliegue para invalidar la caché antigua. */
-const CACHE_VERSION = 'ifbb-agent-v6';
+const CACHE_VERSION = 'ifbb-agent-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   './js/knowledge.js',
   './js/engine.js',
   './js/exerciseImages.js',
+  './js/sessionStore.js',
   './js/app.js',
   './manifest.webmanifest',
   './icons/icon.svg',

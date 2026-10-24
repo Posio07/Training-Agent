@@ -1493,3 +1493,128 @@ test('DEC-014: huellas de los 30 planes (línea base de la Fase 2; la salida cam
   reordered.input = Object.fromEntries(Object.entries(reordered.input).reverse());
   assert.equal(SNAP.hash(plan), SNAP.hash(reordered), 'el orden de las claves no cambia la huella');
 });
+
+/* ---------- DEC-015: sesión persistente y reanudable ---------- */
+
+const SS = require('../js/sessionStore.js');
+const memStorage = () => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; }, _m: m }; };
+const smExercises = () => [
+  { name: 'Press banca', exerciseId: 'chest.bench_press_barbell', muscle: 'chest', pattern: 'bench_press', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '6-10', restLabel: '2-3 min' }, { setType: 'normal', setNumber: 2, repsLabel: '6-10', restLabel: '2-3 min' }] },
+  { name: 'Jalón', exerciseId: 'back.vertical_pull', muscle: 'back', pattern: 'vertical_pull', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8-12', restLabel: '2-3 min' }] },
+];
+const logSet = (rec, workouts, ei, si, weight, reps, now) => {
+  SS.markDone(rec, ei, si, { weight, reps, pain: null }, now);
+  SS.upsertWorkout(workouts, SS.workoutRow(rec, ei, si, '2026-10-24'));
+};
+
+test('DEC-015: una sesión cerrada a mitad se reanuda con los mismos datos y sin duplicar series', () => {
+  const store = memStorage();
+  const workouts = [];
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's1', dayIndex: 0, dayName: 'Día 1', short: false, exercises: smExercises(), now: 1000 });
+  assert.equal(rec.status, 'en_curso');
+  SS.saveActive(store, rec, 1000);
+  logSet(rec, workouts, 0, 0, 80, 8, 2000);
+  rec.values[0][1].weight = '82.5'; // valor tecleado, todavía no marcado como hecho
+  rec.exIndex = 0;
+  SS.saveActive(store, rec, 2100);
+  // "Se apaga el teléfono": se pierde toda la memoria; solo queda lo guardado.
+  const resumed = SS.loadActive(store);
+  assert.ok(resumed, 'la sesión en curso se encuentra al reabrir');
+  assert.equal(resumed.status, 'en_curso');
+  assert.deepEqual(SS.progress(resumed), { done: 1, total: 3 });
+  assert.equal(resumed.values[0][0].weight, 80);
+  assert.equal(resumed.values[0][0].doneAt, 2000);
+  assert.equal(resumed.values[0][1].weight, '82.5', 'lo tecleado y no marcado también se conserva');
+  assert.equal(resumed.startedAt, 1000);
+  assert.equal(SS.reconcile(resumed, workouts, '2026-10-24'), 0, 'nada que reparar');
+  // Sigue y termina.
+  logSet(resumed, workouts, 0, 1, 82.5, 7, 3000);
+  logSet(resumed, workouts, 1, 0, 60, 10, 4000);
+  const sessions = [];
+  const meta = SS.complete(resumed, sessions, workouts, 5000, '2026-10-24');
+  SS.clearActive(store);
+  assert.equal(SS.loadActive(store), null);
+  assert.deepEqual([meta.status, meta.setsDone, meta.setsTotal], ['completada', 3, 3]);
+  assert.equal(workouts.length, 3);
+  assert.equal(new Set(workouts.map(w => w.setKey)).size, 3, 'ninguna serie duplicada');
+  // Completar o reconciliar otra vez no duplica nada.
+  SS.complete(resumed, sessions, workouts, 6000, '2026-10-24');
+  SS.reconcile(resumed, workouts, '2026-10-24');
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].finishedAt, 5000, 'la hora de fin original se conserva');
+  assert.equal(workouts.length, 3);
+});
+
+test('DEC-015: registrar dos veces la misma serie reemplaza la fila (clave estable) y no la duplica', () => {
+  const workouts = [];
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's2', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  logSet(rec, workouts, 0, 0, 80, 8, 10);
+  logSet(rec, workouts, 0, 0, 85, 6, 20);
+  assert.equal(workouts.length, 1);
+  assert.equal(SS.setKey('s2', 0, 0), workouts[0].setKey);
+  assert.equal(rec.values[0][0].doneAt, 10, 'la hora de la primera marca se conserva');
+});
+
+test('DEC-015: un corte entre las dos escrituras se repara al reanudar, en los dos sentidos', () => {
+  // (a) la fila se escribió y la sesión no: la sesión recupera la serie como hecha.
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's3', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  const workouts = [];
+  const other = SS.newSession({ profileId: 'p1', sessionId: 's3', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  logSet(other, workouts, 0, 0, 70, 9, 50);
+  assert.equal(rec.values[0][0].done, false);
+  assert.equal(SS.reconcile(rec, workouts, '2026-10-24'), 1);
+  assert.deepEqual([rec.values[0][0].done, rec.values[0][0].weight, rec.values[0][0].reps, rec.values[0][0].doneAt], [true, 70, 9, 50]);
+  // (b) la sesión la tiene hecha y la fila no se escribió: se crea la fila.
+  const rec2 = SS.newSession({ profileId: 'p1', sessionId: 's4', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  SS.markDone(rec2, 1, 0, { weight: 55, reps: 12, pain: null }, 99);
+  const w2 = [];
+  assert.equal(SS.reconcile(rec2, w2, '2026-10-24'), 1);
+  assert.equal(w2.length, 1);
+  assert.equal(w2[0].exercise, 'Jalón');
+  assert.equal(SS.reconcile(rec2, w2, '2026-10-24'), 0, 'idempotente');
+  // Las filas viejas (sin setKey) y las de otras sesiones no se tocan.
+  const legacy = [{ sessionId: 'viejo', exercise: 'Press banca', weight: 60, reps: 8, setType: 'normal', setNumber: 1 }];
+  SS.reconcile(rec2, legacy, '2026-10-24');
+  assert.equal(legacy.length, 2);
+  assert.equal(legacy[0].setKey, undefined);
+});
+
+test('DEC-015: descartar borra la sesión y sus series, sin tocar las demás', () => {
+  const store = memStorage();
+  const workouts = [{ sessionId: 'viejo', exercise: 'X', weight: 1, reps: 1 }];
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's5', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  logSet(rec, workouts, 0, 0, 80, 8, 10);
+  logSet(rec, workouts, 1, 0, 60, 10, 20);
+  SS.saveActive(store, rec, 30);
+  assert.equal(SS.discard(rec, workouts), 2);
+  SS.clearActive(store);
+  assert.deepEqual(workouts.map(w => w.sessionId), ['viejo']);
+  assert.equal(SS.loadActive(store), null);
+});
+
+test('DEC-015: un registro guardado ilegible o inválido no se toma por sesión y se puede avisar', () => {
+  const store = memStorage();
+  assert.equal(SS.loadActive(store), null);
+  assert.equal(SS.peekCorrupt(store), false);
+  store.setItem(SS.STORAGE_KEY, '{no es json');
+  assert.equal(SS.loadActive(store), null);
+  assert.equal(SS.peekCorrupt(store), true, 'queda guardado y se avisa en vez de perderlo en silencio');
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's6', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  const broken = Object.assign({}, rec, { values: rec.values.slice(1) });
+  store.setItem(SS.STORAGE_KEY, JSON.stringify(broken));
+  assert.equal(SS.loadActive(store), null, 'valores que no coinciden con los ejercicios');
+  store.setItem(SS.STORAGE_KEY, JSON.stringify(Object.assign({}, rec, { status: 'completada' })));
+  assert.equal(SS.loadActive(store), null, 'una sesión completada no se ofrece para reanudar');
+  store.setItem(SS.STORAGE_KEY, JSON.stringify(Object.assign({}, rec, { version: 99 })));
+  assert.equal(SS.loadActive(store), null);
+  // Si el almacenamiento falla al escribir, se avisa con false (la interfaz muestra un aviso).
+  assert.equal(SS.saveActive({ setItem() { throw new Error('cuota'); } }, rec, 5), false);
+});
+
+test('DEC-015: completar una sesión sin series hechas la deja como completada con 0 de N, una sola vez', () => {
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 's7', dayIndex: 1, dayName: 'D2', short: true, exercises: smExercises(), now: 10 });
+  const sessions = [], workouts = [];
+  const meta = SS.complete(rec, sessions, workouts, 20, '2026-10-24');
+  assert.deepEqual([meta.setsDone, meta.setsTotal, meta.short, meta.dayIndex], [0, 3, true, 1]);
+  assert.deepEqual(workouts, []);
+});

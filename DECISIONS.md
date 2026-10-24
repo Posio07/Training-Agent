@@ -350,3 +350,24 @@ Costos que la regla trae (se avisan en el plan): en los splits de 3 y 4 días lo
 
 **Estado: implementada (Fase 2).** Fuera de alcance: antagonistas, superseries y base de datos externa.
 
+## DEC-015 · Integridad del registro de sesión: sesión persistente, edición de series y cronómetro por timestamp
+Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. Problemas encontrados: la sesión en curso vivía solo en memoria (`sm`); un cierre o apagón perdía en qué ejercicio ibas, los valores tecleados y la hora de inicio; las series hechas quedaban en `profile.workouts` sin marca de sesión terminada; repetir el día creaba otro `sessionId` y permitía series duplicadas; no se podía editar ni borrar una serie; el cronómetro era un `setInterval` que restaba 1 por tick (se desfasa con la pantalla bloqueada), no se persistía y el Wake Lock no se volvía a pedir al volver a la pestaña.
+
+**Alcance por paso.** Paso 1 (sesión persistente y reanudable): implementado abajo. Pasos 2 (editar y borrar series) y 3 (cronómetro, Wake Lock y tono): pendientes, se documentan aquí al implementarlos.
+
+### Paso 1 · Sesión persistente y reanudable
+- **Capa de estado reutilizable:** `ifbb-pro-agent/js/sessionStore.js` (módulo sin DOM, probado en Node; la interfaz actual solo la llama). El rediseño visual reutiliza este módulo y no necesita tocar el estado.
+- **Dónde vive:** la sesión en curso se guarda en su propia clave de `localStorage` (`ifbb-agent:session:v1`), con `status: 'en_curso'`, `startedAt`, `updatedAt`, el ejercicio actual, un snapshot de los ejercicios (la reanudación no depende de regenerar el plan) y por cada serie `weight`, `reps`, `pain`, `done` y `doneAt` (timestamp). Se guarda al empezar, al teclear peso, repeticiones o dolor, al cambiar de ejercicio y al registrar cada serie.
+- **Series sin duplicados:** cada serie tiene una clave estable `setKey = sessionId:ejercicio:serie` y se escribe en `profile.workouts` con *upsert* (de ahí lee Progreso, igual que antes). Registrar o reconciliar dos veces la misma serie reemplaza la fila; una serie ya hecha no se vuelve a registrar. Las filas anteriores a este cambio no tienen `setKey` y no se tocan ni se migran.
+- **Dos escrituras, un corte posible:** primero se escribe la fila del historial y luego la sesión. Al reanudar, `reconcile` repara cualquiera de los dos cortes (fila sin reflejo en la sesión, o serie hecha en la sesión sin fila) y es idempotente.
+- **Al abrir la app:** si hay una sesión `en_curso`, aparece "Reanudar" o "Descartar" con el día y las series hechas. Reanudar restaura la pantalla, los valores tecleados y el ejercicio; vuelve a pedir el Wake Lock. Descartar pide confirmación y **borra la sesión y las series que ya había registrado** (solo las de esa sesión). Intentar empezar otra sesión con una en curso muestra el mismo aviso: hay una sola sesión activa.
+- **Cerrar con ✕** ya no termina la sesión: queda `en_curso` y se puede reanudar.
+- **Terminar:** la sesión pasa a `completada` una sola vez (`profile.sessions`: id, día, fechas, series hechas y totales), se borra la clave activa y no se vuelve a ofrecer. Completar dos veces no duplica la entrada ni cambia la hora de fin.
+- **Datos ilegibles:** un registro corrupto, de otra versión o inconsistente no se toma por sesión; no se borra en silencio y la app avisa ("no se pudo leer una sesión guardada"). Si el almacenamiento falla al escribir, se muestra un aviso.
+- **Privacidad (DEC-009):** la sesión activa, que puede incluir dolor por serie, se queda en el dispositivo. No entra en el export (la exportación sigue sin dolor).
+- **Límites conocidos:** una sesión sin ninguna serie hecha también se ofrece para reanudar (se descarta con un toque). Si dos pestañas abren la app a la vez, gana la última escritura. La duración mostrada en el resumen cuenta desde el inicio original, incluidas las pausas largas.
+- **Service worker:** precarga `sessionStore.js`; caché v7.
+- **Tests:** unitarios en `engine.test.js` (la puerta del despliegue): cerrar a mitad y reanudar con los mismos datos y sin duplicar; la misma serie dos veces; reparación en ambos sentidos y filas viejas intactas; descartar sin tocar otras sesiones; registros ilegibles o inválidos; completar sin series. E2E en navegador: registrar una serie, recargar (simula cerrar la app), ver el aviso, reanudar, terminar una sola vez, no reofrecer, y descartar. Pruebas de mutación: duplicar filas o apagar la reparación hacen fallar tests.
+
+**Estado: Paso 1 implementado.** Pasos 2 y 3 pendientes de aprobación.
+
