@@ -102,8 +102,11 @@
     // Fundido corto entre pestañas con la View Transitions API; si el
     // navegador no la soporta (o el usuario pide menos movimiento), el
     // cambio es instantáneo, sin fallback animado propio.
-    if (document.startViewTransition && !prefersReducedMotion()) document.startViewTransition(apply);
-    else apply();
+    if (document.startViewTransition && !prefersReducedMotion()) {
+      // Si la transición se aborta (recarga, pestaña oculta) la promesa se rechaza: se ignora, el cambio igual se aplica.
+      const vt = document.startViewTransition(apply);
+      [vt.ready, vt.finished, vt.updateCallbackDone].forEach(pr => pr && pr.catch && pr.catch(() => {}));
+    } else apply();
   }
 
   function render() {
@@ -804,7 +807,6 @@
   let sm = null; // estado del modo sesión activo (o null si no hay ninguno)
   let smWakeLock = null;
   let smTimerInterval = null;
-  let smTimerState = null;
 
   function parseRestSeconds(label) {
     const m = String(label || '').match(/(\d+)/);
@@ -957,20 +959,38 @@
     });
   }
 
+  // Wake Lock (DEC-015, Paso 3): mantiene la pantalla encendida durante la sesión. El navegador lo libera
+  // solo al ocultar la app, así que se vuelve a pedir en visibilitychange. Si no está soportado (o se
+  // deniega) se avisa una vez y el cronómetro sigue siendo exacto porque no depende de la pantalla.
+  let smWakeLockSupported = true;
   async function requestWakeLock() {
-    try { if ('wakeLock' in navigator) smWakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* no disponible o denegado: seguimos igual */ }
+    if (!('wakeLock' in navigator)) { smWakeLockSupported = false; return; }
+    if (smWakeLock) return;
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      smWakeLock = lock;
+      lock.addEventListener('release', () => { if (smWakeLock === lock) smWakeLock = null; });
+      smWakeLockSupported = true;
+    } catch (e) { smWakeLockSupported = false; /* denegado o no disponible: seguimos igual */ }
   }
   function releaseWakeLock() { try { if (smWakeLock) { smWakeLock.release(); smWakeLock = null; } } catch (e) { /* noop */ } }
 
+  /* DEC-015 · sesión persistente: la sesión en curso se guarda aparte (SESSION_STORE) cada vez que
+   * cambia, así sobrevive a un cierre de la app o a que se apague el teléfono. */
+  const SS = window.SESSION_STORE;
+  const persistSm = () => {
+    if (!sm || sm.status !== SS.STATUS.ACTIVE) return;
+    if (!SS.saveActive(localStorage, sm, Date.now())) toast('No se pudo guardar la sesión en curso.');
+  };
+
   function startSessionMode(profile, plan, dayIndex, short) {
+    const pending = SS.loadActive(localStorage);
+    if (pending) { toast('Tienes una sesión en curso: reanúdala o descártala primero.'); offerResume(); return; }
     const session = plan.training.sessions[dayIndex];
     const exercises = buildSmExercises(session, short, profile);
     if (!exercises.length) { toast('Este día no tiene multiarticulares para la versión corta.'); return; }
-    sm = {
-      profileId: profile.id, sessionId: uid(), dayIndex, dayName: session.name, short,
-      exercises, exIndex: 0, startedAt: Date.now(), finished: false,
-      values: exercises.map(e => e.sets.map(() => ({ weight: '', reps: '', done: false, pain: '' }))),
-    };
+    sm = SS.newSession({ profileId: profile.id, sessionId: uid(), dayIndex, dayName: session.name, short, exercises, now: Date.now() });
+    persistSm();
     requestWakeLock();
     let root = document.getElementById('session-mode-root');
     if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
@@ -983,6 +1003,110 @@
     const root = document.getElementById('session-mode-root');
     if (root) root.remove();
     sm = null;
+    smEditing = null;
+  }
+
+  /* DEC-015 (Paso 2) · editor mínimo de una serie: peso y repeticiones, Guardar / Borrar / Cancelar.
+   * Lo comparten el modo sesión y el historial. `attr` es el atributo data-* que identifica la serie. */
+  function setEditorHtml(attr, id, weight, reps, unit) {
+    return `<form class="set-editor" data-set-editor data-editor-id="${esc(id)}" novalidate>
+      <div class="sm-set-row">
+        <div class="fieldwrap"><input type="number" inputmode="decimal" step="any" name="weight" value="${esc(weight)}" aria-label="Peso (${esc(unit)})"><div class="unit">peso (${esc(unit)})</div></div>
+        <div class="fieldwrap"><input type="number" inputmode="numeric" step="1" name="reps" value="${esc(reps)}" aria-label="Repeticiones"><div class="unit">reps</div></div>
+      </div>
+      <div class="btn-row" style="margin:.4rem 0 0"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
+    </form>`;
+  }
+  // Conecta el editor que haya dentro de `root`. onSave(vals) debe devolver { ok, error }.
+  function wireSetEditor(root, { onSave, onDelete, onCancel }) {
+    const form = root.querySelector('[data-set-editor]');
+    if (!form) return;
+    form.onsubmit = e => {
+      e.preventDefault();
+      const r = onSave({ weight: form.elements.weight.value, reps: form.elements.reps.value });
+      if (r && !r.ok) toast(r.error);
+    };
+    form.querySelector('[data-editor-cancel]').onclick = onCancel;
+    form.querySelector('[data-editor-delete]').onclick = async () => {
+      const ok = await confirmModal('¿Borrar esta serie? Se quita también del historial y de tu progreso.', { confirmLabel: 'Borrar', cancelLabel: 'Cancelar' });
+      if (ok) onDelete();
+    };
+  }
+  let smEditing = null; // { ex, set } de la serie en edición dentro del modo sesión
+
+  // Editar o borrar una serie ya registrada de la sesión en curso.
+  function smEditSet(profile, exIndex, setIdx, vals) {
+    const r = SS.editActiveSet(sm, exIndex, setIdx, vals, Date.now());
+    if (!r.ok) return r;
+    persistSm(); // 1) la sesión, 2) la fila del historial
+    SS.syncRow(sm, profile.workouts = profile.workouts || [], exIndex, setIdx, todayIso());
+    profile.updatedAt = todayIso(); save();
+    smEditing = null; renderSessionMode(profile);
+    return r;
+  }
+  function smDeleteSet(profile, exIndex, setIdx) {
+    const r = SS.deleteActiveSet(sm, exIndex, setIdx);
+    if (!r.ok) { toast(r.error); return; }
+    persistSm(); // la intención de borrar queda guardada antes de tocar el historial
+    SS.removeRow(profile.workouts = profile.workouts || [], r.key);
+    profile.updatedAt = todayIso(); save();
+    smEditing = null; renderSessionMode(profile);
+  }
+
+  // Terminar: la sesión pasa a 'completada' (una sola vez) y deja de ser reanudable.
+  function finishSm(profile) {
+    if (sm.status === SS.STATUS.ACTIVE) {
+      SS.clearRest(sm); closeTimer();
+      profile.sessions = profile.sessions || [];
+      profile.workouts = profile.workouts || [];
+      SS.complete(sm, profile.sessions, profile.workouts, Date.now(), todayIso());
+      profile.updatedAt = todayIso();
+      save();
+      SS.clearActive(localStorage);
+    }
+    sm.finished = true;
+    renderSessionMode(profile);
+  }
+
+  /* Al abrir la app: si quedó una sesión 'en_curso', ofrecer Reanudar o Descartar. */
+  function offerResume() {
+    if (document.getElementById('resume-prompt')) return;
+    if (SS.peekCorrupt(localStorage)) { toast('Hay una sesión guardada que no se pudo leer.'); return; }
+    const rec = SS.loadActive(localStorage);
+    if (!rec) return;
+    const profile = state.profiles.find(p => p.id === rec.profileId);
+    if (!profile) { SS.clearActive(localStorage); return; } // el perfil ya no existe
+    const pr = SS.progress(rec);
+    const ov = document.createElement('div');
+    ov.id = 'resume-prompt'; ov.className = 'card accent'; ov.setAttribute('role', 'alertdialog');
+    ov.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.35)';
+    ov.innerHTML = `<h3>Tienes una sesión en curso</h3>
+      <p>${esc(rec.dayName)}${rec.short ? ' · versión corta' : ''} · ${pr.done}/${pr.total} series hechas · empezó ${esc(new Date(rec.startedAt).toLocaleString('es'))}.</p>
+      <div class="btn-row"><button class="btn btn-primary" id="resume-yes">Reanudar</button><button class="btn" id="resume-no">Descartar</button></div>`;
+    document.body.appendChild(ov);
+    $('#resume-yes').onclick = () => {
+      ov.remove();
+      state.activeId = profile.id;
+      if (SS.reconcile(rec, profile.workouts = profile.workouts || [], todayIso())) { profile.updatedAt = todayIso(); save(); }
+      sm = rec;
+      persistSm();
+      requestWakeLock();
+      let root = document.getElementById('session-mode-root');
+      if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
+      renderSessionMode(profile);
+      // Si había un descanso en marcha, sigue con lo que falta según el reloj real; si ya venció, se limpia sin sonar.
+      if (sm.rest) { if (SS.restRemaining(sm, Date.now()) > 0) showRestOverlay(); else { SS.clearRest(sm); persistSm(); } }
+    };
+    $('#resume-no').onclick = async () => {
+      const n = pr.done;
+      const ok = await confirmModal(n ? `Se descartará la sesión y se borrarán sus ${n} series registradas. ¿Continuar?` : '¿Descartar la sesión en curso?', { confirmLabel: 'Descartar', cancelLabel: 'Cancelar' });
+      if (!ok) return;
+      ov.remove();
+      const removed = SS.discard(rec, profile.workouts = profile.workouts || []);
+      if (removed) { profile.updatedAt = todayIso(); save(); }
+      SS.clearActive(localStorage);
+      toast('Sesión descartada');
+    };
   }
 
   function lastTimeFor(profile, exerciseName) {
@@ -1011,6 +1135,7 @@
           <button class="btn" id="sm-finish">Terminar</button>
         </div>
         <div class="session-mode-body">
+          ${(!('wakeLock' in navigator) || !smWakeLockSupported) ? `<p class="help" id="sm-wakelock-note">Tu navegador no puede mantener la pantalla encendida. Desactiva el bloqueo automático mientras entrenas; el cronómetro de descanso sigue siendo exacto aunque la pantalla se apague.</p>` : ''}
           <h2 class="sm-exname">${esc(ex.name)}</h2>
           <div class="sm-exmeta">${esc(ex.muscleLabel)} ${sm.short ? `· ~${ex.durationMin} min` : ''}</div>
           ${ex.substitutedFrom ? `<div class="alert warn">Reemplaza a "${esc(ex.substitutedFrom)}" por el dolor registrado la vez pasada. Te sugerimos consultar a un profesional. ${evTag('E4')}</div>` : ''}
@@ -1034,12 +1159,17 @@
 
   function htmlSmSet(st, i, v, unit, painScale) {
     const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${st.setNumber}` }[st.setType];
+    if (v.done && smEditing && smEditing.ex === sm.exIndex && smEditing.set === i) {
+      return `<div class="sm-set editing" data-set="${i}"><div class="sm-set-title">${esc(label)} · editar</div>${setEditorHtml('sm', `${sm.exIndex}:${i}`, v.weight, v.reps, unit)}</div>`;
+    }
     return `<div class="sm-set ${v.done ? 'done' : ''}" data-set="${i}">
       <div class="sm-set-row">
         <div class="idx">${label === `Serie ${st.setNumber}` ? st.setNumber : (st.setType === 'top' ? icon('trophy') : '↓')}</div>
         <div class="fieldwrap"><input type="number" inputmode="decimal" placeholder="${unit}" value="${v.weight || ''}" data-sm-weight="${i}" ${v.done ? 'disabled' : ''}><div class="unit">peso (${unit})</div></div>
         <div class="fieldwrap"><input type="number" inputmode="numeric" placeholder="${st.repsLabel}" value="${v.reps || ''}" data-sm-reps="${i}" ${v.done ? 'disabled' : ''}><div class="unit">reps (obj. ${esc(st.repsLabel)})</div></div>
-        <button class="btn ${v.done ? '' : 'btn-primary'} done-btn" data-sm-done="${i}" ${v.done ? 'disabled' : ''}>${v.done ? icon('check', 'check-draw') : 'Hecha'}</button>
+        ${v.done
+          ? `<button class="btn done-btn" data-sm-edit="${i}" aria-label="Editar o borrar esta serie">${icon('check', 'check-draw')} Editar</button>`
+          : `<button class="btn btn-primary done-btn" data-sm-done="${i}">Hecha</button>`}
       </div>
       ${painScale ? `<div class="fieldwrap sm-pain"><input type="number" inputmode="numeric" min="0" max="10" placeholder="0-10" value="${v.pain === '' || v.pain == null ? '' : v.pain}" data-sm-pain="${i}" ${v.done ? 'disabled' : ''}><div class="unit">dolor en esta serie (0-10)</div></div>` : ''}
     </div>`;
@@ -1047,19 +1177,29 @@
 
   function wireSessionMode(profile) {
     const root = document.getElementById('session-mode-root');
-    $('#sm-close').onclick = () => { if (confirm('¿Salir del modo sesión? Lo ya registrado queda guardado.')) endSessionMode(); };
-    $('#sm-finish').onclick = () => { sm.finished = true; renderSessionMode(profile); };
-    $('#sm-prev').onclick = () => { sm.exIndex = Math.max(0, sm.exIndex - 1); renderSessionMode(profile); };
+    // ✕ no termina la sesión: queda 'en_curso' y se puede reanudar al volver a abrir la app.
+    $('#sm-close').onclick = () => { if (confirm('¿Salir del modo sesión? La sesión queda guardada y podrás reanudarla.')) endSessionMode(); };
+    $('#sm-finish').onclick = () => finishSm(profile);
+    $('#sm-prev').onclick = () => { sm.exIndex = Math.max(0, sm.exIndex - 1); persistSm(); renderSessionMode(profile); };
     const next = () => {
-      if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; renderSessionMode(profile); }
-      else { sm.finished = true; renderSessionMode(profile); }
+      if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); }
+      else finishSm(profile);
     };
     $('#sm-next').onclick = next;
-    const nextArrow = $('#sm-next-arrow'); if (nextArrow) nextArrow.onclick = () => { if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; renderSessionMode(profile); } };
-    root.querySelectorAll('[data-sm-weight]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smWeight)].weight = inp.value; });
-    root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; });
-    root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; });
+    const nextArrow = $('#sm-next-arrow'); if (nextArrow) nextArrow.onclick = () => { if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); } };
+    root.querySelectorAll('[data-sm-weight]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smWeight)].weight = inp.value; persistSm(); });
+    root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; persistSm(); });
+    root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; persistSm(); });
     root.querySelectorAll('[data-sm-done]').forEach(btn => btn.onclick = () => smLogSet(profile, Number(btn.dataset.smDone)));
+    root.querySelectorAll('[data-sm-edit]').forEach(btn => btn.onclick = () => { smEditing = { ex: sm.exIndex, set: Number(btn.dataset.smEdit) }; renderSessionMode(profile); });
+    if (smEditing) {
+      const { ex, set } = smEditing;
+      wireSetEditor(root, {
+        onSave: vals => smEditSet(profile, ex, set, vals),
+        onDelete: () => smDeleteSet(profile, ex, set),
+        onCancel: () => { smEditing = null; renderSessionMode(profile); },
+      });
+    }
   }
 
   // DEC-009: marca/desmarca un ejercicio para sustituir según el dolor
@@ -1076,18 +1216,18 @@
     const ex = sm.exercises[sm.exIndex], st = ex.sets[setIdx], v = sm.values[sm.exIndex][setIdx];
     const reps = parseInt(v.reps, 10);
     if (!reps || reps <= 0) { toast('Poné las repeticiones hechas.'); return; }
+    if (v.done) return; // ya registrada: no se vuelve a registrar (sin duplicados)
     const weight = parseFloat(v.weight) || 0;
-    v.weight = weight; v.reps = reps; v.done = true;
     let pain = null;
-    if (ex.painScale) { pain = v.pain === '' || v.pain == null ? null : Math.min(10, Math.max(0, parseInt(v.pain, 10))); v.pain = pain; if (pain != null) logPain(profile, ex.pattern, pain); }
+    if (ex.painScale) { pain = v.pain === '' || v.pain == null ? null : Math.min(10, Math.max(0, parseInt(v.pain, 10))); if (pain != null) logPain(profile, ex.pattern, pain); }
+    SS.markDone(sm, sm.exIndex, setIdx, { weight, reps, pain }, Date.now());
+    // Primero la fila del historial (clave estable: upsert, nunca duplica) y después la sesión.
+    // Si se corta entre las dos escrituras, SS.reconcile lo repara al reanudar.
     profile.workouts = profile.workouts || [];
-    profile.workouts.push({
-      sessionId: sm.sessionId, date: todayIso(), dayIndex: sm.dayIndex, dayName: sm.dayName,
-      exercise: ex.name, exerciseId: ex.exerciseId, muscle: ex.muscle, setType: st.setType, setNumber: st.setNumber,
-      weight, reps, pain, short: sm.short, savedAt: Date.now(),
-    });
+    SS.upsertWorkout(profile.workouts, SS.workoutRow(sm, sm.exIndex, setIdx, todayIso()));
     profile.updatedAt = todayIso();
     save();
+    persistSm();
     renderSessionMode(profile);
     startRestTimer(st.restLabel);
     if (st.setType === 'top') maybeShowRecord(profile, ex, weight, reps);
@@ -1099,14 +1239,15 @@
    * mejor 1RM estimado del mismo ejercicio en sesiones ANTERIORES
    * (nunca la actual). Máximo una vez por ejercicio y por sesión. */
   function maybeShowRecord(profile, ex, weight, reps) {
-    sm.recordShown = sm.recordShown || new Set();
-    if (sm.recordShown.has(ex.name) || !weight) return;
+    sm.recordShown = sm.recordShown || [];
+    if (sm.recordShown.includes(ex.name) || !weight) return;
     const prior = (profile.workouts || []).filter(w => w.exercise === ex.name && w.setType === 'top' && w.sessionId !== sm.sessionId);
     if (!prior.length) return;
     const epley = (w, r) => w * (1 + r / 30);
     const priorBest = Math.max(...prior.map(w => epley(w.weight, w.reps)));
     if (epley(weight, reps) <= priorBest) return;
-    sm.recordShown.add(ex.name);
+    sm.recordShown.push(ex.name);
+    persistSm();
     showRecordMoment(profile, weight, reps);
   }
 
@@ -1128,10 +1269,46 @@
   const TIMER_RING_R = 52;
   const TIMER_RING_C = 2 * Math.PI * TIMER_RING_R;
 
+  /* DEC-015 (Paso 3) · tono al llegar a cero con Web Audio. El AudioContext se crea y se reanuda dentro del
+   * gesto que inicia el descanso (tocar "Hecha"): los navegadores no dejan sonar audio sin un gesto previo. */
+  let audioCtx = null;
+  function unlockAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { /* sin audio: queda la vibración */ }
+  }
+  function playRestTone() {
+    try {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t0 = audioCtx.currentTime + 0.02;
+      [0, 0.28, 0.56].forEach((dt, i) => {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.value = i === 2 ? 1175 : 880;
+        gain.gain.setValueAtTime(0.0001, t0 + dt);
+        gain.gain.exponentialRampToValueAtTime(0.35, t0 + dt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t0 + dt); osc.stop(t0 + dt + 0.22);
+      });
+    } catch (e) { /* noop */ }
+  }
+
+  // El descanso es un timestamp de fin guardado en la sesión: ver SS.startRest.
   function startRestTimer(restLabel) {
-    const total = parseRestSeconds(restLabel);
-    smTimerState = { remaining: total, total };
+    SS.startRest(sm, parseRestSeconds(restLabel), Date.now());
+    persistSm();
+    unlockAudio();
+    showRestOverlay();
+  }
+
+  function showRestOverlay() {
+    if (!sm || !sm.rest) return;
     const root = document.getElementById('session-mode-root');
+    if (!root) return;
     closeTimer();
     const ov = document.createElement('div'); ov.className = 'timer-overlay'; ov.id = 'sm-timer';
     ov.innerHTML = `<div class="timer-label">Descanso</div>
@@ -1140,35 +1317,53 @@
           <circle class="ring-bg" cx="60" cy="60" r="${TIMER_RING_R}"></circle>
           <circle class="ring-fg" id="sm-timer-ring-fg" cx="60" cy="60" r="${TIMER_RING_R}" stroke-dasharray="${TIMER_RING_C.toFixed(1)}" stroke-dashoffset="0"></circle>
         </svg>
-        <div class="timer-num-wrap"><div class="timer-num" id="sm-timer-num">${fmtTimer(total)}</div></div>
+        <div class="timer-num-wrap"><div class="timer-num" id="sm-timer-num" role="timer">${fmtTimer(SS.restRemaining(sm, Date.now()))}</div></div>
       </div>
-      <div class="timer-actions"><button class="btn btn-lg" id="sm-timer-plus30">+30 s</button><button class="btn btn-primary btn-lg" id="sm-timer-skip">Saltar</button></div>`;
+      <div class="timer-actions"><button class="btn btn-lg" id="sm-timer-plus30">+30 s</button><button class="btn btn-primary btn-lg" id="sm-timer-skip">Saltar</button></div>
+      <p class="help timer-note">Con la pantalla bloqueada el aviso al llegar a cero puede no sonar ni vibrar; al desbloquear verás el tiempo correcto.</p>`;
     root.appendChild(ov);
-    const updateTimerUi = () => {
-      const r = Math.max(0, smTimerState.remaining);
-      const numEl = document.getElementById('sm-timer-num'); if (numEl) numEl.textContent = fmtTimer(r);
-      const fg = document.getElementById('sm-timer-ring-fg');
-      if (fg) fg.style.strokeDashoffset = (TIMER_RING_C * (1 - Math.min(1, r / smTimerState.total))).toFixed(1);
-      const ring = ov.querySelector('.timer-ring'); if (ring) ring.classList.toggle('urgent', r <= 10 && r > 0);
-    };
-    updateTimerUi();
-    $('#sm-timer-plus30').onclick = () => { smTimerState.remaining += 30; updateTimerUi(); };
-    $('#sm-timer-skip').onclick = () => closeTimer();
-    smTimerInterval = setInterval(() => {
-      smTimerState.remaining -= 1;
-      updateTimerUi();
-      if (smTimerState.remaining <= 0) {
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        clearInterval(smTimerInterval); smTimerInterval = null;
-        const wrap = document.getElementById('sm-timer-ring-wrap');
-        if (wrap) { wrap.classList.add('pulse'); setTimeout(closeTimer, 500); } else closeTimer();
-      }
-    }, 1000);
+    $('#sm-timer-plus30').onclick = () => { SS.extendRest(sm, 30); persistSm(); tickRest(); };
+    $('#sm-timer-skip').onclick = () => { SS.clearRest(sm); persistSm(); closeTimer(); };
+    tickRest();
+    if (sm && sm.rest) smTimerInterval = setInterval(tickRest, 250);
+  }
+
+  // Cada tick (y cada vez que la pantalla vuelve a ser visible) se recalcula lo que falta desde el timestamp de fin.
+  function tickRest(opts) {
+    if (!sm || !sm.rest) { closeTimer(); return; }
+    const r = SS.restRemaining(sm, Date.now());
+    const numEl = document.getElementById('sm-timer-num'); if (numEl) numEl.textContent = fmtTimer(r);
+    const fg = document.getElementById('sm-timer-ring-fg');
+    if (fg) fg.style.strokeDashoffset = (TIMER_RING_C * (1 - Math.min(1, r / sm.rest.total))).toFixed(1);
+    const ring = document.querySelector('#sm-timer .timer-ring'); if (ring) ring.classList.toggle('urgent', r <= 10 && r > 0);
+    if (r > 0) return;
+    // Llegó a cero. Si se cumplió con la pantalla oculta o la app cerrada, no suena tarde: solo se cierra.
+    const late = opts && opts.silent;
+    SS.clearRest(sm); persistSm();
+    if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
+    if (!late) {
+      playRestTone();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      const wrap = document.getElementById('sm-timer-ring-wrap');
+      if (wrap) { wrap.classList.add('pulse'); setTimeout(closeTimer, 500); return; }
+    }
+    closeTimer();
   }
   function closeTimer() {
     if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
     const ov = document.getElementById('sm-timer'); if (ov) ov.remove();
   }
+
+  // Al volver a la app (desbloquear, cambiar de pestaña): el Wake Lock se libera solo al ocultarse, así que
+  // se vuelve a pedir, y el descanso se recalcula de inmediato con el reloj real.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !sm || sm.status !== SS.STATUS.ACTIVE || sm.finished) return;
+    requestWakeLock();
+    if (sm.rest) {
+      if (!document.getElementById('sm-timer') && SS.restRemaining(sm, Date.now()) > 0) showRestOverlay();
+      else tickRest({ silent: true });
+    }
+  });
 
   function priorTopWeightFor(profile, exerciseName) {
     const all = (profile.workouts || []).filter(w => w.exercise === exerciseName && w.setType === 'top' && w.sessionId !== sm.sessionId);
@@ -1283,6 +1478,7 @@
         <h3>Fuerza</h3>
         ${strengthSection(workouts)}
       </div>
+      ${htmlSessionHistory(p)}
       <div class="card">
         <h3>Historial</h3>
         ${log.length ? `<table><tr><th>Fecha</th><th class="num">Peso</th><th class="num">% grasa</th><th class="num">Cintura</th><th></th></tr>
@@ -1302,6 +1498,7 @@
       const idx = Number(b.dataset.del); const sorted = log; const target = sorted[idx];
       p.log = p.log.filter(x => x !== target); save(); renderProgress();
     });
+    wireSessionHistory(p);
     const sel = $('#strength-exercise-select');
     if (sel) sel.onchange = () => { ui.strengthExercise = sel.value; renderProgress(); };
     const apply = $('#btn-apply');
@@ -1368,6 +1565,50 @@
       ${ticks}<path class="line" pathLength="100" d="${mainPath}"/>${dotsHtml}
       <text x="${L}" y="${H - 6}">${fmtDate(log[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmtDate(log[log.length - 1].date)}</text>
     </svg>`;
+  }
+
+  /* DEC-015 (Paso 2) · historial de sesiones: tocar una serie para editar peso y repeticiones o borrarla. */
+  let histEditing = null; // rowId de la serie en edición
+  let histOpen = null; // sesión desplegada (se conserva al guardar o borrar)
+  const HISTORY_LIMIT = 30;
+  function htmlSessionHistory(p) {
+    const activeRec = SS.loadActive(localStorage);
+    const list = SS.listSessions(p.workouts || [], p.sessions || [], activeRec ? activeRec.sessionId : null);
+    const unit = p.data.plateUnit || 'kg';
+    if (!list.length) return `<div class="card"><h3>Sesiones registradas</h3><p class="muted">Todavía no registraste ninguna sesión.</p></div>`;
+    const row = w => {
+      const id = SS.rowId(w);
+      const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${w.setNumber}` }[w.setType] || `Serie ${w.setNumber}`;
+      if (histEditing === id) return `<li class="hist-row editing"><div class="muted">${esc(w.exercise)} · ${esc(label)}</div>${setEditorHtml('hist', id, w.weight, w.reps, unit)}</li>`;
+      return `<li class="hist-row"><button class="btn btn-ghost" data-hist-edit="${esc(id)}" aria-label="Editar o borrar: ${esc(w.exercise)}, ${esc(label)}"><b>${esc(w.exercise)}</b> · ${esc(label)} · ${n1(w.weight)} ${esc(unit)} × ${w.reps}${w.editedAt ? ' <span class="muted">(editada)</span>' : ''}</button></li>`;
+    };
+    return `<div class="card"><h3>Sesiones registradas</h3>
+      <p class="help">Toca una serie para corregir su peso o repeticiones, o para borrarla.</p>
+      ${list.slice(0, HISTORY_LIMIT).map(x => `<details class="hist-session" data-sid="${esc(x.sessionId)}"${x.sessionId === histOpen || x.rows.some(r => SS.rowId(r) === histEditing) ? ' open' : ''}>
+        <summary>${fmtDate(x.date)} · ${esc(x.dayName)} · ${x.rows.length} series${x.status === 'sin_estado' ? ' <span class="muted">(sin estado)</span>' : ''}</summary>
+        <ul class="hist-rows">${x.rows.length ? x.rows.map(row).join('') : '<li class="muted">Sin series.</li>'}</ul>
+      </details>`).join('')}
+      ${list.length > HISTORY_LIMIT ? `<p class="muted">Se muestran las ${HISTORY_LIMIT} sesiones más recientes.</p>` : ''}
+    </div>`;
+  }
+  function wireSessionHistory(p) {
+    view.querySelectorAll('.hist-session').forEach(d => d.ontoggle = () => { if (d.open) histOpen = d.dataset.sid; else if (histOpen === d.dataset.sid) histOpen = null; });
+    view.querySelectorAll('[data-hist-edit]').forEach(btn => btn.onclick = () => { histEditing = btn.dataset.histEdit; renderProgress(); });
+    if (!histEditing) return;
+    const id = histEditing;
+    wireSetEditor(view, {
+      onSave: vals => {
+        const r = SS.editRow(p.workouts || [], id, vals, Date.now());
+        if (r.ok) { p.updatedAt = todayIso(); save(); histEditing = null; renderProgress(); }
+        return r;
+      },
+      onDelete: () => {
+        const r = SS.deleteRow(p.workouts || [], p.sessions = p.sessions || [], id, Date.now());
+        if (!r.ok) { toast(r.error); return; }
+        p.updatedAt = todayIso(); save(); histEditing = null; toast('Serie borrada'); renderProgress();
+      },
+      onCancel: () => { histEditing = null; renderProgress(); },
+    });
   }
 
   function strengthSection(workouts) {
@@ -1448,4 +1689,5 @@
   /* ---------- Arranque ---------- */
   if (active()) ui.tab = 'plan';
   go(ui.tab);
+  offerResume(); // DEC-015
 })();
