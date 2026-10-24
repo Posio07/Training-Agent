@@ -28,13 +28,13 @@ Los valores, el nivel, la fuente y la fecha de revisión de cada regla viven en 
 
 ## Reglas del validador
 
-Son cinco reglas: tres firmes (R1, R2, R5), una heurística etiquetada (R3) y una derivada por cálculo (R4).
+Son cinco reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3) y una derivada por cálculo (R4).
 
-### R1 · Tope por músculo por sesión (E3)
+### R1 · Aviso de rendimiento decreciente por músculo por sesión (E3)
 
-- **Regla:** como máximo 11 series fraccionadas por músculo por sesión. Una serie directa cuenta 1 y una indirecta cuenta 0.5.
-- **Acción si se excede:** recortar primero las series de aislamiento de ese músculo. Si la frecuencia lo permite, redistribuirlas a otro día.
-- **Base:** el meta-análisis de volumen por sesión de Pelland y colegas encontró el punto sin mejora detectable en ~11 series fraccionadas para hipertrofia y ~2 directas para fuerza. Es un preprint.
+- **Regla:** avisar cuando un músculo supera ~11 series fraccionadas en una sesión. Una serie directa cuenta 1 y una indirecta cuenta 0.5. **No es un tope**: es el punto desde el cual los datos dejan de mostrar mejoras detectables, y los propios autores aclaran que no es un límite superior.
+- **Acción si se supera:** avisar al usuario con la regla, el nivel de evidencia y la fuente. Si la frecuencia lo permite, sugerir repartir el volumen en otro día. No se recorta de forma automática.
+- **Base:** el preprint de volumen por sesión de Remmert y colegas (Pelland es coautor, no primer autor) encontró el punto sin mejora detectable (PUOS) en ~11 series fraccionadas para hipertrofia y ~2 directas para fuerza. El umbral se fijó de forma arbitraria, casi no hay datos con volúmenes altos y muchos estudios entrenaban un solo músculo. Es un preprint sin revisión por pares.
 
 ### R2 · Piso semanal y frecuencia (E1)
 
@@ -90,7 +90,7 @@ Los tres casos cubren una falla real, una falla de seguridad y un control para e
 
 | Caso | Entrada | Reglas que se disparan | Resultado esperado |
 | --- | --- | --- | --- |
-| A · Experimento de pierna | Historial de 3–4 ejercicios de pierna por día; nueva rutina con día de cuádriceps de 24 series y día de isquios de 21 | R3: salto de volumen muy superior a 20%. R1: glúteo con ~14 fraccionadas el día de cuádriceps (hip thrust 4 + abducción 4 directas, y 12 indirectas de sentadilla, prensa, búlgara y rumano) y ~11.5 el día de isquios | Rampa de varias semanas propuesta; primero se recortan los aislamientos de glúteo; el paseo del granjero no cuenta para cuádriceps |
+| A · Experimento de pierna | Historial de 3–4 ejercicios de pierna por día; nueva rutina con día de cuádriceps de 24 series y día de isquios de 21 | R3: salto de volumen muy superior a 20%. R1: glúteo con ~14 fraccionadas el día de cuádriceps (hip thrust 4 + abducción 4 directas, y 12 indirectas de sentadilla, prensa, búlgara y rumano) y ~11.5 el día de isquios | Rampa de varias semanas propuesta; aviso de rendimiento decreciente en glúteo, con sugerencia de repartir sus aislamientos; el paseo del granjero no cuenta para cuádriceps |
 | B · Full body con hombro | 3 días por semana, 34 series por sesión, sin tiempo indicado, lesión de hombro declarada | R5, R4, R3 (usuario sin historial), R1 a verificar por músculo | Las 34 series no se muestran. Primero aparece la advertencia con derivación; tras la confirmación, se genera la dosis mínima de R2 con su duración estimada |
 | C · Control válido | Torso/Pierna de 4 días, 12–16 series por músculo por semana, 11 o menos por sesión, historial similar | Ninguna | La rutina pasa sin cambios ni advertencias |
 
@@ -120,8 +120,8 @@ Salvo el preprint, se consultaron resúmenes y no los textos completos. Por eso 
 
 | Regla | Fuente |
 | --- | --- |
-| R1 | [Pelland et al., meta-regresiones del volumen por sesión (preprint, SportRxiv)](https://sportrxiv.org/index.php/server/preprint/view/537) |
-| R1, R2 | [Pelland et al., dosis-respuesta del volumen semanal y la frecuencia (resumen)](https://train.fitness/personal-trainer-blogs/not-all-sets-are-created-equal) |
+| R1 | [Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv)](https://sportrxiv.org/index.php/server/preprint/view/537) |
+| R1, R2 | [Pelland et al. 2026, dosis-respuesta del volumen semanal y la frecuencia (resumen)](https://train.fitness/personal-trainer-blogs/not-all-sets-are-created-equal) |
 | R2, R4 | [ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)](https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines) · [tabla de recomendaciones ACSM 2026 vs 2009](https://exrx.net/WeightTraining/Guidelines.html) |
 | R3 | [FAPESP: la progresión óptima de volumen no está definida (estudio de 20% vs 120% en curso)](https://bv.fapesp.br/en/bolsas/223465/URL) · [Gabbett, ratio de carga aguda/crónica](https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management) |
 | R5 | [ACE: tamizaje ACSM y PAR-Q+](https://www.acefitness.org/continuing-education/certified/february-2018/6898/new-preparticipation-guidelines-remove-barriers-to-exercise) · [Algoritmo ACSM 2015 de tamizaje previo (PMC)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7059860) |
