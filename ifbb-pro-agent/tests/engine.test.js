@@ -1721,3 +1721,55 @@ test('DEC-015: editar y borrar en el historial (sesiones completadas y registros
   SS.editRow(workouts, 'h1:0:0', { weight: 65, reps: 10 }, 1100);
   assert.equal(workouts.find(w => w.setKey === 'h1:0:0').weight, 65);
 });
+
+/* ---------- DEC-015 (Paso 3): cronómetro de descanso por timestamp de fin ---------- */
+
+const restRec = () => SS.newSession({ profileId: 'p1', sessionId: 'r1', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 0 });
+
+test('DEC-015: un descanso de 90 s muestra el tiempo correcto al desbloquear aunque no haya habido ningún tick', () => {
+  const rec = restRec();
+  const T0 = 1_000_000;
+  SS.startRest(rec, 90, T0);
+  assert.equal(rec.rest.endAt, T0 + 90_000);
+  assert.equal(SS.restRemaining(rec, T0), 90);
+  // Pantalla bloqueada: nadie llama a nada durante 60 s. Al desbloquear se recalcula desde el timestamp de fin.
+  assert.equal(SS.restRemaining(rec, T0 + 60_000), 30);
+  assert.equal(SS.restRemaining(rec, T0 + 60_400), 30, 'redondea hacia arriba: nunca muestra 0 antes de tiempo');
+  assert.equal(SS.restRemaining(rec, T0 + 89_001), 1);
+  // Bloqueado más tiempo del que dura el descanso: terminó, nunca negativo.
+  assert.equal(SS.restRemaining(rec, T0 + 90_000), 0);
+  assert.equal(SS.restRemaining(rec, T0 + 600_000), 0);
+});
+
+test('DEC-015: +30 s alarga el fin y el descanso sobrevive a un cierre de la app', () => {
+  const store = memStorage();
+  const rec = restRec();
+  const T0 = 5_000;
+  SS.startRest(rec, 90, T0);
+  SS.extendRest(rec, 30);
+  assert.deepEqual([rec.rest.total, SS.restRemaining(rec, T0)], [120, 120]);
+  SS.saveActive(store, rec, T0 + 1);
+  // La app se cierra 40 s y se vuelve a abrir.
+  const back = SS.loadActive(store);
+  assert.deepEqual(back.rest, rec.rest);
+  assert.equal(SS.restRemaining(back, T0 + 40_000), 80);
+  // Si se vuelve a abrir cuando ya venció, no queda nada pendiente.
+  assert.equal(SS.restRemaining(back, T0 + 500_000), 0);
+  SS.clearRest(back);
+  assert.equal(back.rest, null);
+  assert.equal(SS.extendRest(back, 30), null, 'sin descanso en marcha no hay nada que alargar');
+});
+
+test('DEC-015: un descanso guardado con datos inválidos se descarta sin invalidar la sesión; un reloj atrasado no alarga el descanso', () => {
+  const store = memStorage();
+  const rec = restRec();
+  rec.rest = { total: 90, startedAt: 0, endAt: 'mañana' };
+  store.setItem(SS.STORAGE_KEY, JSON.stringify(rec));
+  const back = SS.loadActive(store);
+  assert.ok(back, 'la sesión sigue siendo válida');
+  assert.equal(back.rest, null);
+  const r2 = restRec();
+  SS.startRest(r2, 90, 1_000_000);
+  assert.equal(SS.restRemaining(r2, 0), 90, 'si el reloj retrocede, nunca muestra más que la duración total');
+  assert.equal(SS.restRemaining(restRec(), 5), 0, 'sin descanso en marcha');
+});

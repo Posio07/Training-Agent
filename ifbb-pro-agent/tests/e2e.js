@@ -22,6 +22,8 @@ const server = http.createServer((req, res) => {
   const base = `http://localhost:${server.address().port}/`;
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+  // Reloj desplazable para simular tiempo transcurrido con la pantalla bloqueada (sin ticks de por medio).
+  await ctx.addInitScript(() => { const real = Date.now.bind(Date); window.__off = 0; Date.now = () => real() + window.__off; });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -106,7 +108,17 @@ const server = http.createServer((req, res) => {
   await page.fill('[data-sm-reps="0"]', '6');
   await page.click('[data-sm-done="0"]');
   await page.waitForSelector('.timer-overlay');
-  await page.click('#sm-timer-skip');
+  // DEC-015 Paso 3: el descanso es un timestamp de fin. Se "bloquea la pantalla" 60 s (el reloj avanza, los
+  // ticks no importan) y al volver a estar visible el tiempo tiene que ser el correcto.
+  const secs = t => { const m = t.trim().match(/^(\d+):(\d{2})$/); return Number(m[1]) * 60 + Number(m[2]); };
+  const rest0 = secs(await page.textContent('#sm-timer-num'));
+  const restSaved = JSON.parse(await sessionKey()).rest;
+  if (!restSaved || !(restSaved.endAt > Date.now() - 1000)) throw new Error('el descanso no se guardó con su timestamp de fin: ' + JSON.stringify(restSaved));
+  await page.evaluate(() => { window.__off += 60000; document.dispatchEvent(new Event('visibilitychange')); });
+  const rest1 = secs(await page.textContent('#sm-timer-num'));
+  if (Math.abs((rest0 - 60) - rest1) > 2) throw new Error(`tras 60 s con la pantalla bloqueada debían faltar ~${rest0 - 60} s y se ve ${rest1}`);
+  await shot('10b-timer-after-lock');
+  await page.evaluate(() => { window.__off = 0; });
   const saved = JSON.parse(await sessionKey());
   if (saved.status !== 'en_curso' || !saved.values[0][0].done || saved.values[0][0].weight !== 70 || !saved.values[0][0].doneAt) throw new Error('la serie no quedó autoguardada: ' + JSON.stringify(saved.values[0][0]));
   await page.reload();
@@ -116,6 +128,11 @@ const server = http.createServer((req, res) => {
   await shot('10-resume-prompt');
   await page.click('#resume-yes');
   await page.waitForSelector('.session-mode');
+  // El descanso en marcha sobrevive al cierre y sigue con lo que falta.
+  await page.waitForSelector('#sm-timer');
+  if (secs(await page.textContent('#sm-timer-num')) <= 0) throw new Error('el descanso reanudado debería seguir en marcha');
+  await page.click('#sm-timer-skip');
+  if ((await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:session:v1')).rest)) !== null) throw new Error('saltar el descanso debería limpiarlo');
   if (await page.getAttribute('[data-sm-weight="0"]', 'disabled') === null) throw new Error('la serie ya hecha debería verse registrada al reanudar');
   if ((await page.inputValue('[data-sm-weight="0"]')) !== '70') throw new Error('al reanudar no volvió el peso registrado');
   // DEC-015 Paso 2: editar una serie ya registrada de la sesión en curso (peso 70 -> 72.5, reps 6 -> 5).

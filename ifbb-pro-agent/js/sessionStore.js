@@ -31,7 +31,7 @@
       startedAt: now, updatedAt: now, exIndex: 0, finished: false,
       exercises: a.exercises,
       values: a.exercises.map(e => e.sets.map(() => ({ weight: '', reps: '', done: false, pain: '', doneAt: null }))),
-      recordShown: [], deletedKeys: [],
+      recordShown: [], deletedKeys: [], rest: null,
     };
   }
 
@@ -44,13 +44,15 @@
       && Number.isInteger(rec.exIndex) && rec.exIndex >= 0 && rec.exIndex < Math.max(1, rec.exercises.length);
   }
 
+  const validRest = r => !!r && isFinite(r.endAt) && isFinite(r.total) && r.total > 0;
+
   function loadActive(storage) {
     let raw = null;
     try { raw = storage.getItem(STORAGE_KEY); } catch (e) { return null; }
     if (!raw) return null;
     try {
       const rec = JSON.parse(raw);
-      if (isValid(rec)) return rec;
+      if (isValid(rec)) { if (!validRest(rec.rest)) rec.rest = null; return rec; }
     } catch (e) { /* JSON roto: se ignora */ }
     return null; // no se borra: un registro ilegible no se pisa sin avisar (ver peekCorrupt)
   }
@@ -222,8 +224,30 @@
     }).sort((a, b) => (b.date.localeCompare(a.date)) || (b.startedAt - a.startedAt));
   }
 
+  /* ---------- Cronómetro de descanso (DEC-015, Paso 3) ----------
+   * El descanso se guarda como un TIMESTAMP DE FIN (`endAt` = ahora + duración), no como un número que
+   * se resta en cada tick: lo que falta se recalcula siempre como `endAt - ahora`, así que no importa
+   * cuántos ticks se pierdan con la pantalla bloqueada ni si la app se cierra. Vive dentro de la
+   * sesión en curso, por lo que se persiste con ella. */
+  function startRest(rec, totalSec, now) {
+    rec.rest = { total: totalSec, startedAt: now, endAt: now + totalSec * 1000 };
+    return rec.rest;
+  }
+  // Segundos que faltan (entero hacia arriba, nunca negativo). Se acota a la duración total por si el
+  // reloj del dispositivo se atrasa.
+  function restRemaining(rec, now) {
+    if (!rec || !validRest(rec.rest)) return 0;
+    return Math.min(rec.rest.total, Math.max(0, Math.ceil((rec.rest.endAt - now) / 1000)));
+  }
+  function extendRest(rec, sec) {
+    if (!rec.rest) return null;
+    rec.rest.endAt += sec * 1000; rec.rest.total += sec;
+    return rec.rest;
+  }
+  function clearRest(rec) { rec.rest = null; }
+
   // Cuántas series ya tiene hechas una sesión (para el texto de "Reanudar").
   const progress = rec => ({ done: rec.values.flat().filter(v => v.done).length, total: rec.values.flat().length });
 
-  return { STORAGE_KEY, VERSION, STATUS, setKey, validateSetValues, editActiveSet, deleteActiveSet, syncRow, removeRow, rowId, editRow, deleteRow, listSessions, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
+  return { startRest, restRemaining, extendRest, clearRest, STORAGE_KEY, VERSION, STATUS, setKey, validateSetValues, editActiveSet, deleteActiveSet, syncRow, removeRow, rowId, editRow, deleteRow, listSessions, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
 });

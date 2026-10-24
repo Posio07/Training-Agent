@@ -807,7 +807,6 @@
   let sm = null; // estado del modo sesión activo (o null si no hay ninguno)
   let smWakeLock = null;
   let smTimerInterval = null;
-  let smTimerState = null;
 
   function parseRestSeconds(label) {
     const m = String(label || '').match(/(\d+)/);
@@ -960,8 +959,19 @@
     });
   }
 
+  // Wake Lock (DEC-015, Paso 3): mantiene la pantalla encendida durante la sesión. El navegador lo libera
+  // solo al ocultar la app, así que se vuelve a pedir en visibilitychange. Si no está soportado (o se
+  // deniega) se avisa una vez y el cronómetro sigue siendo exacto porque no depende de la pantalla.
+  let smWakeLockSupported = true;
   async function requestWakeLock() {
-    try { if ('wakeLock' in navigator) smWakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* no disponible o denegado: seguimos igual */ }
+    if (!('wakeLock' in navigator)) { smWakeLockSupported = false; return; }
+    if (smWakeLock) return;
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      smWakeLock = lock;
+      lock.addEventListener('release', () => { if (smWakeLock === lock) smWakeLock = null; });
+      smWakeLockSupported = true;
+    } catch (e) { smWakeLockSupported = false; /* denegado o no disponible: seguimos igual */ }
   }
   function releaseWakeLock() { try { if (smWakeLock) { smWakeLock.release(); smWakeLock = null; } } catch (e) { /* noop */ } }
 
@@ -1046,6 +1056,7 @@
   // Terminar: la sesión pasa a 'completada' (una sola vez) y deja de ser reanudable.
   function finishSm(profile) {
     if (sm.status === SS.STATUS.ACTIVE) {
+      SS.clearRest(sm); closeTimer();
       profile.sessions = profile.sessions || [];
       profile.workouts = profile.workouts || [];
       SS.complete(sm, profile.sessions, profile.workouts, Date.now(), todayIso());
@@ -1083,6 +1094,8 @@
       let root = document.getElementById('session-mode-root');
       if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
       renderSessionMode(profile);
+      // Si había un descanso en marcha, sigue con lo que falta según el reloj real; si ya venció, se limpia sin sonar.
+      if (sm.rest) { if (SS.restRemaining(sm, Date.now()) > 0) showRestOverlay(); else { SS.clearRest(sm); persistSm(); } }
     };
     $('#resume-no').onclick = async () => {
       const n = pr.done;
@@ -1122,6 +1135,7 @@
           <button class="btn" id="sm-finish">Terminar</button>
         </div>
         <div class="session-mode-body">
+          ${(!('wakeLock' in navigator) || !smWakeLockSupported) ? `<p class="help" id="sm-wakelock-note">Tu navegador no puede mantener la pantalla encendida. Desactiva el bloqueo automático mientras entrenas; el cronómetro de descanso sigue siendo exacto aunque la pantalla se apague.</p>` : ''}
           <h2 class="sm-exname">${esc(ex.name)}</h2>
           <div class="sm-exmeta">${esc(ex.muscleLabel)} ${sm.short ? `· ~${ex.durationMin} min` : ''}</div>
           ${ex.substitutedFrom ? `<div class="alert warn">Reemplaza a "${esc(ex.substitutedFrom)}" por el dolor registrado la vez pasada. Te sugerimos consultar a un profesional. ${evTag('E4')}</div>` : ''}
@@ -1255,10 +1269,46 @@
   const TIMER_RING_R = 52;
   const TIMER_RING_C = 2 * Math.PI * TIMER_RING_R;
 
+  /* DEC-015 (Paso 3) · tono al llegar a cero con Web Audio. El AudioContext se crea y se reanuda dentro del
+   * gesto que inicia el descanso (tocar "Hecha"): los navegadores no dejan sonar audio sin un gesto previo. */
+  let audioCtx = null;
+  function unlockAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { /* sin audio: queda la vibración */ }
+  }
+  function playRestTone() {
+    try {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t0 = audioCtx.currentTime + 0.02;
+      [0, 0.28, 0.56].forEach((dt, i) => {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.value = i === 2 ? 1175 : 880;
+        gain.gain.setValueAtTime(0.0001, t0 + dt);
+        gain.gain.exponentialRampToValueAtTime(0.35, t0 + dt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t0 + dt); osc.stop(t0 + dt + 0.22);
+      });
+    } catch (e) { /* noop */ }
+  }
+
+  // El descanso es un timestamp de fin guardado en la sesión: ver SS.startRest.
   function startRestTimer(restLabel) {
-    const total = parseRestSeconds(restLabel);
-    smTimerState = { remaining: total, total };
+    SS.startRest(sm, parseRestSeconds(restLabel), Date.now());
+    persistSm();
+    unlockAudio();
+    showRestOverlay();
+  }
+
+  function showRestOverlay() {
+    if (!sm || !sm.rest) return;
     const root = document.getElementById('session-mode-root');
+    if (!root) return;
     closeTimer();
     const ov = document.createElement('div'); ov.className = 'timer-overlay'; ov.id = 'sm-timer';
     ov.innerHTML = `<div class="timer-label">Descanso</div>
@@ -1267,35 +1317,53 @@
           <circle class="ring-bg" cx="60" cy="60" r="${TIMER_RING_R}"></circle>
           <circle class="ring-fg" id="sm-timer-ring-fg" cx="60" cy="60" r="${TIMER_RING_R}" stroke-dasharray="${TIMER_RING_C.toFixed(1)}" stroke-dashoffset="0"></circle>
         </svg>
-        <div class="timer-num-wrap"><div class="timer-num" id="sm-timer-num">${fmtTimer(total)}</div></div>
+        <div class="timer-num-wrap"><div class="timer-num" id="sm-timer-num" role="timer">${fmtTimer(SS.restRemaining(sm, Date.now()))}</div></div>
       </div>
-      <div class="timer-actions"><button class="btn btn-lg" id="sm-timer-plus30">+30 s</button><button class="btn btn-primary btn-lg" id="sm-timer-skip">Saltar</button></div>`;
+      <div class="timer-actions"><button class="btn btn-lg" id="sm-timer-plus30">+30 s</button><button class="btn btn-primary btn-lg" id="sm-timer-skip">Saltar</button></div>
+      <p class="help timer-note">Con la pantalla bloqueada el aviso al llegar a cero puede no sonar ni vibrar; al desbloquear verás el tiempo correcto.</p>`;
     root.appendChild(ov);
-    const updateTimerUi = () => {
-      const r = Math.max(0, smTimerState.remaining);
-      const numEl = document.getElementById('sm-timer-num'); if (numEl) numEl.textContent = fmtTimer(r);
-      const fg = document.getElementById('sm-timer-ring-fg');
-      if (fg) fg.style.strokeDashoffset = (TIMER_RING_C * (1 - Math.min(1, r / smTimerState.total))).toFixed(1);
-      const ring = ov.querySelector('.timer-ring'); if (ring) ring.classList.toggle('urgent', r <= 10 && r > 0);
-    };
-    updateTimerUi();
-    $('#sm-timer-plus30').onclick = () => { smTimerState.remaining += 30; updateTimerUi(); };
-    $('#sm-timer-skip').onclick = () => closeTimer();
-    smTimerInterval = setInterval(() => {
-      smTimerState.remaining -= 1;
-      updateTimerUi();
-      if (smTimerState.remaining <= 0) {
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        clearInterval(smTimerInterval); smTimerInterval = null;
-        const wrap = document.getElementById('sm-timer-ring-wrap');
-        if (wrap) { wrap.classList.add('pulse'); setTimeout(closeTimer, 500); } else closeTimer();
-      }
-    }, 1000);
+    $('#sm-timer-plus30').onclick = () => { SS.extendRest(sm, 30); persistSm(); tickRest(); };
+    $('#sm-timer-skip').onclick = () => { SS.clearRest(sm); persistSm(); closeTimer(); };
+    tickRest();
+    if (sm && sm.rest) smTimerInterval = setInterval(tickRest, 250);
+  }
+
+  // Cada tick (y cada vez que la pantalla vuelve a ser visible) se recalcula lo que falta desde el timestamp de fin.
+  function tickRest(opts) {
+    if (!sm || !sm.rest) { closeTimer(); return; }
+    const r = SS.restRemaining(sm, Date.now());
+    const numEl = document.getElementById('sm-timer-num'); if (numEl) numEl.textContent = fmtTimer(r);
+    const fg = document.getElementById('sm-timer-ring-fg');
+    if (fg) fg.style.strokeDashoffset = (TIMER_RING_C * (1 - Math.min(1, r / sm.rest.total))).toFixed(1);
+    const ring = document.querySelector('#sm-timer .timer-ring'); if (ring) ring.classList.toggle('urgent', r <= 10 && r > 0);
+    if (r > 0) return;
+    // Llegó a cero. Si se cumplió con la pantalla oculta o la app cerrada, no suena tarde: solo se cierra.
+    const late = opts && opts.silent;
+    SS.clearRest(sm); persistSm();
+    if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
+    if (!late) {
+      playRestTone();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      const wrap = document.getElementById('sm-timer-ring-wrap');
+      if (wrap) { wrap.classList.add('pulse'); setTimeout(closeTimer, 500); return; }
+    }
+    closeTimer();
   }
   function closeTimer() {
     if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
     const ov = document.getElementById('sm-timer'); if (ov) ov.remove();
   }
+
+  // Al volver a la app (desbloquear, cambiar de pestaña): el Wake Lock se libera solo al ocultarse, así que
+  // se vuelve a pedir, y el descanso se recalcula de inmediato con el reloj real.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !sm || sm.status !== SS.STATUS.ACTIVE || sm.finished) return;
+    requestWakeLock();
+    if (sm.rest) {
+      if (!document.getElementById('sm-timer') && SS.restRemaining(sm, Date.now()) > 0) showRestOverlay();
+      else tickRest({ silent: true });
+    }
+  });
 
   function priorTopWeightFor(profile, exerciseName) {
     const all = (profile.workouts || []).filter(w => w.exercise === exerciseName && w.setType === 'top' && w.sessionId !== sm.sessionId);
