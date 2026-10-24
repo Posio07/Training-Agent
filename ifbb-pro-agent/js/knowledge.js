@@ -466,57 +466,20 @@
    * cada entrada del catálogo (el `pattern` NO sirve de id: `split_squat` se repite
    * con primarios distintos). Llegan por el módulo generado js/exerciseMuscles.js.
    *
-   * TRANSICIÓN (DEC-013): hasta la Fase 2 el plan sigue mostrando `muscle` y
-   * `secondary` de la tabla v1 (PLAN_MUSCLE_VIEW_V1, congelada), para que la salida
-   * del plan sea idéntica a la de antes de migrar los datos. Un test enumera las
-   * diferencias entre esa vista y los datos v2 (hip thrust → isquios, búlgara de
-   * glúteo → cuádriceps). La Fase 2 la reemplaza por el conteo fraccionado.
-   * `relations` (v2) y `rows` (fuente, nota, fecha) viajan con los datos, pero ningún
-   * cálculo los consume todavía. `evidence: 'E4'` es la etiqueta de la app (criterio
-   * propio, sin validar). `status: 'a_verificar'` aparece si alguna fila del ejercicio
-   * está a_verificar. */
+   * DEC-014 (Fase 2): `primary` y `secondary` salen de los datos v2. primary = el
+   * bucket si es directa en él, si no la primera directa; secondary = el resto de
+   * las relaciones que no son `ninguna`, en el orden del CSV (solo se muestran).
+   * `setWeights` = cuánto suma UNA serie a cada músculo en el conteo fraccionado
+   * (directa 1, indirecta 0,5, ninguna y a_verificar 0): convención global de
+   * VALIDATOR_RULES, nunca un peso por ejercicio.
+   * `relations` y `rows` (fuente, nota y fecha de cada fila) viajan con los datos.
+   * `evidence: 'E4'` es la etiqueta de la app (criterio propio, sin validar).
+   * `status: 'a_verificar'` aparece si alguna fila del ejercicio está a_verificar. */
   const NO_MUSCLE_CONTRIBUTION = ['functional.farmer_carry']; // funcional sin aporte de hipertrofia (DEC-005, DEC-010): sin filas en el CSV
-  const PLAN_MUSCLE_VIEW_V1 = {
-    'chest.bench_press_barbell': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
-    'chest.incline_press_db': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
-    'chest.dip_or_machine_press': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
-    'chest.fly_cable_pecdeck': { primary: 'chest', secondary: ['shoulders'] },
-    'back.vertical_pull': { primary: 'back', secondary: ['biceps', 'shoulders'] },
-    'back.row_barbell': { primary: 'back', secondary: ['biceps', 'shoulders'] },
-    'back.row_cable': { primary: 'back', secondary: ['biceps', 'shoulders'] },
-    'back.pullover_cable': { primary: 'back', secondary: ['chest'] },
-    'shoulders.press_overhead': { primary: 'shoulders', secondary: ['triceps'] },
-    'shoulders.lateral_raise_db': { primary: 'shoulders', secondary: [] },
-    'shoulders.lateral_raise_cable': { primary: 'shoulders', secondary: [] },
-    'shoulders.rear_delt_facepull': { primary: 'shoulders', secondary: ['back'] },
-    'shoulders.press_landmine_neutral': { primary: 'shoulders', secondary: ['triceps'] },
-    'quads.squat_back_or_hack': { primary: 'quads', secondary: ['glutes'] },
-    'quads.leg_press': { primary: 'quads', secondary: ['glutes'] },
-    'quads.lunge_or_bulgarian': { primary: 'quads', secondary: ['glutes'] },
-    'quads.leg_extension': { primary: 'quads', secondary: [] },
-    'hamstrings.rdl': { primary: 'hamstrings', secondary: ['glutes'] },
-    'hamstrings.leg_curl': { primary: 'hamstrings', secondary: [] },
-    'glutes.hip_thrust': { primary: 'glutes', secondary: ['hamstrings'] },
-    'glutes.bulgarian_hip': { primary: 'glutes', secondary: ['quads'] },
-    'glutes.hip_abduction_machine': { primary: 'glutes', secondary: [] },
-    'glutes.kickback_cable': { primary: 'glutes', secondary: [] },
-    'calves.calf_raise_standing': { primary: 'calves', secondary: [] },
-    'calves.calf_raise_seated': { primary: 'calves', secondary: [] },
-    'biceps.curl_barbell': { primary: 'biceps', secondary: [] },
-    'biceps.curl_incline': { primary: 'biceps', secondary: [] },
-    'triceps.close_grip_or_dips': { primary: 'triceps', secondary: ['chest', 'shoulders'] },
-    'triceps.pushdown_cable': { primary: 'triceps', secondary: [] },
-    'abs.crunch_or_wheel': { primary: 'abs', secondary: [] },
-    'abs.hanging_leg_raise': { primary: 'abs', secondary: [] },
-    'abs.vacuum': { primary: 'abs', secondary: [] },
-    'functional.bulgarian_db': { primary: 'quads', secondary: ['glutes'] },
-    'functional.step_up': { primary: 'quads', secondary: ['glutes'] },
-  };
   const EXERCISE_CONTRIBUTION = {};
   Object.keys(EXERCISE_INDEX).forEach(id => {
-    const v1 = PLAN_MUSCLE_VIEW_V1[id] || { primary: null, secondary: [] };
     EXERCISE_CONTRIBUTION[id] = {
-      primary: v1.primary, secondary: v1.secondary.slice(), evidence: 'E4',
+      primary: null, secondary: [], evidence: 'E4', setWeights: {},
       bucket: EXERCISE_MUSCLES.buckets[id] || null, relations: {}, rows: [],
     };
   });
@@ -527,6 +490,13 @@
     c.relations[row.muscle] = { relacion: row.relacion, evidencia: row.evidencia };
     if (row.evidencia === 'a_verificar') c.status = 'a_verificar';
   });
+  Object.keys(EXERCISE_CONTRIBUTION).forEach(id => {
+    const c = EXERCISE_CONTRIBUTION[id];
+    const shown = c.rows.filter(r => r.relacion !== 'ninguna');
+    const directas = shown.filter(r => r.relacion === 'directa').map(r => r.muscle);
+    c.primary = directas.includes(c.bucket) ? c.bucket : (directas[0] || null);
+    c.secondary = shown.map(r => r.muscle).filter(m => m !== c.primary);
+  });
 
   /* DEC-010 · Reglas del validador, centralizadas: valor, nivel de evidencia,
    * fuente y fecha de revisión. `verifiedAgainstPrimarySource: false` en todas
@@ -535,9 +505,12 @@
   const REVIEWED = '2026-10-23';
   const rule = (value, level, source, extra) => Object.assign({ value, level, source, reviewedAt: REVIEWED, verifiedAgainstPrimarySource: false }, extra);
   const VALIDATOR_RULES = {
-    // R1 · tope por músculo por sesión
-    maxFractionalSetsPerMuscleSession: rule(11, 'E3', { label: 'Pelland et al., meta-regresiones del volumen por sesión (preprint, SportRxiv)', url: 'https://sportrxiv.org/index.php/server/preprint/view/537' }),
-    secondaryMuscleWeight: rule(0.5, 'E4', null, { note: 'Convención del spec: directa = 1, indirecta = 0,5.' }),
+    // R1 · aviso de rendimiento decreciente por músculo por sesión (NO es un tope)
+    maxFractionalSetsPerMuscleSession: rule(11, 'E3', { label: 'Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv)', url: 'https://sportrxiv.org/index.php/server/preprint/view/537' }, { kind: 'warning', note: 'Punto sin mejora detectable (PUOS), fijado de forma arbitraria por los autores; no es un límite superior. Mismo conteo fraccionado que Pelland et al. 2026.' }),
+    // Conteo fraccionado (Pelland et al. 2026, Sports Med 56(2):481-505, sección 2.5): convención global, nunca por ejercicio.
+    directSetWeight: rule(1, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { note: 'Serie directa = 1.' }),
+    secondaryMuscleWeight: rule(0.5, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { convention: true, note: 'Serie indirecta = 0,5: convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística. Un análisis exploratorio de Remmert et al. (preprint) sugiere ~0,32.' }),
+    noRelationWeight: rule(0, 'E4', null, { note: 'Relación ninguna = 0. Una relación a_verificar también cuenta 0 hasta verificarla.' }),
     // R2 · piso semanal y frecuencia
     minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }),
     minWeeklyFrequencyMajorGroups: rule(2, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }),
@@ -555,9 +528,26 @@
     // DEC-005 / DEC-010 · series del ejercicio funcional que no aporta volumen
     // de hipertrofia (paseo del granjero). Se agregan aparte, sin descontar.
     functionalNoVolumeExtraSets: rule(2, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
-    // DEC-003 v2 · tope de series por sesión (aviso no bloqueante)
-    sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
+    // DEC-003 v2 / DEC-014 · regla E4: tope de series por sesión. Convención de la app, sin fuente externa
+    // (validador.md no fija un valor; ningún framework define un máximo de minutos). El usuario puede aceptar
+    // una sesión más larga de forma explícita.
+    sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
   };
 
-  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, PLAN_MUSCLE_VIEW_V1, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
+  // DEC-014 · peso de UNA serie de cada ejercicio en el conteo fraccionado, por músculo.
+  // La categoría de la relación fija el peso; a_verificar cuenta como ninguna.
+  const MAJOR_GROUPS = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes'];
+  Object.keys(EXERCISE_CONTRIBUTION).forEach(id => {
+    const c = EXERCISE_CONTRIBUTION[id];
+    Object.keys(c.relations).forEach(m => {
+      const r = c.relations[m];
+      const w = r.evidencia === 'a_verificar' ? VALIDATOR_RULES.noRelationWeight.value
+        : r.relacion === 'directa' ? VALIDATOR_RULES.directSetWeight.value
+        : r.relacion === 'indirecta' ? VALIDATOR_RULES.secondaryMuscleWeight.value
+        : VALIDATOR_RULES.noRelationWeight.value;
+      if (w > 0) c.setWeights[m] = w;
+    });
+  });
+
+  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, MAJOR_GROUPS, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
 });

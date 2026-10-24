@@ -14,7 +14,6 @@
   const CM_PER_IN = 2.54;
 
   // DEC-010: valores de reglas centralizados en knowledge.js (VALIDATOR_RULES).
-  const SESSION_SET_CAP = K.VALIDATOR_RULES.sessionSetCap.value;
   const SET_EXEC_SEC = K.VALIDATOR_RULES.setExecutionSeconds.value;
   const FUNCTIONAL_LABEL = 'Funcional';
 
@@ -371,6 +370,7 @@
       exerciseId: ex.id, bucket, muscle: c.primary,
       muscleLabel: c.primary ? K.MUSCLE_LABELS[c.primary] : FUNCTIONAL_LABEL,
       secondary: c.secondary.slice(),
+      setWeights: Object.assign({}, c.setWeights), // DEC-014: aporte de UNA serie por músculo (fraccionado)
     };
   }
   function makeEntry(ex, bucket, sets) {
@@ -426,6 +426,91 @@
     general_m: { up: [], down: [] },
     general_w: { up: [], down: [] },
   };
+
+  /* ---------- DEC-014: conteo fraccionado, regla E4 y aviso de rendimiento decreciente ---------- */
+
+  // Series fraccionadas por músculo de una lista de ejercicios (Pelland et al. 2026):
+  // sets × peso de la serie (directa 1, indirecta 0,5; ninguna y a_verificar 0).
+  function fractionalByMuscle(exercises) {
+    const out = {};
+    exercises.forEach(e => {
+      Object.keys(e.setWeights || {}).forEach(mu => { out[mu] = (out[mu] || 0) + e.sets * e.setWeights[mu]; });
+    });
+    Object.keys(out).forEach(mu => { out[mu] = Math.round(out[mu] * 100) / 100; });
+    return out;
+  }
+  const sumFractional = sessions => sessions.reduce((acc, s) => {
+    const f = fractionalByMuscle(s.exercises);
+    Object.keys(f).forEach(mu => { acc[mu] = (acc[mu] || 0) + f[mu]; });
+    return acc;
+  }, {});
+
+  // R1 (DEC-014): aviso de rendimiento decreciente por músculo por sesión. E3, preprint
+  // sin revisión por pares (Remmert et al.). NO es un tope: no recorta nada.
+  function diminishingReturnsWarnings(sessions) {
+    const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
+    const out = [];
+    sessions.forEach(s => {
+      const f = s.fractionalSets || fractionalByMuscle(s.exercises);
+      Object.keys(f).filter(mu => f[mu] > r1).forEach(mu => {
+        out.push({ level: 'info', evidence: 'E3', rule: 'R1', session: s.name, muscle: mu, fractionalSets: f[mu], text: `${s.name}: ${K.MUSCLE_LABELS[mu]} suma ${f[mu]} series fraccionadas, por encima de ~${r1}. Aviso de rendimiento decreciente, no un límite: por encima de ese punto no se detectó mejora adicional (Remmert et al., preprint sin revisión por pares, E3). Conteo: directa = 1 e indirecta = 0,5 (convención de Pelland et al. 2026; un análisis exploratorio sugiere ~0,32). Si tu frecuencia lo permite, reparte esas series en otro día.` });
+      });
+    });
+    return out;
+  }
+
+  // Regla E4 (DEC-014): tope de series por sesión. Se aplica al GENERAR, antes del
+  // top set y de la duración. Solo recorta aislamientos (nunca multiarticulares),
+  // primero los de grupos chicos, y nunca baja un grupo mayor por debajo del piso
+  // semanal de R2 (E1, en series fraccionadas y en series reales): si no se puede, la sesión queda por encima y
+  // se avisa. Con `accepted` (aceptación explícita del usuario) no se recorta nada.
+  function enforceSessionCap(sessions, accepted) {
+    const cap = K.VALIDATOR_RULES.sessionSetCap.value;
+    const floorWeekly = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    const info = { cap, level: 'E4', basis: 'Convención de la app (DEC-003 v2 / DEC-014), sin fuente externa', accepted: accepted || null, trimmed: [], overCap: [] };
+    const weekly = sumFractional(sessions);
+    const floor = {};
+    K.MAJOR_GROUPS.forEach(mu => { floor[mu] = Math.min(floorWeekly, weekly[mu] || 0); });
+    // El piso también protege las series reales del grupo (no solo las fraccionadas): una relación
+    // a_verificar cuenta 0 en el conteo, pero sus series existen y no se descartan por eso.
+    const plain = {};
+    sessions.forEach(s => s.exercises.forEach(e => { plain[e.bucket] = (plain[e.bucket] || 0) + e.sets; }));
+    const plainFloor = {};
+    K.MAJOR_GROUPS.forEach(mu => { plainFloor[mu] = Math.min(floorWeekly, plain[mu] || 0); });
+    const tier = e => (SMALL_MUSCLES_LIST.includes(e.bucket) ? 0 : 1);
+    if (!accepted) {
+      const before = sessions.map(s => s.totalSets);
+      const cuts = sessions.map(() => new Map());
+      const total = s => s.exercises.reduce((a, e) => a + e.sets, 0);
+      const stuck = new Set();
+      for (;;) {
+        // Siempre se recorta la sesión más pasada: así el margen del piso semanal se gasta donde más hace falta.
+        const idx = sessions.map((s, i) => i).filter(i => !stuck.has(i) && total(sessions[i]) > cap)
+          .sort((a, b) => (total(sessions[b]) - cap) - (total(sessions[a]) - cap) || a - b)[0];
+        if (idx === undefined) break;
+        const s = sessions[idx];
+        const fits = e => !(e.bucket in plainFloor && plain[e.bucket] - (e.sets > 2 ? 1 : 2) < plainFloor[e.bucket]) && Object.keys(e.setWeights).every(mu => !(mu in floor) || weekly[mu] - e.setWeights[mu] * (e.sets > 2 ? 1 : 2) >= floor[mu] - 1e-9);
+        const pool = s.exercises.filter(e => e.type === 'isolation' && e.sets > 0 && fits(e))
+          .sort((a, b) => (tier(a) - tier(b)) || (b.sets - a.sets));
+        if (!pool.length) { stuck.add(idx); continue; }
+        const e = pool[0];
+        const step = e.sets > 2 ? 1 : 2; // por debajo de 2 series el ejercicio se quita entero
+        e.sets -= step;
+        plain[e.bucket] -= step;
+        Object.keys(e.setWeights).forEach(mu => { weekly[mu] = (weekly[mu] || 0) - e.setWeights[mu] * step; });
+        cuts[idx].set(e.exerciseId, (cuts[idx].get(e.exerciseId) || 0) + step);
+      }
+      sessions.forEach((s, i) => {
+        s.exercises = s.exercises.filter(e => e.sets > 0);
+        s.totalSets = total(s);
+        if (s.totalSets !== before[i]) {
+          info.trimmed.push({ session: s.name, from: before[i], to: s.totalSets, cuts: [...cuts[i]].map(([exerciseId, sets]) => ({ exerciseId, sets })) });
+        }
+      });
+    }
+    sessions.forEach(s => { if (s.totalSets > cap) info.overCap.push({ session: s.name, sets: s.totalSets }); });
+    return info;
+  }
 
   function computeTraining(p, t) {
     const days = clamp(Math.round(p.daysPerWeek) || 4, 3, 6);
@@ -585,13 +670,34 @@
       });
     });
 
-    // DEC-003 v2: aviso no bloqueante si un día se pasa de 25 series. No se
-    // recorta ni se mueve nada automáticamente.
-    sessions.forEach(s => {
-      if (s.totalSets > SESSION_SET_CAP) {
-        trainingWarnings.push({ level: 'warn', text: `${s.name}: ${s.totalSets} series, por encima de las ${SESSION_SET_CAP} recomendadas por sesión. No se recorta nada automáticamente; si te resulta muy largo, movés vos algún aislamiento a otro día.` });
-      }
+    // DEC-014 · Regla E4: tope de series por sesión (25, convención de la app).
+    // Reemplaza al aviso sin recorte de DEC-003 v2: ahora se recortan aislamientos
+    // al generar, salvo que el usuario acepte una sesión más larga.
+    const accepted = (p.longSessionAcceptedOn || '') || null;
+    const sessionLimit = enforceSessionCap(sessions, accepted);
+    const trimmedMuscles = new Set();
+    sessionLimit.trimmed.forEach(t => t.cuts.forEach(c => trimmedMuscles.add(K.EXERCISE_INDEX[c.exerciseId].bucket)));
+    trimmedMuscles.forEach(mu => {
+      weeklySets[mu] = sessions.reduce((a, s) => a + s.exercises.filter(e => e.bucket === mu).reduce((b, e) => b + e.sets, 0), 0);
     });
+    sessionLimit.trimmed.forEach(t => {
+      const names = t.cuts.map(c => `${K.EXERCISE_INDEX[c.exerciseId].entry.name} (−${c.sets})`).join(', ');
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'E4', text: `${t.session}: se recortaron ${t.from - t.to} series de aislamiento (${t.from} → ${t.to}) para respetar el tope de ${sessionLimit.cap} series por sesión: ${names}. Regla E4 · convención de la app, sin fuente externa; no se recorta ningún multiarticular ni se baja un grupo mayor del piso semanal de ${K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value} series fraccionadas (ACSM, E1). Puedes aceptar una sesión más larga.` });
+    });
+    const wiped = [...trimmedMuscles].filter(mu => weeklySets[mu] === 0);
+    if (wiped.length) {
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'E4', text: `Con el tope de ${sessionLimit.cap} series por sesión y el piso semanal de los grupos mayores, esta semana quedan sin series directas: ${wiped.map(mu => K.MUSCLE_LABELS[mu]).join(', ')}. Si los quieres incluidos, acepta una sesión más larga.` });
+    }
+    sessionLimit.overCap.forEach(o => {
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'E4', text: sessionLimit.accepted
+        ? `${o.session}: ${o.sets} series, por encima de las ${sessionLimit.cap} por sesión. Aceptaste una sesión más larga el ${sessionLimit.accepted}.`
+        : `${o.session}: ${o.sets} series, por encima de las ${sessionLimit.cap} por sesión (E4 · convención de la app). No se recortó más para no quitar multiarticulares ni bajar un grupo mayor del piso semanal.` });
+    });
+
+    // DEC-014 · R1: aviso de rendimiento decreciente (E3, preprint). NO es un tope:
+    // no recorta nada. Mismo conteo fraccionado que Pelland et al. 2026.
+    sessions.forEach(s => { s.fractionalSets = fractionalByMuscle(s.exercises); });
+    diminishingReturnsWarnings(sessions).forEach(w => trainingWarnings.push(w));
 
     // DEC-002 / DEC-008: en definición, el primer ejercicio ELEGIBLE del día
     // lleva un top set pesado (no suma series nuevas: la primera de sus
@@ -652,7 +758,7 @@
       : { sessions: 2, minutes: 25, type: 'Cardio moderado por salud cardiovascular', rule: 'Sin objetivo de gasto: mantiene la capacidad aeróbica y la salud (150 min/semana moderado como referencia general). No interfiere con la hipertrofia a este volumen.' };
 
     return {
-      splitName: split.name, daysPerWeek: days, weeklySets, laggingApplied, sessions,
+      splitName: split.name, daysPerWeek: days, weeklySets, laggingApplied, sessions, sessionLimit,
       intensity: 'La mayoría de series en 6-12 repeticiones al 70-80 % del 1RM, terminando a 1-3 repeticiones del fallo (RIR). Aislamientos hasta 15 repeticiones.',
       progression: 'Doble progresión: cuando completes el rango alto de repeticiones en todas las series con buena técnica, sube la carga 2-5 % (tren superior) o 5-10 % (tren inferior) y vuelve al rango bajo.',
       deload: 'Cada 4-6 semanas, o cuando el rendimiento caiga 2 sesiones seguidas, reduce el volumen a la mitad durante una semana manteniendo la carga.',
@@ -942,6 +1048,8 @@
       division, goal: ['cut', 'bulk', 'maintain'].includes(src.goal) ? src.goal : 'cut',
       targetDate: src.targetDate || '', targetBf: n(src.targetBf), classicLimitLb: n(src.classicLimitLb),
       laggingMuscles, healthGoal: !!src.healthGoal,
+      // DEC-014: aceptación explícita de sesiones más largas que el tope E4 (fecha AAAA-MM-DD).
+      longSessionAcceptedOn: /^\d{4}-\d{2}-\d{2}$/.test(src.longSessionAcceptedOn || '') ? src.longSessionAcceptedOn : '',
       health: normalizeHealth(src), // DEC-009
       // Fase 5: ajustes de la barra cargada. No participan de ningún cálculo
       // de volumen/calorías/selección de ejercicios, solo de la vista de
@@ -968,5 +1076,5 @@
 
   function unique(arr) { return arr.filter((v, i) => v && arr.indexOf(v) === i); }
 
-  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, computeHealthScreen, buildPlan, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
+  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, diminishingReturnsWarnings, computeHealthScreen, buildPlan, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
 });

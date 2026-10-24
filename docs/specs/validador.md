@@ -28,12 +28,14 @@ Los valores, el nivel, la fuente y la fecha de revisión de cada regla viven en 
 
 ## Reglas del validador
 
-Son cinco reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3) y una derivada por cálculo (R4).
+Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3), una derivada por cálculo (R4) y un tope de series por sesión que es convención de la app (E4, Fase 2).
 
 ### R1 · Aviso de rendimiento decreciente por músculo por sesión (E3)
 
 - **Regla:** avisar cuando un músculo supera ~11 series fraccionadas en una sesión. Una serie directa cuenta 1 y una indirecta cuenta 0.5. **No es un tope**: es el punto desde el cual los datos dejan de mostrar mejoras detectables, y los propios autores aclaran que no es un límite superior.
 - **Acción si se supera:** avisar al usuario con la regla, el nivel de evidencia y la fuente. Si la frecuencia lo permite, sugerir repartir el volumen en otro día. No se recorta de forma automática.
+- **Método de conteo (confirmado, Fase 2):** Remmert et al. usan el mismo criterio directa/indirecta que Pelland et al. 2026 (sección 2.5 de ambos): directa = 1 e indirecta = 0,5, por el músculo medido. Por eso el aviso es comparable con el conteo de la app. El 0,5 es una convención del modelo de mejor ajuste, que los autores declaran como supuesto; un análisis exploratorio sugiere ~0,32. Una relación `ninguna` o `a_verificar` cuenta 0.
+- **Estado:** implementado como aviso (E3) en la Fase 2 (DEC-014). No recorta ninguna serie.
 - **Base:** el preprint de volumen por sesión de Remmert y colegas (Pelland es coautor, no primer autor) encontró el punto sin mejora detectable (PUOS) en ~11 series fraccionadas para hipertrofia y ~2 directas para fuerza. El umbral se fijó de forma arbitraria, casi no hay datos con volúmenes altos y muchos estudios entrenaban un solo músculo. Es un preprint sin revisión por pares.
 
 ### R2 · Piso semanal y frecuencia (E1)
@@ -54,6 +56,14 @@ Son cinco reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), 
 - **Regla:** duración estimada = suma de series × (tiempo de ejecución + descanso prescrito) + calentamiento.
 - **Acción:** si el usuario indicó su tiempo disponible, la rutina se ajusta a ese tiempo. Si no lo indicó, se genera la dosis mínima efectiva de R2, se muestra la duración estimada y se ofrece de forma explícita una versión más larga.
 - **Sin tope fijo de minutos:** ningún framework lo define. El tiempo de ejecución por serie es un parámetro configurable que se calibra con los tiempos reales del modo sesión.
+
+### E4 · Tope de series por sesión (convención de la app, Fase 2)
+
+- **Regla:** como máximo **25 series por sesión**. Es una convención de la app (heredada de DEC-003 v2) sin fuente externa: ningún framework define un máximo de series ni de minutos por sesión, y R4 sigue sin fijar un tope de minutos. Nivel E4.
+- **Acción:** el generador recorta al generar, antes del top set y de la duración. Solo recorta aislamientos, primero los de grupos chicos (abdomen, pantorrillas, bíceps, tríceps), y no toca multiarticulares. No baja un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) por debajo del piso semanal de R2 (E1), ni en series fraccionadas ni en series reales: R2 prevalece sobre E4. Si no se puede llegar al tope sin romper eso, la sesión queda por encima y un aviso lo explica.
+- **Aceptación del usuario:** puede aceptar de forma explícita una sesión más larga; no se recorta nada y la aceptación queda guardada con fecha (`longSessionAcceptedOn`).
+- **Costo conocido:** con el tope y el piso de los grupos mayores, los grupos chicos pueden quedar con pocas series o sin series directas en los splits de 3 y 4 días. El plan lo avisa y ofrece aceptar una sesión más larga.
+- **Duración:** sigue siendo derivada (R4). 25 series no equivalen a un tiempo fijo: en el modelo actual las sesiones de 25 series duran entre ~55 y ~98 min según los ejercicios (los unilaterales cuentan doble).
 
 ### R5 · Tamizaje de condiciones (E1 para filtrar, sin framework para adaptar)
 
@@ -91,7 +101,7 @@ Los tres casos cubren una falla real, una falla de seguridad y un control para e
 | Caso | Entrada | Reglas que se disparan | Resultado esperado |
 | --- | --- | --- | --- |
 | A · Experimento de pierna | Historial de 3–4 ejercicios de pierna por día; nueva rutina con día de cuádriceps de 24 series y día de isquios de 21 | R3: salto de volumen muy superior a 20%. R1: glúteo con ~14 fraccionadas el día de cuádriceps (hip thrust 4 + abducción 4 directas, y 12 indirectas de sentadilla, prensa, búlgara y rumano) y ~11.5 el día de isquios | Rampa de varias semanas propuesta; aviso de rendimiento decreciente en glúteo, con sugerencia de repartir sus aislamientos; el paseo del granjero no cuenta para cuádriceps |
-| B · Full body con hombro | 3 días por semana, 34 series por sesión, sin tiempo indicado, lesión de hombro declarada | R5, R4, R3 (usuario sin historial), R1 a verificar por músculo | Las 34 series no se muestran. Primero aparece la advertencia con derivación; tras la confirmación, se genera la dosis mínima de R2 con su duración estimada |
+| B · Full body con hombro | 3 días por semana, 34 series por sesión, sin tiempo indicado, lesión de hombro declarada | R5, E4, R4, R3 (usuario sin historial), R1 a verificar por músculo | Las 34 series no se muestran. Primero aparece la advertencia con derivación; tras la confirmación, se genera la dosis mínima de R2 con su duración estimada |
 | C · Control válido | Torso/Pierna de 4 días, 12–16 series por músculo por semana, 11 o menos por sesión, historial similar | Ninguna | La rutina pasa sin cambios ni advertencias |
 
 El experimento de Emanuel sigue corriendo con la rutina original, así que sus datos sirven para contrastar el caso A con lo que pasó en la realidad.
@@ -100,11 +110,11 @@ El experimento de Emanuel sigue corriendo con la rutina original, así que sus d
 
 La v1 está lista cuando los tres casos de prueba dan el resultado esperado y cada ajuste se explica solo.
 
-- [ ] Los casos A, B y C producen el resultado esperado.
+- [ ] Los casos A, B y C producen el resultado esperado. (Fase 2: el caso B queda dentro de E4 con la lesión de hombro autorizada, y hay tests de la búlgara y del hip thrust.)
 - [ ] Cada ajuste o advertencia muestra la regla que lo causó, su nivel de evidencia y la fuente.
 - [ ] Los valores de las reglas viven en configuración, no en código.
 - [ ] Las aceptaciones explícitas quedan registradas con fecha.
-- [ ] El conteo fraccionado se verificó contra el catálogo completo, con las etiquetas corregidas.
+- [ ] El conteo fraccionado se verificó contra el catálogo completo, con las etiquetas corregidas. (Fase 2: implementado con los datos v2, DEC-013 y DEC-014; falta verificar las filas `a_verificar`, que hoy cuentan 0.)
 - [ ] Cada valor se verificó contra el texto completo de su fuente primaria antes de fijarlo.
 
 **Fuera de alcance en v1:** adaptar rutinas a lesiones o condiciones, autorregular el volumen según la recuperación (queda para v2), el rediseño visual y la dieta.

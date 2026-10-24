@@ -49,7 +49,9 @@ const BASELINE = {
 
 Object.entries(PROFILES).forEach(([key, profile]) => {
   test(`regresión ${key}: sin inputs nuevos, mismos resultados que antes de DECISIONS.md`, () => {
-    const plan = E.buildPlan(profile, TODAY);
+    // DEC-014: el tope E4 recorta series de aislamiento por defecto. Con la aceptación explícita de
+    // sesiones más largas el volumen semanal sigue siendo el de siempre; ese es el invariante que fija este test.
+    const plan = E.buildPlan(Object.assign({ longSessionAcceptedOn: '2026-10-24' }, profile), TODAY);
     const base = BASELINE[key];
     assert.deepEqual(plan.training.weeklySets, base.weeklySets, `${key}: weeklySets cambió`);
     assert.equal(plan.nutrition.calories, base.nutrition.calories, `${key}: calorías cambiaron`);

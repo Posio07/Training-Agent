@@ -91,7 +91,7 @@ test('training: every muscle trained >= 2x/week for 4-6 day splits and weekly se
     });
     const assigned = {};
     tr.sessions.forEach(s => s.exercises.forEach(e => { assigned[e.muscle] = (assigned[e.muscle] || 0) + e.sets; }));
-    Object.keys(tr.weeklySets).forEach(mu => assert.ok(assigned[mu] <= tr.weeklySets[mu] && assigned[mu] >= tr.weeklySets[mu] - 2, `${days}d ${mu}: ${assigned[mu]} vs ${tr.weeklySets[mu]}`));
+    Object.keys(tr.weeklySets).forEach(mu => assert.ok((assigned[mu] || 0) <= tr.weeklySets[mu] && (assigned[mu] || 0) >= tr.weeklySets[mu] - 2, `${days}d ${mu}: ${assigned[mu]} vs ${tr.weeklySets[mu]}`));
   });
 });
 
@@ -200,18 +200,27 @@ test('DEC-003 v2: grupos chicos no van a pierna si hay un día de empuje/tirón 
   Object.keys(plan.training.weeklySets).forEach(mu => assert.equal(assigned[mu], plan.training.weeklySets[mu], `${mu}: volumen total cambió`));
 });
 
-test('DEC-003 v2: aviso no bloqueante si un día supera 25 series, sin recortar nada', () => {
+test('DEC-014: regla E4 — ninguna sesión supera 25 series salvo que el piso semanal lo impida; con aceptación explícita no se recorta', () => {
   const emanuel = {
     name: 'Emanuel', sex: 'M', age: 28, heightCm: 175, weightKg: 78, bodyFatPct: 14,
     activity: 'moderate', level: 'intermediate', daysPerWeek: 5, division: 'physique_m', goal: 'cut',
     laggingMuscles: ['quads', 'hamstrings', 'glutes'],
   };
+  const accepted = E.buildPlan(Object.assign({}, emanuel, { longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  const over = accepted.training.sessions.find(s => s.totalSets > 25);
+  assert.ok(over, 'sin recorte, este perfil tiene al menos un día por encima de 25 series');
+  assert.equal(accepted.training.sessionLimit.accepted, '2026-10-24');
+  assert.deepEqual(accepted.training.sessionLimit.trimmed, [], 'con aceptación explícita no se recorta nada');
+  assert.ok(accepted.training.warnings.some(w => w.rule === 'E4' && w.text.includes(over.name) && w.text.includes('Aceptaste')));
   const plan = E.buildPlan(emanuel, TODAY);
-  const over = plan.training.sessions.find(s => s.totalSets > 25);
-  assert.ok(over, 'debería haber al menos un día por encima de 25 series con este perfil');
-  assert.ok(plan.warnings.some(w => w.text.includes(over.name) && w.text.includes(String(over.totalSets))));
-  // no bloqueante: el plan se genera igual, con el total real (no recortado)
-  assert.ok(over.totalSets > 25);
+  const sl = plan.training.sessionLimit;
+  assert.deepEqual([sl.cap, sl.level], [25, 'E4']);
+  plan.training.sessions.forEach(s => {
+    const pending = sl.overCap.find(o => o.session === s.name);
+    assert.ok(s.totalSets <= 25 || pending, `${s.name}: ${s.totalSets} series sin explicación`);
+  });
+  assert.ok(sl.trimmed.length > 0);
+  sl.trimmed.forEach(t => assert.ok(plan.training.warnings.some(w => w.rule === 'E4' && w.evidence === 'E4' && w.text.includes(t.session) && /convención de la app, sin fuente externa/.test(w.text))));
 });
 
 test('DEC-003 v2: no cambia nada cuando ningún día se pasa de 25 (regresión de avisos)', () => {
@@ -494,8 +503,8 @@ test('DEC-010: correcciones aprobadas de la tabla de aporte', () => {
   assert.ok(!C['shoulders.press_overhead'].secondary.includes('chest'), 'press militar sin chest');
   assert.ok(!C['shoulders.press_landmine_neutral'].secondary.includes('chest'), 'press landmine sin chest');
   assert.ok(!C['glutes.kickback_cable'].secondary.includes('hamstrings'), 'patada de glúteo sin isquios');
-  assert.deepEqual(C['glutes.hip_thrust'].secondary, ['hamstrings']);
-  // DEC-013: hip thrust → isquios dejó de estar a_verificar (ahora es 'ninguna', verificado con 1 estudio); la vista del plan sigue siendo la v1.
+  assert.deepEqual(C['glutes.hip_thrust'].secondary, []);
+  // DEC-013/014: hip thrust → isquios es 'ninguna' (verificado, 1 estudio): ya no figura como secundario ni suma.
   assert.equal(C['glutes.hip_thrust'].relations.hamstrings.relacion, 'ninguna');
   assert.equal(C['functional.farmer_carry'].primary, null, 'paseo del granjero sin primario');
   assert.deepEqual(C['functional.farmer_carry'].secondary, [], 'paseo del granjero sin secundarios (ni abs)');
@@ -565,12 +574,27 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.training.sessions.#.exercises.#.secondary': 'DEC-010: músculos secundarios (peso 0.5)',
     'plan.health.injuryBlockReason': 'DEC-011: texto de la pausa por lesión (null sin lesiones)',
     'plan.health.injuryClearance': 'DEC-011: zonas pendientes de autorización (vacío sin lesiones)',
+    // DEC-014: el aviso del tope pasó a regla E4 con aceptación explícita; los avisos nuevos (E4 y R1) llevan evidencia y regla.
+    'plan.input.longSessionAcceptedOn': 'DEC-014: aceptación explícita de sesiones más largas (vacía por defecto)',
+    'plan.training.sessionLimit': 'DEC-014: regla E4 (tope, recortes, sesiones por encima)',
+    'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
+    'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
+    'plan.training.warnings.#.evidence': 'DEC-014: etiqueta de evidencia de los avisos E4 y R1',
+    'plan.training.warnings.#.rule': 'DEC-014: regla que originó el aviso',
+    'plan.training.warnings.#.text': 'DEC-014: textos de los avisos E4 y R1',
+    'plan.training.warnings.length': 'DEC-014: avisos nuevos (E4, R1)',
+    'plan.warnings.#.evidence': 'DEC-014: ídem, en la lista combinada',
+    'plan.warnings.#.rule': 'DEC-014: ídem, en la lista combinada',
+    'plan.warnings.#.text': 'DEC-014: ídem, en la lista combinada',
+    'plan.warnings.length': 'DEC-014: ídem, en la lista combinada',
   };
   assert.ok(Object.keys(fx.cases).length >= 10);
   const seen = new Set();
   Object.entries(fx.cases).forEach(([key, c]) => {
     assert.ok(!c.profile.healthGoal && !c.profile.injuryZones, `${key}: el fixture solo cubre perfiles sin healthGoal ni lesiones`);
-    const plan = E.buildPlan(c.profile, fx.today);
+    // DEC-014: con la aceptación explícita no se recorta nada, así que el resto del plan (series,
+    // duraciones, orden de ejercicios, top sets) tiene que seguir idéntico al de la línea base.
+    const plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24' }), fx.today);
     diffPaths(plan, c.plan, 'plan', seen);
     // Las claves permitidas valen "sin efecto" en estos perfiles: nunca pausan ni tocan nada.
     assert.equal(plan.health.injuryBlockReason, null, `${key}`);
@@ -1237,39 +1261,223 @@ test('DEC-013: los cambios de la fase son exactamente los aprobados, cada uno mu
     ['glutes.hip_thrust/hamstrings', 'quads.leg_press/glutes']);
 });
 
-test('DEC-013: la vista v1 congelada del plan y los datos v2 difieren solo en los cambios aprobados', () => {
+test('DEC-014: muscle y secondary del plan salen de los datos v2 (bucket si es directa, resto de relaciones que no son ninguna)', () => {
   const rows = csvRows();
-  const diffs = [];
   catalogIds().forEach(id => {
-    const v1 = K.PLAN_MUSCLE_VIEW_V1[id] || { primary: null, secondary: [] };
-    const mine = rows.filter(r => r.exerciseId === id);
+    const c = K.EXERCISE_CONTRIBUTION[id];
+    const mine = rows.filter(r => r.exerciseId === id && r.relacion !== 'ninguna');
     const directas = mine.filter(r => r.relacion === 'directa').map(r => r.muscle);
-    const indirectas = mine.filter(r => r.relacion === 'indirecta').map(r => r.muscle);
-    // Equivalente v1 de los datos v2: primario = la directa que es el bucket; secundarios = el resto de las directas e indirectas.
-    const primary = directas.includes(K.EXERCISE_INDEX[id].bucket) ? K.EXERCISE_INDEX[id].bucket : (directas[0] || null);
-    const secondary = mine.filter(r => r.relacion !== 'ninguna' && r.muscle !== primary).map(r => r.muscle);
-    if (primary !== v1.primary) diffs.push(`${id}: primary ${v1.primary} → ${primary}`);
-    v1.secondary.filter(m => !secondary.includes(m)).forEach(m => diffs.push(`${id}: ${m} sale de secundarios`));
-    secondary.filter(m => !v1.secondary.includes(m)).forEach(m => diffs.push(`${id}: ${m} entra a secundarios`));
-    assert.ok(indirectas.every(m => m !== primary));
+    const bucket = K.EXERCISE_INDEX[id].bucket;
+    const primary = directas.includes(bucket) ? bucket : (directas[0] || null);
+    assert.equal(c.primary, primary, `${id}: primary`);
+    assert.deepEqual(c.secondary, mine.map(r => r.muscle).filter(m => m !== primary), `${id}: secondary`);
+    // Pesos: directa 1, indirecta 0,5, ninguna y a_verificar 0 (convención global, no por ejercicio).
+    const expected = {};
+    rows.filter(r => r.exerciseId === id).forEach(r => {
+      const w = r.evidencia === 'a_verificar' ? 0 : ({ directa: 1, indirecta: 0.5, ninguna: 0 })[r.relacion];
+      if (w > 0) expected[r.muscle] = w;
+    });
+    assert.deepEqual(c.setWeights, expected, `${id}: setWeights`);
+    Object.values(c.setWeights).forEach(w => assert.ok([0.5, 1].includes(w), `${id}: peso a medida ${w}`));
   });
-  assert.deepEqual(diffs, ['glutes.hip_thrust: hamstrings sale de secundarios'],
-    'la búlgara de glúteo pasa a directa de cuádriceps sin dejar de ser secundaria en la vista v1; solo el hip thrust cambia');
-  // La vista que ve el plan es la v1: por eso la salida es idéntica.
-  const ht = K.EXERCISE_CONTRIBUTION['glutes.hip_thrust'];
-  assert.deepEqual(ht.secondary, ['hamstrings'], 'el plan sigue mostrando el secundario de v1 hasta la Fase 2');
+  assert.deepEqual(K.EXERCISE_CONTRIBUTION['glutes.hip_thrust'].secondary, []);
   assert.equal(K.EXERCISE_CONTRIBUTION['glutes.bulgarian_hip'].primary, 'glutes');
+  assert.deepEqual(K.EXERCISE_CONTRIBUTION['glutes.bulgarian_hip'].secondary, ['quads']);
+  assert.equal(K.PLAN_MUSCLE_VIEW_V1, undefined, 'la vista v1 transitoria de DEC-013 se retiró');
 });
 
-test('DEC-012/013: relacion y evidencia viajan en los datos pero ningún cálculo los consume todavía', () => {
+/* ---------- DEC-014 · Fase 2: conteo fraccionado, regla E4 y aviso de rendimiento decreciente ---------- */
+
+const fullBody3 = { name: 'FB3', sex: 'M', age: 30, heightCm: 178, weightKg: 85, bodyFatPct: 15, activity: 'moderate', level: 'intermediate', daysPerWeek: 3, division: 'general_m', goal: 'cut' };
+const clearedShoulder = extra => {
+  const base = E.normalizeProfile(Object.assign({}, fullBody3, { injuryZones: ['shoulder'] }, extra || {}));
+  return Object.assign({}, base, { health: cleared(base.health, 'shoulder', '2026-10-01') });
+};
+const weekly = (plan, key) => plan.training.sessions.reduce((acc, s) => { Object.entries(s[key] || {}).forEach(([m, n]) => { acc[m] = (acc[m] || 0) + n; }); return acc; }, {});
+const entry = (id, sets) => Object.assign(E.exerciseFields(K.EXERCISE_INDEX[id].entry, K.EXERCISE_INDEX[id].bucket), { sets, type: K.EXERCISE_INDEX[id].entry.type });
+
+test('DEC-014: el conteo fraccionado usa directa = 1, indirecta = 0,5 y ninguna / a_verificar = 0 (convención global)', () => {
+  assert.equal(K.VALIDATOR_RULES.directSetWeight.value, 1);
+  assert.equal(K.VALIDATOR_RULES.secondaryMuscleWeight.value, 0.5);
+  assert.equal(K.VALIDATOR_RULES.noRelationWeight.value, 0);
+  assert.equal(K.VALIDATOR_RULES.secondaryMuscleWeight.convention, true, 'el 0,5 se etiqueta como convención del modelo de mejor ajuste');
+  assert.match(K.VALIDATOR_RULES.secondaryMuscleWeight.note, /~0,32/);
+  assert.match(K.VALIDATOR_RULES.secondaryMuscleWeight.note, /convención del modelo de mejor ajuste/);
+  // 4 series de prensa: cuádriceps directa (4), glúteo indirecta (2). 3 de hip thrust: glúteo 3, isquios 0 (ninguna).
+  const f = E.fractionalByMuscle([entry('quads.leg_press', 4), entry('glutes.hip_thrust', 3)]);
+  assert.deepEqual(f, { quads: 4, glutes: 5 });
+  // a_verificar cuenta 0: el pectoral del press inclinado está a_verificar y no suma.
+  assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.chest.evidencia, 'a_verificar');
+  assert.equal(E.fractionalByMuscle([entry('chest.incline_press_db', 4)]).chest, undefined);
+  // El paseo del granjero no suma a nadie.
+  assert.deepEqual(E.fractionalByMuscle([entry('functional.farmer_carry', 2)]), {});
+});
+
+test('DEC-014 · acceptance full body: 3 días/semana con lesión de hombro queda dentro de E4 y respeta DEC-011', () => {
+  // Pausa hasta la autorización profesional (DEC-011): sin confirmar, el plan no se muestra.
+  const paused = E.buildPlan(Object.assign({}, fullBody3, { injuryZones: ['shoulder'] }), TODAY);
+  assert.equal(paused.health.blocked, true);
+  // Con la zona autorizada, el plan se muestra.
+  const profile = clearedShoulder();
+  const plan = E.buildPlan(profile, TODAY);
+  assert.equal(plan.health.blocked, false);
+  const before = E.buildPlan(Object.assign({}, profile, { longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  assert.deepEqual(before.training.sessions.map(s => s.totalSets), [35, 32, 33], 'sin tope: las series de hoy');
+  assert.ok(before.training.sessions.some(s => s.durationMin > 90), 'sin tope: más de 90 min');
+  plan.training.sessions.forEach(s => assert.ok(s.totalSets <= 25, `${s.name}: ${s.totalSets} series`));
+  assert.deepEqual(plan.training.sessionLimit.overCap, []);
+  assert.ok(Math.max(...plan.training.sessions.map(s => s.durationMin)) < Math.max(...before.training.sessions.map(s => s.durationMin)));
+  // DEC-011: las exclusiones por zona siguen aplicando, sin presentarse como adaptación, y los avisos de precaución E4 siguen.
+  const ids = plan.training.sessions.flatMap(s => s.exercises.map(e => e.exerciseId));
+  assert.ok(!ids.includes('shoulders.press_overhead'), 'press de hombro excluido por la zona declarada');
+  assert.ok(plan.health.warnings.some(w => w.evidence === 'E4') || plan.warnings.some(w => w.evidence === 'E4'));
+  const allText = JSON.stringify(plan.training.warnings);
+  assert.doesNotMatch(allText, /adaptad[ao] a (tu|la) lesión/i);
+  // Todo recorte lo explica un aviso E4 con su etiqueta, y la regla no toca multiarticulares.
+  assert.ok(plan.training.sessionLimit.trimmed.length === 3);
+  plan.training.sessions.forEach((s, i) => s.exercises.forEach(e => {
+    const orig = before.training.sessions[i].exercises.find(x => x.exerciseId === e.exerciseId);
+    if (e.type === 'compound') assert.equal(e.sets, orig.sets, `${e.exerciseId}: un multiarticular no se recorta`);
+  }));
+  // El piso semanal de los grupos mayores se respeta (en series reales y fraccionadas) frente al plan sin recortar.
+  K.MAJOR_GROUPS.forEach(mu => {
+    const floor = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    assert.ok(plan.training.weeklySets[mu] >= Math.min(floor, before.training.weeklySets[mu]), `${mu}: series reales bajo el piso`);
+    assert.ok((weekly(plan, 'fractionalSets')[mu] || 0) >= Math.min(floor, weekly(before, 'fractionalSets')[mu] || 0) - 1e-9, `${mu}: series fraccionadas bajo el piso`);
+  });
+  // El volumen semanal mostrado coincide con lo que aparece en las sesiones.
+  const all = plan.training.sessions.flatMap(s => s.exercises);
+  Object.keys(plan.training.weeklySets).forEach(mu => assert.equal(all.filter(e => e.bucket === mu).reduce((a, e) => a + e.sets, 0), plan.training.weeklySets[mu], mu));
+});
+
+test('DEC-014: el usuario puede aceptar una sesión más larga (E4): no se recorta y la aceptación se normaliza como fecha', () => {
+  assert.equal(E.normalizeProfile({ longSessionAcceptedOn: '2026-10-24' }).longSessionAcceptedOn, '2026-10-24');
+  assert.equal(E.normalizeProfile({ longSessionAcceptedOn: 'mañana' }).longSessionAcceptedOn, '');
+  assert.equal(E.normalizeProfile({}).longSessionAcceptedOn, '');
+  const plan = E.buildPlan(clearedShoulder({ longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  assert.deepEqual(plan.training.sessions.map(s => s.totalSets), [35, 32, 33]);
+  assert.equal(plan.training.sessionLimit.accepted, '2026-10-24');
+  assert.deepEqual(plan.training.sessionLimit.trimmed, []);
+  assert.equal(plan.input.longSessionAcceptedOn, '2026-10-24');
+});
+
+test('DEC-014 · acceptance búlgara: la búlgara de glúteo se programa en glúteo y suma 1 a glúteo y 1 a cuádriceps', () => {
+  const ex = K.EXERCISE_CONTRIBUTION['glutes.bulgarian_hip'];
+  assert.equal(ex.bucket, 'glutes');
+  assert.deepEqual(ex.setWeights, { glutes: 1, quads: 1 });
+  assert.deepEqual(E.fractionalByMuscle([entry('glutes.bulgarian_hip', 4)]), { glutes: 4, quads: 4 });
+  // En un plan con glúteo rezagado la búlgara aparece, sigue en el bucket glúteo y su sesión cuenta el cuádriceps.
+  const plan = E.buildPlan(Object.assign({}, fullBody3, { daysPerWeek: 4, laggingMuscles: ['glutes'], longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  const hits = plan.training.sessions.flatMap(s => s.exercises.filter(e => e.exerciseId === 'glutes.bulgarian_hip').map(e => ({ s, e })));
+  assert.ok(hits.length > 0, 'la búlgara de glúteo debería aparecer con glúteo rezagado');
+  hits.forEach(({ s, e }) => {
+    assert.equal(e.bucket, 'glutes');
+    const others = s.exercises.filter(x => x !== e);
+    const quadsOthers = E.fractionalByMuscle(others).quads || 0;
+    assert.equal(s.fractionalSets.quads, quadsOthers + e.sets, 'la búlgara suma 1 por serie al cuádriceps');
+  });
+  // No hay otro peso para ella: nada de 0,5 a medida.
+  assert.ok(plan.training.sessions.every(s => s.exercises.every(e => Object.values(e.setWeights).every(w => w === 1 || w === 0.5))));
+});
+
+test('DEC-014 · acceptance hip thrust: pasar a "ninguna" no hace que el generador agregue isquios por encima de E4', () => {
+  assert.equal(K.EXERCISE_CONTRIBUTION['glutes.hip_thrust'].relations.hamstrings.relacion, 'ninguna');
+  assert.equal(E.fractionalByMuscle([entry('glutes.hip_thrust', 4)]).hamstrings, undefined);
+  const profiles = [
+    Object.assign({}, fullBody3, { daysPerWeek: 4, laggingMuscles: ['quads', 'hamstrings', 'glutes'] }),
+    Object.assign({}, fullBody3, { daysPerWeek: 5, laggingMuscles: ['glutes'] }),
+    Object.assign({}, fullBody3, { daysPerWeek: 3, laggingMuscles: ['glutes'] }),
+    Object.assign({}, fullBody3, { daysPerWeek: 6, sex: 'F', division: 'bikini_w', goal: 'maintain' }),
+  ];
+  let withHipThrust = 0;
+  profiles.forEach(p => {
+    const sin = E.buildPlan(Object.assign({}, p, { longSessionAcceptedOn: '2026-10-24' }), TODAY);
+    const plan = E.buildPlan(p, TODAY);
+    if (!plan.training.sessions.some(s => s.exercises.some(e => e.exerciseId === 'glutes.hip_thrust'))) return;
+    withHipThrust++;
+    // Los isquios no suben: ni por el generador ni por compensar al hip thrust.
+    assert.ok(plan.training.weeklySets.hamstrings <= sin.training.weeklySets.hamstrings, 'isquios reales no suben');
+    plan.training.sessions.forEach((s, i) => {
+      const h = s.exercises.filter(e => e.bucket === 'hamstrings').reduce((a, e) => a + e.sets, 0);
+      const h0 = sin.training.sessions[i].exercises.filter(e => e.bucket === 'hamstrings').reduce((a, e) => a + e.sets, 0);
+      assert.ok(h <= h0, `${s.name}: isquios ${h} > ${h0}`);
+      assert.ok(s.totalSets <= 25 || plan.training.sessionLimit.overCap.some(o => o.session === s.name), `${s.name}: por encima de E4 sin explicación`);
+      s.exercises.filter(e => e.exerciseId === 'glutes.hip_thrust').forEach(e => assert.equal(e.setWeights.hamstrings, undefined));
+    });
+  });
+  assert.ok(withHipThrust >= 2, 'al menos dos perfiles de la prueba incluyen hip thrust');
+});
+
+test('DEC-014: R1 es un aviso de rendimiento decreciente (E3, Remmert et al., preprint), no un tope: no recorta nada', () => {
+  const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession;
+  assert.deepEqual([r1.value, r1.level, r1.kind], [11, 'E3', 'warning']);
+  assert.match(r1.source.label, /Remmert/);
+  assert.doesNotMatch(r1.source.label, /Pelland/);
+  const sessions = [{ name: 'Día X', exercises: [entry('quads.squat_back_or_hack', 6), entry('quads.leg_press', 6), entry('glutes.bulgarian_hip', 2)] }];
+  sessions[0].fractionalSets = E.fractionalByMuscle(sessions[0].exercises);
+  assert.equal(sessions[0].fractionalSets.quads, 14);
+  const w = E.diminishingReturnsWarnings(sessions);
+  assert.equal(w.length, 1);
+  assert.deepEqual([w[0].rule, w[0].evidence, w[0].muscle, w[0].fractionalSets], ['R1', 'E3', 'quads', 14]);
+  assert.match(w[0].text, /no un límite/);
+  assert.match(w[0].text, /Remmert/);
+  assert.match(w[0].text, /preprint sin revisión por pares/);
+  assert.match(w[0].text, /~0,32/);
+  assert.doesNotMatch(w[0].text, /máximo/i);
+  // Justo en 11 no avisa; el aviso no cambia ninguna serie.
+  const at11 = [{ name: 'Día Y', exercises: [entry('quads.squat_back_or_hack', 6), entry('quads.leg_press', 5)] }];
+  assert.deepEqual(E.diminishingReturnsWarnings(at11), []);
+  assert.equal(sessions[0].exercises[0].sets, 6);
+  // En un plan real, con aceptación (sin recorte), un aviso R1 no altera las series.
+  const accepted = E.buildPlan(Object.assign({}, fullBody3, { daysPerWeek: 4, laggingMuscles: ['quads', 'hamstrings', 'glutes'], longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  const r1Warn = accepted.training.warnings.filter(x => x.rule === 'R1');
+  r1Warn.forEach(x => assert.ok(accepted.training.sessions.find(s => s.name === x.session).fractionalSets[x.muscle] > 11));
+});
+
+test('DEC-014: enforceSessionCap — recorta aislamientos de grupos chicos primero, nunca multiarticulares, y respeta el piso del grupo mayor', () => {
+  const mk = () => [{ name: 'S', exercises: [
+    entry('chest.bench_press_barbell', 4), entry('back.row_barbell', 4), entry('quads.squat_back_or_hack', 4),
+    entry('shoulders.lateral_raise_db', 5), entry('biceps.curl_barbell', 6), entry('abs.crunch_or_wheel', 6),
+  ] }].map(s => Object.assign(s, { totalSets: s.exercises.reduce((a, e) => a + e.sets, 0) }));
+  const s1 = mk();
+  assert.equal(s1[0].totalSets, 29);
+  const info = E.enforceSessionCap(s1, null);
+  assert.equal(s1[0].totalSets, 25);
+  assert.deepEqual(info.trimmed[0].cuts.map(c => c.exerciseId).sort(), ['abs.crunch_or_wheel', 'biceps.curl_barbell']);
+  s1[0].exercises.filter(e => e.type === 'compound').forEach(e => assert.equal(e.sets, 4));
+  assert.equal(s1[0].exercises.find(e => e.exerciseId === 'shoulders.lateral_raise_db').sets, 5, 'el hombro (grupo mayor) está en su piso: no se toca');
+  // Con aceptación: nada se recorta.
+  const s2 = mk();
+  const acc = E.enforceSessionCap(s2, '2026-10-24');
+  assert.equal(s2[0].totalSets, 29);
+  assert.deepEqual(acc.trimmed, []);
+  assert.deepEqual(acc.overCap, [{ session: 'S', sets: 29 }]);
+  // Si solo quedan multiarticulares o grupos en su piso, la sesión queda por encima y se informa.
+  const s3 = [{ name: 'T', exercises: [entry('chest.bench_press_barbell', 14), entry('back.row_barbell', 14)], totalSets: 28 }];
+  const info3 = E.enforceSessionCap(s3, null);
+  assert.equal(s3[0].totalSets, 28);
+  assert.deepEqual(info3.overCap, [{ session: 'T', sets: 28 }]);
+});
+
+test('DEC-014: los valores E4 viven en configuración con nivel y base declarados', () => {
+  const cap = K.VALIDATOR_RULES.sessionSetCap;
+  assert.deepEqual([cap.value, cap.level], [25, 'E4']);
+  assert.equal(cap.source, null, 'sin fuente externa: se declara como convención de la app');
+  assert.match(cap.note, /Convención de la app/);
+  const plan = E.buildPlan(clearedShoulder(), TODAY);
+  assert.deepEqual([plan.training.sessionLimit.cap, plan.training.sessionLimit.level], [25, 'E4']);
+  assert.match(plan.training.sessionLimit.basis, /sin fuente externa/);
+});
+
+test('DEC-012/014: el motor no lee relacion ni evidencia crudas: usa solo los pesos de la convención global (setWeights)', () => {
   const engineSrc = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../js/engine.js'), 'utf8');
-  assert.doesNotMatch(engineSrc, /\.(evidencia|relacion|relations|rows)\b|PLAN_MUSCLE_VIEW_V1/, 'engine.js no debe leer relación ni evidencia todavía');
+  assert.doesNotMatch(engineSrc, /\.(evidencia|relacion|relations|rows)\b|PLAN_MUSCLE_VIEW_V1/, 'engine.js no debe leer relación ni evidencia crudas');
   const plan = E.buildPlan(Object.assign({}, male, { healthGoal: true }), TODAY);
   const keys = new Set(plan.training.sessions.flatMap(s => s.exercises.flatMap(e => Object.keys(e))));
   ['evidencia', 'relacion', 'relations', 'rows', 'status', 'fuente'].forEach(k => assert.ok(!keys.has(k), `el plan no debe exponer ${k}`));
 });
 
-test('DEC-012/013: la salida del plan es idéntica a la de main antes de la capa de datos (30 planes, huellas)', () => {
+test('DEC-014: huellas de los 30 planes (línea base de la Fase 2; la salida cambió a propósito por el tope E4 y el conteo fraccionado)', () => {
   const fx = require('./fixtures/plan-hashes.json');
   const now = SNAP.computeHashes(E);
   assert.equal(Object.keys(fx.cases).length, 30);
