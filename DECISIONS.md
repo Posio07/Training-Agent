@@ -302,3 +302,51 @@ Dos de los cambios (hip thrust → isquios y búlgara → cuádriceps) alterarí
 Los de DEC-012 adaptados al formato nuevo, más: al menos una directa por ejercicio; bucket único y coincidente con el catálogo (también con punto y coma); sin columna de peso; los cambios aprobados fila por fila (cada uno un paso, `verificado (1 estudio)` solo en hip thrust → isquios y prensa → glúteo); diferencias entre la vista v1 y los datos v2; módulo igual a los dos CSV.
 
 **Estado: implementada (capa de datos v2).** Ningún cálculo usa todavía la relación ni la evidencia.
+
+## DEC-014 · Fase 2 del validador: conteo fraccionado, regla E4 (tope por sesión) y aviso de rendimiento decreciente (R1)
+Contexto: `docs/specs/validador.md` (R1, R2, R4) y DEC-013 (datos v2). Esta fase es la primera que **cambia la salida del plan**, a propósito, y que hace que el motor use los datos de relación.
+
+### Conteo fraccionado (Pelland et al., Sports Med 2026)
+- Una serie suma a cada músculo según la categoría de su relación: **directa = 1, indirecta = 0,5, ninguna = 0, `a_verificar` = 0**. Los pesos son una convención global en `VALIDATOR_RULES` (`directSetWeight`, `secondaryMuscleWeight`, `noRelationWeight`), nunca un valor por ejercicio; un test comprueba que solo existen los pesos 1 y 0,5.
+- El 0,5 está etiquetado como **convención del modelo de mejor ajuste** (Pelland lo declara como supuesto y heurística). La nota de la regla menciona que un análisis exploratorio de Remmert et al. sugiere ~0,32.
+- El plan expone `setWeights` por ejercicio y `fractionalSets` por sesión. `muscle` y `secondary` salen ahora de los datos v2 (primario = el bucket si es directa en él, si no la primera directa; secundarios = el resto de las relaciones que no son ninguna). Se retiró la vista v1 transitoria de DEC-013.
+- Consecuencia que conviene tener presente: como `a_verificar` cuenta 0, ejercicios como el press inclinado con mancuernas no suman nada al pectoral en el conteo (aunque sus series existen y se programan). Cuanto más se verifiquen las filas, más exacto el conteo.
+
+### R1 · aviso de rendimiento decreciente (E3), no un tope
+- **Método confirmado antes de activarlo** (`docs/research/fraccionado-pelland-remmert.md`, texto completo de Remmert et al., sección 2.5): usa el mismo criterio directa/indirecta que Pelland, y su "fraccionado" es directa 1 + indirecta 0,5 por músculo medido. Es comparable con el 0,5, así que se activó.
+- A más de **~11 series fraccionadas por músculo por sesión**, el plan muestra un aviso (`rule: 'R1'`, `evidence: 'E3'`) que dice que no es un límite, que el umbral lo fijaron los autores de forma arbitraria, que es un preprint sin revisión por pares, y el conteo usado. **No recorta ninguna serie.** Un test lo verifica (en 11 justos no avisa). Limitación documentada: los estudios medían sobre todo un solo músculo, así que extrapolar a cuerpo completo es cauteloso.
+
+### Regla E4 · tope de 25 series por sesión
+- **Valor aprobado:** 25 series por sesión, nivel **E4, convención de la app**, sin fuente externa. `validador.md` no tenía un valor y no se encontró ninguna fuente que defina un máximo de series ni de minutos por sesión; el valor es el `sessionSetCap` de DEC-003 v2, que deja de ser un aviso sin recorte. R4 sigue sin fijar un tope de minutos: la duración es derivada.
+- **Cuándo y cómo recorta:** al generar el plan (antes del top set y de la duración), solo **aislamientos**, primero los de grupos chicos (abdomen, pantorrillas, bíceps, tríceps), y siempre sobre la sesión más pasada del tope. **Nunca recorta multiarticulares.**
+- **R2 prevalece sobre E4:** un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) no baja del piso semanal de 10 series, ni en fraccionadas ni en series reales (si ya estaba por debajo, no baja más). Si el tope no se alcanza sin romper eso, la sesión queda por encima y un aviso lo dice.
+- **Aceptación explícita:** `profile.longSessionAcceptedOn` (fecha `AAAA-MM-DD`). Con ella no se recorta nada y el plan lo registra. En la interfaz, un botón "Aceptar sesiones más largas (sin recortes)" guarda la fecha y otro la revierte.
+- **Transparencia:** cada sesión recortada genera un aviso E4 con las series quitadas por ejercicio y la etiqueta "E4 · heurística"; el volumen semanal mostrado (`weeklySets`) pasa a ser el real de las sesiones. Si un grupo queda sin series directas en la semana, un aviso adicional lo nombra.
+- `plan.training.sessionLimit` = `{ cap, level, basis, accepted, trimmed, overCap }`.
+
+### Efecto en los 10 perfiles de referencia (series por sesión: sin tope → con tope)
+| Perfil | Sin tope | Con tope | Por encima | Duración máx. (min) |
+| --- | --- | --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 | igual | — | 72 → 72 |
+| novice_bulk_physique_4d | 32/9/30/6 | 25/9/24/6 | — | 84 → 70 |
+| wellness_maintain_5d | 21/27/15/15/27 | 21/25/15/15/25 | — | 96 → 92 |
+| general_cut_3d | 35/32/33 | 25/24/26 | 26 | 104 → 88 |
+| bb_bulk_advanced_6d | 25/27/30/25/26/29 | 25/25/26/25/25/25 | 26 | 106 → 98 |
+| bikini_cut_lagging_4d | 28/19/27/17 | 25/19/25/17 | — | 73 → 70 |
+| emanuel_legs_cut_4d | 32/24/32/21 | 24/24/24/21 | — | 87 → 87 |
+| figure_maintain_novice_3d | 30/31/30 | 24/25/25 | — | 95 → 85 |
+| physique_cut_adv_lag_5d | 33/12/29/28/12 | 25/12/24/25/12 | — | 98 → 82 |
+| physique_w_bulk_6d | igual | igual | — | 85 → 85 |
+
+Costos que la regla trae (se avisan en el plan): en los splits de 3 y 4 días los grupos chicos pueden quedar con muy pocas series o con ninguna directa; dos perfiles quedan 1 serie por encima del tope porque el piso de R2 impide recortar más; y 25 series no garantizan menos de 90 minutos (las piernas con unilaterales y multiarticulares llegan a ~98 min).
+
+### Casos de aceptación (`engine.test.js`)
+- **Full body, 3 días/semana, lesión de hombro:** sin tope daba 35/32/33 series y más de 90 min; con la zona autorizada (DEC-011) queda en 25/24/25, sin press militar, con avisos E4, sin multiarticulares recortados y con el piso de R2 intacto. Sin autorización el plan sigue en pausa.
+- **Búlgara de glúteo:** bucket glúteo, suma 1 por serie a glúteo y 1 a cuádriceps; en las sesiones del plan el cuádriceps cuenta esas series.
+- **Hip thrust:** con isquios = ninguna, ningún perfil de la prueba que incluye hip thrust termina con más series de isquios que el plan sin tope ni sesiones por encima de E4 sin explicación; el hip thrust no lleva peso a isquios.
+- Además: conteo 1 / 0,5 / 0 / a_verificar 0; R1 aviso sin recorte y sin la palabra "máximo"; `enforceSessionCap` (grupos chicos primero, multiarticulares intactos, piso, aceptación); valores E4 en configuración.
+- Pruebas de mutación: desactivar el recorte hace fallar 4 tests; devolverle los isquios al hip thrust hace fallar 7.
+- La línea base de la DEC-010 y la regresión de DECISIONS.md siguen vigentes **con la aceptación explícita** (sin recorte): solo difieren las rutas listadas (`sessionLimit`, `setWeights`, `fractionalSets`, avisos con `evidence`/`rule`). Las huellas de los 30 planes (`plan-hashes.json`) se regeneraron porque la salida cambió a propósito.
+
+**Estado: implementada (Fase 2).** Fuera de alcance: antagonistas, superseries y base de datos externa.
+

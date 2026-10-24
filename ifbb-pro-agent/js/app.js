@@ -499,6 +499,9 @@
   }
 
   function wireTrainingDays(plan, profile) {
+    const setLong = value => { profile.data.longSessionAcceptedOn = value; profile.updatedAt = todayIso(); save(); toast(value ? 'Aceptación registrada' : 'Tope restablecido'); renderPlan(); };
+    const accept = $('#btn-accept-long'); if (accept) accept.onclick = () => setLong(todayIso());
+    const revoke = $('#btn-revoke-long'); if (revoke) revoke.onclick = () => setLong('');
     view.querySelectorAll('[data-toggle-day]').forEach(btn => {
       btn.onclick = () => {
         const bodyEl = document.getElementById('day-body-' + btn.dataset.toggleDay);
@@ -517,7 +520,7 @@
 
   // DEC-011: etiqueta de nivel de evidencia visible junto a avisos y ejercicios
   // que son precauciones heurísticas.
-  function evTag(level) { return `<span class="ev-tag">${esc(level)} · heurística</span>`; }
+  function evTag(level) { return `<span class="ev-tag">${esc(level)} · ${level === 'E3' ? 'preprint' : 'heurística'}</span>`; }
   function alerts(list) { return list.map(w => `<div class="alert ${w.level}">${esc(w.text)}${w.evidence ? ' ' + evTag(w.evidence) : ''}</div>`).join(''); }
 
   function htmlSummary(plan, profile) {
@@ -606,6 +609,19 @@
     return names.map((name, i) => ({ name, p: Math.round(n.protein / 4), c: Math.round(n.carbs * cSplit[i]), f: Math.round(n.fat * fSplit[i]) }));
   }
 
+  // DEC-014 · regla E4: tope de series por sesión. El usuario puede aceptar sesiones más largas (queda con fecha).
+  function htmlSessionLimit(sl) {
+    if (sl.accepted) {
+      return `<div class="card"><h3>Sesiones más largas aceptadas</h3>
+        <p>Aceptaste sesiones por encima de las ${sl.cap} series el ${esc(sl.accepted)}: no se recorta ninguna serie. ${evTag('E4')}</p>
+        <div class="btn-row"><button class="btn" id="btn-revoke-long">Volver al tope de ${sl.cap} series</button></div></div>`;
+    }
+    if (!sl.trimmed.length) return '';
+    return `<div class="card"><h3>Tope de ${sl.cap} series por sesión</h3>
+      <p>Para respetar el tope se recortaron series de aislamiento (el detalle está en los avisos del plan). Es una convención de la app, sin fuente externa. ${evTag('E4')}</p>
+      <div class="btn-row"><button class="btn" id="btn-accept-long">Aceptar sesiones más largas (sin recortes)</button></div></div>`;
+  }
+
   function htmlTraining(plan) {
     const tr = plan.training, t = plan.targets;
     const setsRows = Object.entries(tr.weeklySets).map(([mu, s]) => `<tr><td>${esc(KNOWLEDGE.MUSCLE_LABELS[mu])}${tr.laggingApplied[mu] ? ' <span class="cite" title="Grupo rezagado: +25 % de series, anula el énfasis de la división">rezagado</span>' : ''}</td><td class="num">${s}</td></tr>`).join('');
@@ -623,6 +639,7 @@
         </ul>
         <div class="src">Fuentes: ${cite(tr.sources)}</div>
       </div>
+      ${htmlSessionLimit(tr.sessionLimit)}
       ${tr.sessions.map((s, i) => htmlSessionCard(s, i, i === todayIdx)).join('')}
       <div class="card">
         <h3>Cardio</h3>
