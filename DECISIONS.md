@@ -258,3 +258,47 @@ Contexto: `docs/specs/validador.md` pide contar series fraccionadas (primario 1,
 Cada `exerciseId` del CSV existe en el catálogo y viceversa (salvo el paseo); exactamente un `primary` por ejercicio; valores válidos de `role`, `evidence_level`, `muscle` y fecha; `source` en `verificado` y `probable`; citas con autor y año; el parser lee igual coma y punto y coma (con BOM y CRLF) y respeta comillas, delimitadores y saltos de línea dentro de un campo; rechaza datos inválidos; el módulo generado coincide con el CSV; el catálogo toma `muscle`, `secondary` y nivel del CSV en su orden; conteo de niveles; ningún cálculo consume el nivel; y la salida de los 30 planes (10 perfiles × sin extras, con `healthGoal` y con `healthGoal` más lesiones) es idéntica a la de `main` antes de la fase (huellas en `tests/fixtures/plan-hashes.json`, regenerables con `scripts/snapshot-plan-hashes.js` solo si un cambio de salida es intencional). Prueba de mutación: cambiar a mano un `primary` en el CSV hace fallar 2 tests si no se regenera el módulo y 6 si se regenera.
 
 **Estado: implementada (capa de datos).** El nivel de evidencia todavía no se usa en ningún cálculo.
+
+**Nota (DEC-013):** el CSV pasó a formato largo (`relacion` y `evidencia` en vez de `role` y `evidence_level`) y el bucket tiene su propio CSV.
+
+## DEC-013 · Datos v2: relación ejercicio-músculo en formato largo, bucket separado y reglas de evidencia
+Contexto: `docs/specs/validador.md` (Requisitos de datos). La Fase 2 necesita contar series directas e indirectas por músculo, y la tabla de DEC-012 (un `primary` por ejercicio y `secondary` a 0,5) no puede decir que un ejercicio tiene dos directas, ni que un par no tiene relación. Esta decisión migra solo los **datos**: **la salida del plan es idéntica a la de `main`** y ningún cálculo lee todavía la relación ni la evidencia.
+
+### Formato
+- **`data/exercise-muscles.csv`**: una fila por par ejercicio-músculo. Columnas: `exerciseId, muscle, relacion, evidencia, fuente, notes, review_date`. `relacion` = `directa | indirecta | ninguna`; `evidencia` = `verificado | verificado (1 estudio) | probable | a_verificar`. Equivalencia con v1: `primary` → `directa`, `secondary` → `indirecta`. Un par sin fila no se evaluó y cuenta como ninguna. Un ejercicio puede tener varias directas (ya no "exactamente un primary"); los tests exigen al menos una, salvo el paseo del granjero (sin filas).
+- **`data/exercise-buckets.csv`**: `exerciseId, bucket`, un bucket **único** por ejercicio, separado de las relaciones. Un test exige que coincida con el grupo del catálogo donde vive cada ejercicio. Ejemplo: la búlgara de glúteo tiene bucket `glutes` y es directa de `quads`.
+- **Sin pesos en los datos.** No hay columna de peso y el parser rechaza columnas desconocidas. El peso de cada categoría (directa 1, indirecta 0,5, ninguna 0) será una convención global de la Fase 2.
+- El módulo generado `ifbb-pro-agent/js/exerciseMuscles.js` ahora trae `rows` y `buckets`; `sw.js` sube la caché a v5. Parser, Excel con punto y coma, BOM y CRLF siguen igual (`data/README.md`).
+
+### Reglas de datos
+1. **La evidencia solo mueve una relación entre categorías.** Prohibido usar pesos a medida por ejercicio.
+2. **Una medición directa de hipertrofia (resonancia o ultrasonido) prevalece sobre EMG o biomecánica.**
+3. **Un solo estudio puede mover la relación un paso** (ninguna ↔ indirecta ↔ directa) y la fila se marca `verificado (1 estudio)`.
+- Las filas `verificado` de DEC-012 no se re-etiquetaron en bloque: solo se usa `verificado (1 estudio)` donde esta fase movió o confirmó una relación con un único estudio.
+
+### Cambios aplicados
+| Par | Antes (v1) | Ahora (v2) | Base |
+| --- | --- | --- | --- |
+| hip thrust → isquios | secundario, a_verificar | **ninguna**, verificado (1 estudio) | Plotkin 2023 (resonancia, n=18): sin crecimiento apreciable de isquios. Prevalece sobre el EMG de Contreras 2015 (regla 2). Un paso |
+| sentadilla → glúteo | secundario, verificado | **indirecta**, verificado | Kubo 2019 (+6,7 %) y Plotkin 2023. Sin cambio de categoría |
+| prensa → glúteo | secundario, verificado | **indirecta**, verificado (1 estudio) | Kinoshita 2026 (+15,4 %). Sin cambio de categoría. Ver nota abajo |
+| búlgara de glúteo → cuádriceps | secundario, a_verificar | **directa**, probable (bucket glúteo) | Pelland 2026, Tabla 1: la sentadilla dividida (búlgara incluida) es directa para el cuádriceps. Es una clasificación publicada, no una medición. Un paso |
+| pullover en polea | dorsal directo, a_verificar | **sin cambios**; nota `PENDIENTE:` | Se confirma qué variante estudió Di Fonza 2026 antes de tocar nada (solo se leyó el resumen) |
+
+Nota sobre la prensa: con la regla 3, un único estudio con +15,4 % de glúteo mayor permitiría subir la relación un paso, a directa. Se mantiene indirecta por decisión del dueño del modelo; la fila lo deja escrito para reabrirlo si aparece una segunda medición. La sentadilla tiene dos mediciones y también queda indirecta (directa significa generador primario de fuerza, criterio de Pelland 2026, y la hipertrofia medida no lo establece).
+
+### La salida del plan no cambia, y cómo se demuestra
+Dos de los cambios (hip thrust → isquios y búlgara → cuádriceps) alterarían `muscle`/`secondary` del plan si se leyeran de los datos nuevos. Hasta la Fase 2, el plan sigue leyendo una **vista v1 congelada** (`PLAN_MUSCLE_VIEW_V1` en `knowledge.js`, 35 entradas copiadas del CSV de DEC-012, de uso transitorio). La Fase 2 la reemplaza por el conteo fraccionado y la borra.
+- **Test de diferencias:** la vista v1 y los datos v2 difieren únicamente en que el hip thrust pierde a isquios (la búlgara sigue apareciendo como secundaria de cuádriceps en la vista v1 y como directa en v2, que no se lee).
+- **Huellas:** 30 planes (10 perfiles × base, `healthGoal`, `healthGoal` + lesiones) con la misma huella que `main`, comparados además en vivo contra el motor de `main` (30 de 30 iguales, 0 distintos).
+- Test que vigila que `engine.js` no lea relación, evidencia ni la vista v1, y que el plan no exponga esas claves.
+
+### Pendiente
+- Pullover en polea: confirmar la variante de Di Fonza 2026 con el texto completo.
+- Prensa → glúteo: revisar la promoción a directa si hay una segunda medición.
+- Fase 2: conteo fraccionado y validador (ver DEC siguiente).
+
+### Tests (`engine.test.js`)
+Los de DEC-012 adaptados al formato nuevo, más: al menos una directa por ejercicio; bucket único y coincidente con el catálogo (también con punto y coma); sin columna de peso; los cambios aprobados fila por fila (cada uno un paso, `verificado (1 estudio)` solo en hip thrust → isquios y prensa → glúteo); diferencias entre la vista v1 y los datos v2; módulo igual a los dos CSV.
+
+**Estado: implementada (capa de datos v2).** Ningún cálculo usa todavía la relación ni la evidencia.

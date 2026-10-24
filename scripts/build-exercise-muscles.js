@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-/* Lee data/exercise-muscles.csv, lo valida y genera ifbb-pro-agent/js/exerciseMuscles.js
- * (el módulo que carga la app; GitHub Pages solo publica la carpeta ifbb-pro-agent/).
+/* Lee data/exercise-muscles.csv (formato largo: una fila por par ejercicio-músculo) y
+ * data/exercise-buckets.csv (un bucket por ejercicio), los valida y genera
+ * ifbb-pro-agent/js/exerciseMuscles.js (el módulo que carga la app; GitHub Pages
+ * solo publica la carpeta ifbb-pro-agent/).
  *
  *   node scripts/build-exercise-muscles.js           regenera el módulo
  *   node scripts/build-exercise-muscles.js --check   falla si el módulo no coincide con el CSV
@@ -11,14 +13,20 @@
 const fs = require('fs');
 const path = require('path');
 
-const COLUMNS = ['exerciseId', 'muscle', 'role', 'evidence_level', 'source', 'notes', 'review_date'];
-const ROLES = ['primary', 'secondary'];
-const LEVELS = ['verificado', 'probable', 'a_verificar'];
+// Sin columna de peso: la relación es una categoría y el peso de cada categoría es una
+// convención global del modelo (no se ajusta por ejercicio). La evidencia solo mueve una
+// relación entre categorías.
+const COLUMNS = ['exerciseId', 'muscle', 'relacion', 'evidencia', 'fuente', 'notes', 'review_date'];
+const RELATIONS = ['directa', 'indirecta', 'ninguna'];
+const LEVELS = ['verificado', 'verificado (1 estudio)', 'probable', 'a_verificar'];
+const NEEDS_SOURCE = ['verificado', 'verificado (1 estudio)', 'probable'];
+const BUCKET_COLUMNS = ['exerciseId', 'bucket'];
 // Mismos ids que KNOWLEDGE.MUSCLE_LABELS: un test comprueba que no se desalineen.
 const MUSCLE_IDS = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'calves', 'biceps', 'triceps', 'abs'];
 
 const ROOT = path.join(__dirname, '..');
 const CSV_PATH = path.join(ROOT, 'data', 'exercise-muscles.csv');
+const BUCKETS_PATH = path.join(ROOT, 'data', 'exercise-buckets.csv');
 const MODULE_PATH = path.join(ROOT, 'ifbb-pro-agent', 'js', 'exerciseMuscles.js');
 
 // Separador de la fila de encabezado: el que más aparece fuera de comillas.
@@ -81,22 +89,44 @@ function parseExerciseMuscles(text) {
     const where = `fila ${line} (${row.exerciseId || 'sin exerciseId'}, ${row.muscle || 'sin muscle'})`;
     if (!row.exerciseId) errors.push(`${where}: exerciseId vacío`);
     if (!MUSCLE_IDS.includes(row.muscle)) errors.push(`${where}: muscle inválido "${row.muscle}" (válidos: ${MUSCLE_IDS.join(', ')})`);
-    if (!ROLES.includes(row.role)) errors.push(`${where}: role inválido "${row.role}" (solo primary o secondary)`);
-    if (!LEVELS.includes(row.evidence_level)) errors.push(`${where}: evidence_level inválido "${row.evidence_level}" (${LEVELS.join(', ')})`);
-    if ((row.evidence_level === 'verificado' || row.evidence_level === 'probable') && !row.source) errors.push(`${where}: ${row.evidence_level} sin source`);
+    if (!RELATIONS.includes(row.relacion)) errors.push(`${where}: relacion inválida "${row.relacion}" (${RELATIONS.join(', ')})`);
+    if (!LEVELS.includes(row.evidencia)) errors.push(`${where}: evidencia inválida "${row.evidencia}" (${LEVELS.join(', ')})`);
+    if (NEEDS_SOURCE.includes(row.evidencia) && !row.fuente) errors.push(`${where}: ${row.evidencia} sin fuente`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(row.review_date) || isNaN(Date.parse(row.review_date))) errors.push(`${where}: review_date debe ser AAAA-MM-DD (en Excel, dar formato Texto a esa columna), no "${row.review_date}"`);
     const key = `${row.exerciseId}|${row.muscle}`;
     if (seen.has(key)) errors.push(`${where}: fila repetida para ese ejercicio y músculo`);
     seen.add(key);
     rows.push(row);
   });
-  const primaries = {};
-  rows.forEach(r => { if (r.role === 'primary') primaries[r.exerciseId] = (primaries[r.exerciseId] || 0) + 1; });
-  Object.entries(primaries).forEach(([id, n]) => { if (n > 1) errors.push(`${id}: tiene ${n} filas primary (solo puede haber una)`); });
   return { rows, delimiter, errors };
 }
 
-function buildModuleSource(rows) {
+// Devuelve { buckets, delimiter, errors }: un bucket (dónde se programa el ejercicio) por ejercicio.
+function parseBuckets(text) {
+  const delimiter = detectDelimiter(text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text);
+  const table = parseCsv(text, delimiter);
+  const errors = [];
+  if (!table.length) return { buckets: {}, delimiter, errors: ['El CSV de buckets está vacío'] };
+  const header = table[0].map(h => h.trim());
+  const missing = BUCKET_COLUMNS.filter(c => !header.includes(c));
+  const extra = header.filter(c => c !== '' && !BUCKET_COLUMNS.includes(c));
+  if (missing.length) errors.push(`Buckets: faltan columnas: ${missing.join(', ')}`);
+  if (extra.length) errors.push(`Buckets: columnas desconocidas: ${extra.join(', ')}`);
+  if (missing.length) return { buckets: {}, delimiter, errors };
+  const buckets = {};
+  table.slice(1).forEach((cells, n) => {
+    const get = c => (cells[header.indexOf(c)] === undefined ? '' : cells[header.indexOf(c)]).trim();
+    const id = get('exerciseId'), bucket = get('bucket');
+    const where = `buckets fila ${n + 2} (${id || 'sin exerciseId'})`;
+    if (!id) errors.push(`${where}: exerciseId vacío`);
+    if (!MUSCLE_IDS.includes(bucket)) errors.push(`${where}: bucket inválido "${bucket}" (válidos: ${MUSCLE_IDS.join(', ')})`);
+    if (id in buckets) errors.push(`${where}: el ejercicio ya tiene bucket (es un campo único)`);
+    buckets[id] = bucket;
+  });
+  return { buckets, delimiter, errors };
+}
+
+function buildModuleSource(rows, buckets) {
   const lines = rows.map(r => '    ' + JSON.stringify(r));
   return [
     '/* GENERADO por scripts/build-exercise-muscles.js a partir de data/exercise-muscles.csv.',
@@ -108,7 +138,8 @@ function buildModuleSource(rows) {
     "})(typeof self !== 'undefined' ? self : this, function () {",
     "  'use strict';",
     '  return {',
-    "    source: 'data/exercise-muscles.csv',",
+    "    source: 'data/exercise-muscles.csv + data/exercise-buckets.csv',",
+    '    buckets: ' + JSON.stringify(buckets) + ',',
     '    rows: [',
     lines.join(',\n'),
     '    ],',
@@ -118,19 +149,21 @@ function buildModuleSource(rows) {
   ].join('\n');
 }
 
-function buildFromCsvText(text) {
+function buildFromCsvText(text, bucketsText) {
   const parsed = parseExerciseMuscles(text);
-  if (parsed.errors.length) {
-    const e = new Error('data/exercise-muscles.csv inválido:\n - ' + parsed.errors.join('\n - '));
-    e.errors = parsed.errors;
+  const b = parseBuckets(bucketsText);
+  const errors = parsed.errors.concat(b.errors);
+  if (errors.length) {
+    const e = new Error('CSV de datos inválido:\n - ' + errors.join('\n - '));
+    e.errors = errors;
     throw e;
   }
-  return buildModuleSource(parsed.rows);
+  return buildModuleSource(parsed.rows, b.buckets);
 }
 
 if (require.main === module) {
   try {
-    const source = buildFromCsvText(fs.readFileSync(CSV_PATH, 'utf8'));
+    const source = buildFromCsvText(fs.readFileSync(CSV_PATH, 'utf8'), fs.readFileSync(BUCKETS_PATH, 'utf8'));
     if (process.argv.includes('--check')) {
       const current = fs.existsSync(MODULE_PATH) ? fs.readFileSync(MODULE_PATH, 'utf8') : '';
       if (current !== source) { console.error('ifbb-pro-agent/js/exerciseMuscles.js no coincide con data/exercise-muscles.csv. Correr: node scripts/build-exercise-muscles.js'); process.exit(1); }
@@ -142,4 +175,4 @@ if (require.main === module) {
   } catch (e) { console.error(e.message); process.exit(1); }
 }
 
-module.exports = { COLUMNS, ROLES, LEVELS, MUSCLE_IDS, CSV_PATH, MODULE_PATH, detectDelimiter, parseCsv, parseExerciseMuscles, buildModuleSource, buildFromCsvText };
+module.exports = { COLUMNS, RELATIONS, LEVELS, NEEDS_SOURCE, BUCKET_COLUMNS, MUSCLE_IDS, CSV_PATH, BUCKETS_PATH, MODULE_PATH, detectDelimiter, parseCsv, parseExerciseMuscles, parseBuckets, buildModuleSource, buildFromCsvText };

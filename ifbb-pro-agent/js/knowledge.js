@@ -459,32 +459,73 @@
     }));
   });
 
-  /* DEC-010 / DEC-012 · Aporte de volumen por ejercicio.
-   * El "bucket" (EXERCISES[mu] / FUNCTIONAL_EXERCISES[mu]) solo define dónde
-   * vive el ejercicio: día, rotación, lesiones. El aporte de volumen sale de
-   * data/exercise-muscles.csv (módulo generado js/exerciseMuscles.js), por `id`
-   * único de cada entrada del catálogo (el `pattern` NO sirve de id:
-   * `split_squat` se repite con primarios distintos).
-   * primary = grupo que suma 1.0 (null = sin aporte de hipertrofia);
-   * secondary = grupos que suman 0.5, en el orden del CSV. Solo los 10 grupos de
-   * MUSCLE_LABELS; sin antagonistas ni estabilizadores.
-   * `evidence: 'E4'` es la etiqueta de la app (criterio propio, sin validar) y no
-   * cambia. `evidenceLevel` (verificado, probable, a_verificar) y `rows` (fuente,
-   * nota y fecha de cada fila) viajan con los datos, pero ningún cálculo los
-   * consume todavía. `status: 'a_verificar'` se deriva: aparece si alguna fila del
-   * ejercicio está a_verificar. */
+  /* DEC-010 / DEC-012 / DEC-013 · Aporte de volumen por ejercicio.
+   * Los datos viven en data/exercise-muscles.csv (formato largo: una fila por par
+   * ejercicio-músculo, con `relacion` directa|indirecta|ninguna y `evidencia`) y en
+   * data/exercise-buckets.csv (dónde se programa cada ejercicio), por `id` único de
+   * cada entrada del catálogo (el `pattern` NO sirve de id: `split_squat` se repite
+   * con primarios distintos). Llegan por el módulo generado js/exerciseMuscles.js.
+   *
+   * TRANSICIÓN (DEC-013): hasta la Fase 2 el plan sigue mostrando `muscle` y
+   * `secondary` de la tabla v1 (PLAN_MUSCLE_VIEW_V1, congelada), para que la salida
+   * del plan sea idéntica a la de antes de migrar los datos. Un test enumera las
+   * diferencias entre esa vista y los datos v2 (hip thrust → isquios, búlgara de
+   * glúteo → cuádriceps). La Fase 2 la reemplaza por el conteo fraccionado.
+   * `relations` (v2) y `rows` (fuente, nota, fecha) viajan con los datos, pero ningún
+   * cálculo los consume todavía. `evidence: 'E4'` es la etiqueta de la app (criterio
+   * propio, sin validar). `status: 'a_verificar'` aparece si alguna fila del ejercicio
+   * está a_verificar. */
   const NO_MUSCLE_CONTRIBUTION = ['functional.farmer_carry']; // funcional sin aporte de hipertrofia (DEC-005, DEC-010): sin filas en el CSV
+  const PLAN_MUSCLE_VIEW_V1 = {
+    'chest.bench_press_barbell': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
+    'chest.incline_press_db': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
+    'chest.dip_or_machine_press': { primary: 'chest', secondary: ['shoulders', 'triceps'] },
+    'chest.fly_cable_pecdeck': { primary: 'chest', secondary: ['shoulders'] },
+    'back.vertical_pull': { primary: 'back', secondary: ['biceps', 'shoulders'] },
+    'back.row_barbell': { primary: 'back', secondary: ['biceps', 'shoulders'] },
+    'back.row_cable': { primary: 'back', secondary: ['biceps', 'shoulders'] },
+    'back.pullover_cable': { primary: 'back', secondary: ['chest'] },
+    'shoulders.press_overhead': { primary: 'shoulders', secondary: ['triceps'] },
+    'shoulders.lateral_raise_db': { primary: 'shoulders', secondary: [] },
+    'shoulders.lateral_raise_cable': { primary: 'shoulders', secondary: [] },
+    'shoulders.rear_delt_facepull': { primary: 'shoulders', secondary: ['back'] },
+    'shoulders.press_landmine_neutral': { primary: 'shoulders', secondary: ['triceps'] },
+    'quads.squat_back_or_hack': { primary: 'quads', secondary: ['glutes'] },
+    'quads.leg_press': { primary: 'quads', secondary: ['glutes'] },
+    'quads.lunge_or_bulgarian': { primary: 'quads', secondary: ['glutes'] },
+    'quads.leg_extension': { primary: 'quads', secondary: [] },
+    'hamstrings.rdl': { primary: 'hamstrings', secondary: ['glutes'] },
+    'hamstrings.leg_curl': { primary: 'hamstrings', secondary: [] },
+    'glutes.hip_thrust': { primary: 'glutes', secondary: ['hamstrings'] },
+    'glutes.bulgarian_hip': { primary: 'glutes', secondary: ['quads'] },
+    'glutes.hip_abduction_machine': { primary: 'glutes', secondary: [] },
+    'glutes.kickback_cable': { primary: 'glutes', secondary: [] },
+    'calves.calf_raise_standing': { primary: 'calves', secondary: [] },
+    'calves.calf_raise_seated': { primary: 'calves', secondary: [] },
+    'biceps.curl_barbell': { primary: 'biceps', secondary: [] },
+    'biceps.curl_incline': { primary: 'biceps', secondary: [] },
+    'triceps.close_grip_or_dips': { primary: 'triceps', secondary: ['chest', 'shoulders'] },
+    'triceps.pushdown_cable': { primary: 'triceps', secondary: [] },
+    'abs.crunch_or_wheel': { primary: 'abs', secondary: [] },
+    'abs.hanging_leg_raise': { primary: 'abs', secondary: [] },
+    'abs.vacuum': { primary: 'abs', secondary: [] },
+    'functional.bulgarian_db': { primary: 'quads', secondary: ['glutes'] },
+    'functional.step_up': { primary: 'quads', secondary: ['glutes'] },
+  };
   const EXERCISE_CONTRIBUTION = {};
   Object.keys(EXERCISE_INDEX).forEach(id => {
-    EXERCISE_CONTRIBUTION[id] = { primary: null, secondary: [], evidence: 'E4', evidenceLevel: { primary: null, secondary: {} }, rows: [] };
+    const v1 = PLAN_MUSCLE_VIEW_V1[id] || { primary: null, secondary: [] };
+    EXERCISE_CONTRIBUTION[id] = {
+      primary: v1.primary, secondary: v1.secondary.slice(), evidence: 'E4',
+      bucket: EXERCISE_MUSCLES.buckets[id] || null, relations: {}, rows: [],
+    };
   });
   EXERCISE_MUSCLES.rows.forEach(row => {
     const c = EXERCISE_CONTRIBUTION[row.exerciseId];
     if (!c) return; // un test exige que toda fila del CSV tenga su ejercicio en el catálogo
     c.rows.push(row);
-    if (row.role === 'primary') { c.primary = row.muscle; c.evidenceLevel.primary = row.evidence_level; }
-    else { c.secondary.push(row.muscle); c.evidenceLevel.secondary[row.muscle] = row.evidence_level; }
-    if (row.evidence_level === 'a_verificar') c.status = 'a_verificar';
+    c.relations[row.muscle] = { relacion: row.relacion, evidencia: row.evidencia };
+    if (row.evidencia === 'a_verificar') c.status = 'a_verificar';
   });
 
   /* DEC-010 · Reglas del validador, centralizadas: valor, nivel de evidencia,
@@ -518,5 +559,5 @@
     sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
   };
 
-  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
+  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, PLAN_MUSCLE_VIEW_V1, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
 });

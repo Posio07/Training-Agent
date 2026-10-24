@@ -66,7 +66,7 @@ Son cinco reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), 
 
 El validador depende de que el catálogo cuente bien los músculos. Hoy hay al menos una etiqueta mal asignada.
 
-- **Mapa ejercicio → músculos:** cada ejercicio tiene músculos primarios (peso 1.0) y secundarios (peso 0.5). Hay que auditar el catálogo completo. Caso conocido: el paseo del granjero figura como "Cuádriceps", cuando trabaja agarre, trapecio y core.
+- **Mapa ejercicio → músculos (v2, DEC-013):** una fila por par ejercicio-músculo con `relacion` (directa, indirecta o ninguna), `evidencia` (verificado, verificado (1 estudio), probable, a_verificar) y `fuente`, en `data/exercise-muscles.csv`. El bucket (dónde se programa el ejercicio) es un campo único por ejercicio en `data/exercise-buckets.csv`. Los pesos de conteo no viven en los datos: son una convención global por categoría (directa 1, indirecta 0.5, ninguna 0) y la evidencia solo mueve una relación entre categorías, nunca ajusta un peso por ejercicio. El paseo del granjero no tiene filas (no suma volumen de hipertrofia).
 - **Historial de volumen:** series semanales por músculo de al menos las últimas 4 semanas, para R3.
 - **Tiempo disponible:** dato opcional del usuario, para R4.
 - **Tamizaje y aceptaciones:** respuestas del PAR-Q+ y cada aceptación explícita (salto de volumen, rutina larga, autorización profesional), guardadas con fecha.
