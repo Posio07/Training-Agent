@@ -369,5 +369,17 @@ Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. P
 - **Service worker:** precarga `sessionStore.js`; caché v7.
 - **Tests:** unitarios en `engine.test.js` (la puerta del despliegue): cerrar a mitad y reanudar con los mismos datos y sin duplicar; la misma serie dos veces; reparación en ambos sentidos y filas viejas intactas; descartar sin tocar otras sesiones; registros ilegibles o inválidos; completar sin series. E2E en navegador: registrar una serie, recargar (simula cerrar la app), ver el aviso, reanudar, terminar una sola vez, no reofrecer, y descartar. Pruebas de mutación: duplicar filas o apagar la reparación hacen fallar tests.
 
-**Estado: Paso 1 implementado.** Pasos 2 y 3 pendientes de aprobación.
+### Paso 2 · Editar y borrar series
+- **UI mínima, compartida:** un solo editor (peso, repeticiones, Guardar / Borrar serie / Cancelar) que usan el modo sesión y el historial; el rediseño visual lo reemplaza sin tocar la lógica (`sessionStore.js`).
+  - **En la sesión en curso:** en una serie ya registrada, el botón "Editar" (donde antes había un check deshabilitado) abre el editor.
+  - **En el historial:** Progreso tiene una sección "Sesiones registradas" con las últimas 30 sesiones desplegables; tocar una serie abre el mismo editor. Incluye las sesiones completadas y los registros anteriores a DEC-015 (que se muestran como "sin estado" y se identifican por sus datos, sin migrarlos). La sesión en curso no se lista ahí: se edita en su pantalla.
+- **Validación:** peso de 0 a 1000 (vacío = 0, peso corporal) y repeticiones enteras de 1 a 999; si no cumple, un aviso y no cambia nada. Editar no toca el dolor registrado ni los avisos de DEC-009/011.
+- **Borrar** pide confirmación. En la sesión en curso la serie queda sin registrar y se puede volver a registrar (una sola fila); en el historial, la sesión completada baja su contador de series hechas. Una sesión sin series sigue listada con "Sin series".
+- **Sin resucitar nada ante un corte** (la sesión y el historial son dos escrituras, y en el historial el estado entero es una sola):
+  - Editar: primero se cambia y se guarda la sesión, después la fila. `reconcile` resuelve un desacuerdo a favor de la edición más reciente (`editedAt`).
+  - Borrar: primero se guarda en la sesión la intención de borrar (`deletedKeys`), después se quita la fila; si se corta entre las dos, al reanudar la serie borrada no vuelve. Volver a registrar esa serie limpia la marca.
+- Las filas editadas llevan `editedAt` y se muestran como "(editada)". Progreso y la gráfica de fuerza leen las mismas filas, así que ven la corrección.
+- **Tests:** unitarios (editar sesión e historial; valores inválidos; borrar con corte simulado y re-registro; corte a mitad de una edición en los dos sentidos; historial con registros viejos y contador) y E2E (editar una serie con rechazo de repeticiones 0, recargar y reanudar con la edición guardada, borrar y volver a registrar, editar y borrar en el historial). Prueba de mutación: sin la marca de borrado, la serie borrada reaparece y falla un test.
+- **Arreglo asociado:** las transiciones de pestaña (View Transitions) rechazaban su promesa al abortarse (recarga, pestaña oculta) y lanzaban un error de consola intermitente; ahora se ignoran. El E2E repetido quedó estable. Además el aviso "Descartar" usa el mismo modal que el resto de la app en vez de `confirm()`.
 
+**Estado: Pasos 1 y 2 implementados.** Paso 3 (cronómetro por timestamp, Wake Lock y tono) pendiente de aprobación.

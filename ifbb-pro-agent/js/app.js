@@ -102,8 +102,11 @@
     // Fundido corto entre pestañas con la View Transitions API; si el
     // navegador no la soporta (o el usuario pide menos movimiento), el
     // cambio es instantáneo, sin fallback animado propio.
-    if (document.startViewTransition && !prefersReducedMotion()) document.startViewTransition(apply);
-    else apply();
+    if (document.startViewTransition && !prefersReducedMotion()) {
+      // Si la transición se aborta (recarga, pestaña oculta) la promesa se rechaza: se ignora, el cambio igual se aplica.
+      const vt = document.startViewTransition(apply);
+      [vt.ready, vt.finished, vt.updateCallbackDone].forEach(pr => pr && pr.catch && pr.catch(() => {}));
+    } else apply();
   }
 
   function render() {
@@ -990,6 +993,54 @@
     const root = document.getElementById('session-mode-root');
     if (root) root.remove();
     sm = null;
+    smEditing = null;
+  }
+
+  /* DEC-015 (Paso 2) · editor mínimo de una serie: peso y repeticiones, Guardar / Borrar / Cancelar.
+   * Lo comparten el modo sesión y el historial. `attr` es el atributo data-* que identifica la serie. */
+  function setEditorHtml(attr, id, weight, reps, unit) {
+    return `<form class="set-editor" data-set-editor data-editor-id="${esc(id)}" novalidate>
+      <div class="sm-set-row">
+        <div class="fieldwrap"><input type="number" inputmode="decimal" step="any" name="weight" value="${esc(weight)}" aria-label="Peso (${esc(unit)})"><div class="unit">peso (${esc(unit)})</div></div>
+        <div class="fieldwrap"><input type="number" inputmode="numeric" step="1" name="reps" value="${esc(reps)}" aria-label="Repeticiones"><div class="unit">reps</div></div>
+      </div>
+      <div class="btn-row" style="margin:.4rem 0 0"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
+    </form>`;
+  }
+  // Conecta el editor que haya dentro de `root`. onSave(vals) debe devolver { ok, error }.
+  function wireSetEditor(root, { onSave, onDelete, onCancel }) {
+    const form = root.querySelector('[data-set-editor]');
+    if (!form) return;
+    form.onsubmit = e => {
+      e.preventDefault();
+      const r = onSave({ weight: form.elements.weight.value, reps: form.elements.reps.value });
+      if (r && !r.ok) toast(r.error);
+    };
+    form.querySelector('[data-editor-cancel]').onclick = onCancel;
+    form.querySelector('[data-editor-delete]').onclick = async () => {
+      const ok = await confirmModal('¿Borrar esta serie? Se quita también del historial y de tu progreso.', { confirmLabel: 'Borrar', cancelLabel: 'Cancelar' });
+      if (ok) onDelete();
+    };
+  }
+  let smEditing = null; // { ex, set } de la serie en edición dentro del modo sesión
+
+  // Editar o borrar una serie ya registrada de la sesión en curso.
+  function smEditSet(profile, exIndex, setIdx, vals) {
+    const r = SS.editActiveSet(sm, exIndex, setIdx, vals, Date.now());
+    if (!r.ok) return r;
+    persistSm(); // 1) la sesión, 2) la fila del historial
+    SS.syncRow(sm, profile.workouts = profile.workouts || [], exIndex, setIdx, todayIso());
+    profile.updatedAt = todayIso(); save();
+    smEditing = null; renderSessionMode(profile);
+    return r;
+  }
+  function smDeleteSet(profile, exIndex, setIdx) {
+    const r = SS.deleteActiveSet(sm, exIndex, setIdx);
+    if (!r.ok) { toast(r.error); return; }
+    persistSm(); // la intención de borrar queda guardada antes de tocar el historial
+    SS.removeRow(profile.workouts = profile.workouts || [], r.key);
+    profile.updatedAt = todayIso(); save();
+    smEditing = null; renderSessionMode(profile);
   }
 
   // Terminar: la sesión pasa a 'completada' (una sola vez) y deja de ser reanudable.
@@ -1033,9 +1084,10 @@
       if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
       renderSessionMode(profile);
     };
-    $('#resume-no').onclick = () => {
+    $('#resume-no').onclick = async () => {
       const n = pr.done;
-      if (!confirm(n ? `Se descartará la sesión y se borrarán sus ${n} series registradas. ¿Continuar?` : '¿Descartar la sesión en curso?')) return;
+      const ok = await confirmModal(n ? `Se descartará la sesión y se borrarán sus ${n} series registradas. ¿Continuar?` : '¿Descartar la sesión en curso?', { confirmLabel: 'Descartar', cancelLabel: 'Cancelar' });
+      if (!ok) return;
       ov.remove();
       const removed = SS.discard(rec, profile.workouts = profile.workouts || []);
       if (removed) { profile.updatedAt = todayIso(); save(); }
@@ -1093,12 +1145,17 @@
 
   function htmlSmSet(st, i, v, unit, painScale) {
     const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${st.setNumber}` }[st.setType];
+    if (v.done && smEditing && smEditing.ex === sm.exIndex && smEditing.set === i) {
+      return `<div class="sm-set editing" data-set="${i}"><div class="sm-set-title">${esc(label)} · editar</div>${setEditorHtml('sm', `${sm.exIndex}:${i}`, v.weight, v.reps, unit)}</div>`;
+    }
     return `<div class="sm-set ${v.done ? 'done' : ''}" data-set="${i}">
       <div class="sm-set-row">
         <div class="idx">${label === `Serie ${st.setNumber}` ? st.setNumber : (st.setType === 'top' ? icon('trophy') : '↓')}</div>
         <div class="fieldwrap"><input type="number" inputmode="decimal" placeholder="${unit}" value="${v.weight || ''}" data-sm-weight="${i}" ${v.done ? 'disabled' : ''}><div class="unit">peso (${unit})</div></div>
         <div class="fieldwrap"><input type="number" inputmode="numeric" placeholder="${st.repsLabel}" value="${v.reps || ''}" data-sm-reps="${i}" ${v.done ? 'disabled' : ''}><div class="unit">reps (obj. ${esc(st.repsLabel)})</div></div>
-        <button class="btn ${v.done ? '' : 'btn-primary'} done-btn" data-sm-done="${i}" ${v.done ? 'disabled' : ''}>${v.done ? icon('check', 'check-draw') : 'Hecha'}</button>
+        ${v.done
+          ? `<button class="btn done-btn" data-sm-edit="${i}" aria-label="Editar o borrar esta serie">${icon('check', 'check-draw')} Editar</button>`
+          : `<button class="btn btn-primary done-btn" data-sm-done="${i}">Hecha</button>`}
       </div>
       ${painScale ? `<div class="fieldwrap sm-pain"><input type="number" inputmode="numeric" min="0" max="10" placeholder="0-10" value="${v.pain === '' || v.pain == null ? '' : v.pain}" data-sm-pain="${i}" ${v.done ? 'disabled' : ''}><div class="unit">dolor en esta serie (0-10)</div></div>` : ''}
     </div>`;
@@ -1120,6 +1177,15 @@
     root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; persistSm(); });
     root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; persistSm(); });
     root.querySelectorAll('[data-sm-done]').forEach(btn => btn.onclick = () => smLogSet(profile, Number(btn.dataset.smDone)));
+    root.querySelectorAll('[data-sm-edit]').forEach(btn => btn.onclick = () => { smEditing = { ex: sm.exIndex, set: Number(btn.dataset.smEdit) }; renderSessionMode(profile); });
+    if (smEditing) {
+      const { ex, set } = smEditing;
+      wireSetEditor(root, {
+        onSave: vals => smEditSet(profile, ex, set, vals),
+        onDelete: () => smDeleteSet(profile, ex, set),
+        onCancel: () => { smEditing = null; renderSessionMode(profile); },
+      });
+    }
   }
 
   // DEC-009: marca/desmarca un ejercicio para sustituir según el dolor
@@ -1344,6 +1410,7 @@
         <h3>Fuerza</h3>
         ${strengthSection(workouts)}
       </div>
+      ${htmlSessionHistory(p)}
       <div class="card">
         <h3>Historial</h3>
         ${log.length ? `<table><tr><th>Fecha</th><th class="num">Peso</th><th class="num">% grasa</th><th class="num">Cintura</th><th></th></tr>
@@ -1363,6 +1430,7 @@
       const idx = Number(b.dataset.del); const sorted = log; const target = sorted[idx];
       p.log = p.log.filter(x => x !== target); save(); renderProgress();
     });
+    wireSessionHistory(p);
     const sel = $('#strength-exercise-select');
     if (sel) sel.onchange = () => { ui.strengthExercise = sel.value; renderProgress(); };
     const apply = $('#btn-apply');
@@ -1429,6 +1497,50 @@
       ${ticks}<path class="line" pathLength="100" d="${mainPath}"/>${dotsHtml}
       <text x="${L}" y="${H - 6}">${fmtDate(log[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmtDate(log[log.length - 1].date)}</text>
     </svg>`;
+  }
+
+  /* DEC-015 (Paso 2) · historial de sesiones: tocar una serie para editar peso y repeticiones o borrarla. */
+  let histEditing = null; // rowId de la serie en edición
+  let histOpen = null; // sesión desplegada (se conserva al guardar o borrar)
+  const HISTORY_LIMIT = 30;
+  function htmlSessionHistory(p) {
+    const activeRec = SS.loadActive(localStorage);
+    const list = SS.listSessions(p.workouts || [], p.sessions || [], activeRec ? activeRec.sessionId : null);
+    const unit = p.data.plateUnit || 'kg';
+    if (!list.length) return `<div class="card"><h3>Sesiones registradas</h3><p class="muted">Todavía no registraste ninguna sesión.</p></div>`;
+    const row = w => {
+      const id = SS.rowId(w);
+      const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${w.setNumber}` }[w.setType] || `Serie ${w.setNumber}`;
+      if (histEditing === id) return `<li class="hist-row editing"><div class="muted">${esc(w.exercise)} · ${esc(label)}</div>${setEditorHtml('hist', id, w.weight, w.reps, unit)}</li>`;
+      return `<li class="hist-row"><button class="btn btn-ghost" data-hist-edit="${esc(id)}" aria-label="Editar o borrar: ${esc(w.exercise)}, ${esc(label)}"><b>${esc(w.exercise)}</b> · ${esc(label)} · ${n1(w.weight)} ${esc(unit)} × ${w.reps}${w.editedAt ? ' <span class="muted">(editada)</span>' : ''}</button></li>`;
+    };
+    return `<div class="card"><h3>Sesiones registradas</h3>
+      <p class="help">Toca una serie para corregir su peso o repeticiones, o para borrarla.</p>
+      ${list.slice(0, HISTORY_LIMIT).map(x => `<details class="hist-session" data-sid="${esc(x.sessionId)}"${x.sessionId === histOpen || x.rows.some(r => SS.rowId(r) === histEditing) ? ' open' : ''}>
+        <summary>${fmtDate(x.date)} · ${esc(x.dayName)} · ${x.rows.length} series${x.status === 'sin_estado' ? ' <span class="muted">(sin estado)</span>' : ''}</summary>
+        <ul class="hist-rows">${x.rows.length ? x.rows.map(row).join('') : '<li class="muted">Sin series.</li>'}</ul>
+      </details>`).join('')}
+      ${list.length > HISTORY_LIMIT ? `<p class="muted">Se muestran las ${HISTORY_LIMIT} sesiones más recientes.</p>` : ''}
+    </div>`;
+  }
+  function wireSessionHistory(p) {
+    view.querySelectorAll('.hist-session').forEach(d => d.ontoggle = () => { if (d.open) histOpen = d.dataset.sid; else if (histOpen === d.dataset.sid) histOpen = null; });
+    view.querySelectorAll('[data-hist-edit]').forEach(btn => btn.onclick = () => { histEditing = btn.dataset.histEdit; renderProgress(); });
+    if (!histEditing) return;
+    const id = histEditing;
+    wireSetEditor(view, {
+      onSave: vals => {
+        const r = SS.editRow(p.workouts || [], id, vals, Date.now());
+        if (r.ok) { p.updatedAt = todayIso(); save(); histEditing = null; renderProgress(); }
+        return r;
+      },
+      onDelete: () => {
+        const r = SS.deleteRow(p.workouts || [], p.sessions = p.sessions || [], id, Date.now());
+        if (!r.ok) { toast(r.error); return; }
+        p.updatedAt = todayIso(); save(); histEditing = null; toast('Serie borrada'); renderProgress();
+      },
+      onCancel: () => { histEditing = null; renderProgress(); },
+    });
   }
 
   function strengthSection(workouts) {

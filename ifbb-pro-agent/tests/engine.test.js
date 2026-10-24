@@ -1618,3 +1618,106 @@ test('DEC-015: completar una sesión sin series hechas la deja como completada c
   assert.deepEqual([meta.setsDone, meta.setsTotal, meta.short, meta.dayIndex], [0, 3, true, 1]);
   assert.deepEqual(workouts, []);
 });
+
+/* ---------- DEC-015 (Paso 2): editar y borrar series ---------- */
+
+test('DEC-015: editar peso y repeticiones de una serie de la sesión en curso actualiza sesión y historial sin duplicar', () => {
+  const store = memStorage();
+  const workouts = [];
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 'e1', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  logSet(rec, workouts, 0, 0, 80, 8, 10);
+  assert.equal(SS.editActiveSet(rec, 0, 1, { weight: 50, reps: 5 }, 20).ok, false, 'una serie no registrada no se edita');
+  const r = SS.editActiveSet(rec, 0, 0, { weight: '82.5', reps: '7' }, 20);
+  assert.equal(r.ok, true);
+  SS.saveActive(store, rec, 21);
+  SS.syncRow(rec, workouts, 0, 0, '2026-10-24');
+  assert.equal(workouts.length, 1);
+  assert.deepEqual([workouts[0].weight, workouts[0].reps, workouts[0].editedAt, workouts[0].savedAt], [82.5, 7, 20, 10]);
+  const back = SS.loadActive(store);
+  assert.deepEqual([back.values[0][0].weight, back.values[0][0].reps, back.values[0][0].doneAt], [82.5, 7, 10]);
+  assert.equal(SS.reconcile(back, workouts, '2026-10-24'), 0);
+});
+
+test('DEC-015: valores inválidos al editar se rechazan con un mensaje y no cambian nada', () => {
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 'e2', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  const workouts = [];
+  logSet(rec, workouts, 0, 0, 80, 8, 10);
+  [{ weight: 80, reps: 0 }, { weight: 80, reps: '' }, { weight: 80, reps: 2.5 }, { weight: 80, reps: 'abc' }, { weight: -5, reps: 5 }, { weight: 'x', reps: 5 }, { weight: 5000, reps: 5 }, { weight: 80, reps: 1000 }].forEach(v => {
+    const r = SS.editActiveSet(rec, 0, 0, v, 30);
+    assert.equal(r.ok, false, JSON.stringify(v));
+    assert.ok(r.error.length > 5);
+  });
+  assert.deepEqual([rec.values[0][0].weight, rec.values[0][0].reps, rec.values[0][0].editedAt], [80, 8, undefined]);
+  assert.equal(SS.validateSetValues({ weight: '', reps: 5 }).weight, 0, 'peso vacío = 0 (peso corporal)');
+  assert.equal(SS.editRow(workouts, SS.rowId(workouts[0]), { weight: 80, reps: 0 }, 5).ok, false);
+});
+
+test('DEC-015: borrar una serie de la sesión en curso la quita del historial, deja el hueco para volver a registrarla y no se resucita', () => {
+  const store = memStorage();
+  const workouts = [];
+  const rec = SS.newSession({ profileId: 'p1', sessionId: 'd1', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 });
+  logSet(rec, workouts, 0, 0, 80, 8, 10);
+  logSet(rec, workouts, 0, 1, 80, 8, 11);
+  const del = SS.deleteActiveSet(rec, 0, 0);
+  assert.equal(del.ok, true);
+  SS.saveActive(store, rec, 12); // la intención de borrar se guarda primero
+  // Corte antes de tocar el historial: al reanudar, la serie borrada no vuelve.
+  const resumed = SS.loadActive(store);
+  assert.equal(workouts.length, 2);
+  SS.reconcile(resumed, workouts, '2026-10-24');
+  assert.deepEqual(workouts.map(w => w.setKey), [SS.setKey('d1', 0, 1)]);
+  assert.equal(resumed.values[0][0].done, false);
+  assert.deepEqual(SS.progress(resumed), { done: 1, total: 3 });
+  // Sin corte: removeRow es idempotente.
+  assert.equal(SS.removeRow(workouts, del.key), false);
+  // Volver a registrar la misma serie limpia la intención de borrar y crea una sola fila.
+  logSet(resumed, workouts, 0, 0, 85, 6, 40);
+  SS.reconcile(resumed, workouts, '2026-10-24');
+  assert.equal(workouts.filter(w => w.setKey === del.key).length, 1);
+  assert.deepEqual(resumed.deletedKeys, []);
+  // Completar una sesión con series borradas cuenta solo las hechas.
+  const meta = SS.complete(resumed, [], workouts, 50, '2026-10-24');
+  assert.deepEqual([meta.setsDone, meta.setsTotal], [2, 3]);
+});
+
+test('DEC-015: un corte a mitad de una edición se resuelve a favor de la edición más reciente, en los dos sentidos', () => {
+  const mk = () => { const w = []; const r = SS.newSession({ profileId: 'p1', sessionId: 'c1', dayIndex: 0, dayName: 'D', short: false, exercises: smExercises(), now: 1 }); logSet(r, w, 0, 0, 80, 8, 10); return { r, w }; };
+  // La sesión se guardó con la edición y la fila quedó vieja: gana la sesión.
+  let { r, w } = mk();
+  SS.editActiveSet(r, 0, 0, { weight: 90, reps: 5 }, 100);
+  SS.reconcile(r, w, '2026-10-24');
+  assert.deepEqual([w[0].weight, w[0].reps, w[0].editedAt], [90, 5, 100]);
+  // La fila tiene una edición más reciente que la sesión: gana la fila.
+  ({ r, w } = mk());
+  w[0].weight = 70; w[0].reps = 12; w[0].editedAt = 200;
+  SS.reconcile(r, w, '2026-10-24');
+  assert.deepEqual([r.values[0][0].weight, r.values[0][0].reps], [70, 12]);
+  assert.equal(SS.reconcile(r, w, '2026-10-24'), 0);
+});
+
+test('DEC-015: editar y borrar en el historial (sesiones completadas y registros viejos sin setKey)', () => {
+  const workouts = [
+    { setKey: 'h1:0:0', sessionId: 'h1', date: '2026-10-20', exercise: 'Press banca', setType: 'normal', setNumber: 1, weight: 60, reps: 10, savedAt: 100, dayName: 'Día 1' },
+    { setKey: 'h1:0:1', sessionId: 'h1', date: '2026-10-20', exercise: 'Press banca', setType: 'normal', setNumber: 2, weight: 60, reps: 9, savedAt: 200, dayName: 'Día 1' },
+    { sessionId: 'viejo', date: '2026-09-01', exercise: 'Jalón', setType: 'top', setNumber: 1, weight: 50, reps: 6, savedAt: 50, dayName: 'Día 2' },
+    { setKey: 'a1:0:0', sessionId: 'a1', date: '2026-10-24', exercise: 'Press banca', setType: 'normal', setNumber: 1, weight: 70, reps: 5, savedAt: 300 },
+  ];
+  const sessions = [{ sessionId: 'h1', status: 'completada', date: '2026-10-20', dayName: 'Día 1', startedAt: 90, finishedAt: 300, setsDone: 2, setsTotal: 5 }];
+  const list = SS.listSessions(workouts, sessions, 'a1');
+  assert.deepEqual(list.map(x => [x.sessionId, x.status, x.rows.length]), [['h1', 'completada', 2], ['viejo', 'sin_estado', 1]], 'la sesión en curso no se lista y las viejas aparecen sin estado');
+  // Editar una fila vieja (sin setKey) por su identificador derivado.
+  const oldId = SS.rowId(workouts[2]);
+  assert.match(oldId, /^legacy:viejo\|Jalón\|top\|1\|50$/);
+  assert.equal(SS.editRow(workouts, oldId, { weight: 52.5, reps: 5 }, 999).ok, true);
+  assert.deepEqual([workouts[2].weight, workouts[2].reps, workouts[2].editedAt, workouts[2].setKey], [52.5, 5, 999, undefined]);
+  // Borrar una serie de una sesión completada ajusta su contador.
+  assert.equal(SS.deleteRow(workouts, sessions, 'h1:0:1', 1000).ok, true);
+  assert.equal(workouts.length, 3);
+  assert.equal(sessions[0].setsDone, 1);
+  assert.equal(SS.deleteRow(workouts, sessions, 'h1:0:1', 1001).ok, false, 'ya no existe');
+  assert.equal(SS.editRow(workouts, 'nada', { weight: 1, reps: 1 }, 1).ok, false);
+  // Editar una serie del historial cambia lo que ve Progreso (el mejor peso del día).
+  assert.equal(workouts.find(w => w.setKey === 'h1:0:0').weight, 60);
+  SS.editRow(workouts, 'h1:0:0', { weight: 65, reps: 10 }, 1100);
+  assert.equal(workouts.find(w => w.setKey === 'h1:0:0').weight, 65);
+});

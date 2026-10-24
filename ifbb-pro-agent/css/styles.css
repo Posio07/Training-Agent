@@ -324,3 +324,13 @@ li { margin-bottom: .25rem; }
 
 /* DEC-011: etiqueta de nivel de evidencia (E4 · heurística) junto a avisos y ejercicios de precaución */
 .ev-tag { display: inline-block; font-size: .68rem; padding: .05rem .4rem; border-radius: 6px; margin-left: .3rem; vertical-align: middle; border: 1px solid var(--acero); color: var(--acero); font-weight: 700; white-space: nowrap; }
+
+/* DEC-015 · editar y borrar series (mínimo; el rediseño visual lo reemplaza) */
+.hist-session { border-top: 1px solid var(--borde); padding: .4rem 0; }
+.hist-session summary { cursor: pointer; padding: .3rem 0; }
+.hist-rows { list-style: none; margin: .3rem 0 0; padding: 0; }
+.hist-row { margin: .15rem 0; }
+.hist-row .btn { width: 100%; justify-content: flex-start; text-align: left; min-height: 44px; }
+.hist-row.editing, .sm-set.editing { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: .6rem .7rem; }
+.set-editor { margin-top: .4rem; }
+.sm-set-title { font-weight: 600; margin-bottom: .2rem; }

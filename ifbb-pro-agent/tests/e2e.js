@@ -118,12 +118,42 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('.session-mode');
   if (await page.getAttribute('[data-sm-weight="0"]', 'disabled') === null) throw new Error('la serie ya hecha debería verse registrada al reanudar');
   if ((await page.inputValue('[data-sm-weight="0"]')) !== '70') throw new Error('al reanudar no volvió el peso registrado');
+  // DEC-015 Paso 2: editar una serie ya registrada de la sesión en curso (peso 70 -> 72.5, reps 6 -> 5).
+  const getRows = () => page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts);
+  await page.click('[data-sm-edit="0"]');
+  await page.waitForSelector('.set-editor');
+  await shot('11-set-editor');
+  await page.fill('.set-editor [name=reps]', '0');
+  await page.click('.set-editor button[type=submit]');
+  if (!(await page.textContent('.toast, #toast')).match(/repeticiones/i)) throw new Error('reps 0 debería rechazarse con un mensaje');
+  await page.fill('.set-editor [name=weight]', '72.5');
+  await page.fill('.set-editor [name=reps]', '5');
+  await page.click('.set-editor button[type=submit]');
+  await page.waitForSelector('.set-editor', { state: 'detached' });
+  if ((await page.inputValue('[data-sm-weight="0"]')) !== '72.5') throw new Error('la edición no se ve en la sesión');
+  const afterEdit = JSON.parse(await sessionKey());
+  if (afterEdit.values[0][0].weight !== 72.5 || afterEdit.values[0][0].reps !== 5) throw new Error('la edición no quedó guardada en la sesión');
+  let mine = (await getRows()).filter(w => w.sessionId === saved.sessionId);
+  if (mine.length !== 1 || mine[0].weight !== 72.5 || mine[0].reps !== 5) throw new Error('la edición no llegó al historial: ' + JSON.stringify(mine));
+  // Borrar la serie: sale del historial y el hueco vuelve a poder registrarse.
+  await page.click('[data-sm-edit="0"]');
+  await page.click('[data-editor-delete]');
+  await page.click('#modal-confirm');
+  await page.waitForSelector('[data-sm-done="0"]');
+  mine = (await getRows()).filter(w => w.sessionId === saved.sessionId);
+  if (mine.length !== 0) throw new Error('borrar no quitó la serie del historial');
+  await page.fill('[data-sm-weight="0"]', '70');
+  await page.fill('[data-sm-reps="0"]', '6');
+  await page.click('[data-sm-done="0"]');
+  await page.click('#sm-timer-skip');
+  mine = (await getRows()).filter(w => w.sessionId === saved.sessionId);
+  if (mine.length !== 1) throw new Error('volver a registrar la serie borrada debería dejar una sola fila');
   await page.click('#sm-finish');
   await page.waitForSelector('#sm-back-to-plan');
   if (await sessionKey()) throw new Error('al terminar, la sesión no debería seguir en curso');
   const after = await page.evaluate(() => { const pr = JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0]; return { sessions: pr.sessions, workouts: pr.workouts }; });
-  const mine = after.sessions.filter(x => x.sessionId === saved.sessionId);
-  if (after.sessions.length !== 2 || mine.length !== 1 || mine[0].status !== 'completada') throw new Error('la sesión reanudada debería quedar completada una sola vez: ' + JSON.stringify(after.sessions));
+  const mineS = after.sessions.filter(x => x.sessionId === saved.sessionId);
+  if (after.sessions.length !== 2 || mineS.length !== 1 || mineS[0].status !== "completada") throw new Error('la sesión reanudada debería quedar completada una sola vez: ' + JSON.stringify(after.sessions));
   const keys = after.workouts.filter(w => w.sessionId === saved.sessionId).map(w => w.setKey);
   if (keys.length !== 1 || !keys[0]) throw new Error('series duplicadas tras reanudar: ' + keys.join(','));
   await page.click('#sm-back-to-plan');
@@ -143,22 +173,37 @@ const server = http.createServer((req, res) => {
   await page.click('#sm-timer-skip');
   await page.reload();
   await page.waitForSelector('#resume-prompt');
-  page.once('dialog', d => d.accept());
   await page.click('#resume-no');
+  await page.click('#modal-confirm');
   await page.waitForSelector('#resume-prompt', { state: 'detached' });
   if (await sessionKey()) throw new Error('descartar debería borrar la sesión en curso');
   const discarded = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts.filter(w => w.setKey).length);
   if (discarded !== 2) throw new Error('descartar debería dejar solo las series de las 2 sesiones completadas, hay ' + discarded);
 
-  // Progreso
+  // DEC-015 Paso 2: editar y borrar en el historial de sesiones (Progreso).
   await page.click('.tab[data-tab=progress]');
+  await page.waitForSelector('.hist-session');
+  await page.click('.hist-session summary');
+  await page.click('[data-hist-edit]');
+  await page.fill('.set-editor [name=weight]', '99');
+  await page.fill('.set-editor [name=reps]', '3');
+  await page.click('.set-editor button[type=submit]');
+  await page.waitForSelector('.set-editor', { state: 'detached' });
+  const edited = (await getRows()).filter(w => w.weight === 99 && w.reps === 3 && w.editedAt);
+  if (edited.length !== 1) throw new Error('editar en el historial no se guardó');
+  const rowsBefore = (await getRows()).length;
+  await page.click('.hist-session[open] [data-hist-edit]');
+  await page.click('[data-editor-delete]');
+  await page.click('#modal-confirm');
+  await page.waitForFunction(n => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts.length === n - 1, rowsBefore);
+
+  // Progreso (ya estamos en la pestaña: volver a hacer clic re-renderiza y borra lo que se escribe)
   const future = new Date(); future.setDate(future.getDate() + 7);
   await page.fill('#log-form input[name=weightKg]', '83.2');
   await page.fill('#log-form input[name=date]', future.toISOString().slice(0, 10));
   await page.click('#log-form button[type=submit]');
   await page.waitForSelector('#btn-apply');
-  const rows = await page.$$eval('table tr', r => r.length);
-  if (rows < 3) throw new Error('log rows missing');
+  if (!/83[.,]2 kg/.test(await page.textContent('#view'))) throw new Error('log rows missing');
   await shot('05-progress');
   await page.click('#btn-apply');
   await page.waitForSelector('.modal-overlay');

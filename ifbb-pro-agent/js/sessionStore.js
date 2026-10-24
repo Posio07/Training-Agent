@@ -31,7 +31,7 @@
       startedAt: now, updatedAt: now, exIndex: 0, finished: false,
       exercises: a.exercises,
       values: a.exercises.map(e => e.sets.map(() => ({ weight: '', reps: '', done: false, pain: '', doneAt: null }))),
-      recordShown: [],
+      recordShown: [], deletedKeys: [],
     };
   }
 
@@ -89,6 +89,7 @@
     const v = rec.values[exIndex][setIdx];
     v.weight = vals.weight; v.reps = vals.reps; v.pain = vals.pain == null ? '' : vals.pain;
     v.done = true; v.doneAt = v.doneAt || now;
+    if (Array.isArray(rec.deletedKeys)) rec.deletedKeys = rec.deletedKeys.filter(k => k !== setKey(rec.sessionId, exIndex, setIdx));
     return v;
   }
 
@@ -99,12 +100,23 @@
   // Idempotente: reconciliar dos veces da lo mismo. Devuelve cuántos cambios hizo.
   function reconcile(rec, workouts, date) {
     let changes = 0;
+    // Series borradas: la intención queda en la sesión (se guarda primero), así un corte no las resucita.
+    (rec.deletedKeys || []).forEach(key => {
+      for (let i = workouts.length - 1; i >= 0; i--) if (workouts[i].setKey === key) { workouts.splice(i, 1); changes++; }
+    });
     rec.values.forEach((vs, ei) => vs.forEach((v, si) => {
       const key = setKey(rec.sessionId, ei, si);
       const row = workouts.find(w => w.setKey === key);
       if (v.done && !row) { workouts.push(workoutRow(rec, ei, si, date)); changes++; }
-      else if (!v.done && row) {
+      else if (!v.done && row && !(rec.deletedKeys || []).includes(key)) {
         v.done = true; v.weight = row.weight; v.reps = row.reps; v.pain = row.pain == null ? '' : row.pain; v.doneAt = row.savedAt || null;
+        if (row.editedAt) v.editedAt = row.editedAt;
+        changes++;
+      } else if (v.done && row && (Number(row.weight) !== Number(v.weight) || Number(row.reps) !== Number(v.reps))) {
+        // Una edición se guarda primero en la sesión y después en la fila: gana la más reciente.
+        const sessionTime = v.editedAt || v.doneAt || 0, rowTime = row.editedAt || row.savedAt || 0;
+        if (sessionTime >= rowTime) { row.weight = Number(v.weight) || 0; row.reps = Number(v.reps); if (v.editedAt) row.editedAt = v.editedAt; }
+        else { v.weight = row.weight; v.reps = row.reps; v.editedAt = row.editedAt; }
         changes++;
       }
     }));
@@ -132,8 +144,86 @@
     return before - workouts.length;
   }
 
+
+  /* ---------- Editar y borrar series (DEC-015, Paso 2) ---------- */
+
+  // Peso (≥ 0, hasta 1000) y repeticiones (entero ≥ 1, hasta 999). No acepta vacíos ni texto.
+  function validateSetValues(vals) {
+    const weight = vals.weight === '' || vals.weight == null ? 0 : Number(vals.weight);
+    const reps = Number(vals.reps);
+    if (!isFinite(weight) || weight < 0 || weight > 1000) return { ok: false, error: 'El peso tiene que estar entre 0 y 1000.' };
+    if (!Number.isInteger(reps) || reps < 1 || reps > 999) return { ok: false, error: 'Las repeticiones tienen que ser un número entero de 1 a 999.' };
+    return { ok: true, weight, reps };
+  }
+
+  // Sesión en curso. Orden pensado para que un corte no pierda ni resucite nada: 1) se cambia el
+  // registro de la sesión y se guarda; 2) recién ahí se sincroniza la fila del historial (syncRow /
+  // removeRow). reconcile completa lo que haya quedado a medias.
+  function editActiveSet(rec, exIndex, setIdx, vals, now) {
+    const v = rec.values[exIndex] && rec.values[exIndex][setIdx];
+    if (!v || !v.done) return { ok: false, error: 'La serie todavía no está registrada.' };
+    const c = validateSetValues(vals);
+    if (!c.ok) return c;
+    v.weight = c.weight; v.reps = c.reps; v.editedAt = now;
+    return { ok: true };
+  }
+  function deleteActiveSet(rec, exIndex, setIdx) {
+    const v = rec.values[exIndex] && rec.values[exIndex][setIdx];
+    if (!v || !v.done) return { ok: false, error: 'La serie todavía no está registrada.' };
+    const key = setKey(rec.sessionId, exIndex, setIdx);
+    rec.deletedKeys = (rec.deletedKeys || []).concat(key);
+    rec.values[exIndex][setIdx] = { weight: '', reps: '', done: false, pain: '', doneAt: null };
+    return { ok: true, key };
+  }
+  function syncRow(rec, workouts, exIndex, setIdx, date) {
+    const row = workoutRow(rec, exIndex, setIdx, date);
+    const v = rec.values[exIndex][setIdx];
+    if (v.editedAt) row.editedAt = v.editedAt;
+    return upsertWorkout(workouts, row);
+  }
+  function removeRow(workouts, key) {
+    const i = workouts.findIndex(w => w.setKey === key);
+    if (i !== -1) workouts.splice(i, 1);
+    return i !== -1;
+  }
+
+  // Historial. Las filas anteriores a DEC-015 no tienen setKey: se identifican por sus datos.
+  const rowId = w => w.setKey || `legacy:${w.sessionId}|${w.exercise}|${w.setType}|${w.setNumber}|${w.savedAt}`;
+  function editRow(workouts, id, vals, now) {
+    const w = workouts.find(x => rowId(x) === id);
+    if (!w) return { ok: false, error: 'No se encontró la serie.' };
+    const c = validateSetValues(vals);
+    if (!c.ok) return c;
+    w.weight = c.weight; w.reps = c.reps; w.editedAt = now;
+    return { ok: true };
+  }
+  function deleteRow(workouts, sessions, id, now) {
+    const i = workouts.findIndex(x => rowId(x) === id);
+    if (i === -1) return { ok: false, error: 'No se encontró la serie.' };
+    const [gone] = workouts.splice(i, 1);
+    const meta = sessions.find(x => x.sessionId === gone.sessionId);
+    if (meta) { meta.setsDone = Math.max(0, (meta.setsDone || 0) - 1); meta.editedAt = now; }
+    return { ok: true };
+  }
+  // Sesiones del historial, la más reciente primero. `completada` si tiene entrada en `sessions`;
+  // `sin_estado` si solo hay series sueltas (registros anteriores a DEC-015). La sesión en curso no se lista.
+  function listSessions(workouts, sessions, activeSessionId) {
+    const byId = {};
+    workouts.forEach(w => { if (w.sessionId !== activeSessionId) (byId[w.sessionId] = byId[w.sessionId] || []).push(w); });
+    sessions.forEach(m => { if (m.sessionId !== activeSessionId && !byId[m.sessionId]) byId[m.sessionId] = []; });
+    return Object.keys(byId).map(id => {
+      const rows = byId[id].slice().sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+      const meta = sessions.find(m => m.sessionId === id) || null;
+      return {
+        sessionId: id, status: meta ? STATUS.DONE : 'sin_estado',
+        dayName: (meta && meta.dayName) || (rows[0] && rows[0].dayName) || 'Sesión',
+        date: (meta && meta.date) || (rows[0] && rows[0].date) || '', startedAt: meta ? meta.startedAt : ((rows[0] && rows[0].savedAt) || 0), rows,
+      };
+    }).sort((a, b) => (b.date.localeCompare(a.date)) || (b.startedAt - a.startedAt));
+  }
+
   // Cuántas series ya tiene hechas una sesión (para el texto de "Reanudar").
   const progress = rec => ({ done: rec.values.flat().filter(v => v.done).length, total: rec.values.flat().length });
 
-  return { STORAGE_KEY, VERSION, STATUS, setKey, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
+  return { STORAGE_KEY, VERSION, STATUS, setKey, validateSetValues, editActiveSet, deleteActiveSet, syncRow, removeRow, rowId, editRow, deleteRow, listSessions, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
 });
