@@ -553,6 +553,61 @@
     return info;
   }
 
+  // DEC-017 · completar hasta el piso DENTRO del tope. La otra mitad del piso semanal: si un grupo mayor
+  // queda bajo 10 series fraccionadas semanales y hay sesiones con espacio bajo el tope E4, se agregan series
+  // de ese grupo en esas sesiones hasta llegar al piso o hasta llenar el espacio. Nunca pasa de `cap`.
+  //  - Prioridad: el grupo con mayor déficit primero y, dentro del grupo, la sesión con más espacio.
+  //  - Solo en sesiones donde el split ya entrena ese grupo (compatibilidad por día). Una sesión que el tope E4
+  //    recortó puede quedar con espacio (el recorte se hace de a 1 o 2 series): ese espacio se puede usar.
+  //  - Primero series extra de ejercicios que ya están en el plan y que suman 1 (directa) al grupo; la que
+  //    tenga menos series, para repartir. Solo si ninguna sesión lo permite, un ejercicio nuevo (2 series),
+  //    elegido del catálogo ya filtrado por lesiones (DEC-009 / DEC-011) y sin repetir patrón en el día (DEC-006).
+  //  - No lleva a ningún músculo por encima del umbral de R1 en una sesión (11 fraccionadas): sería crear el aviso.
+  //  - Si el déficit no cabe, el grupo queda como estaba y sigue el aviso de grupos bajo el mínimo.
+  function completeToFloor(sessions, splitDays, injuryZones, cap) {
+    const floor = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
+    const direct = K.VALIDATOR_RULES.directSetWeight.value;
+    const EPS = 1e-9;
+    const total = s => s.exercises.reduce((a, e) => a + e.sets, 0);
+    const room = i => cap - total(sessions[i]);
+    const weekly = sumFractional(sessions);
+    const sessFrac = sessions.map(s => fractionalByMuscle(s.exercises));
+    const fitsR1 = (i, w, n) => Object.keys(w).every(mu => (sessFrac[i][mu] || 0) + w[mu] * n <= r1 + EPS);
+    const log = [];
+    const apply = (i, e, n, isNew) => {
+      Object.keys(e.setWeights).forEach(mu => { weekly[mu] = (weekly[mu] || 0) + e.setWeights[mu] * n; sessFrac[i][mu] = (sessFrac[i][mu] || 0) + e.setWeights[mu] * n; });
+      log.push({ sessionIndex: i, session: sessions[i].name, exerciseId: e.exerciseId, bucket: e.bucket, sets: n, isNew });
+    };
+    const exhausted = new Set();
+    for (;;) {
+      const mu = K.MAJOR_GROUPS.filter(m => !exhausted.has(m) && (weekly[m] || 0) < floor - EPS)
+        .sort((a, b) => (weekly[a] || 0) - (weekly[b] || 0))[0]; // mayor déficit primero (estable: orden de MAJOR_GROUPS)
+      if (!mu) break;
+      const cand = splitDays.map((d, i) => i).filter(i => splitDays[i].muscles.includes(mu) && room(i) > 0)
+        .sort((a, b) => room(b) - room(a) || a - b); // más espacio primero
+      let done = false;
+      for (const i of cand) { // 1) series extra de ejercicios que ya están en el plan
+        const opts = sessions[i].exercises.filter(e => (e.setWeights[mu] || 0) >= direct && fitsR1(i, e.setWeights, 1)).sort((a, b) => a.sets - b.sets);
+        if (!opts.length) continue;
+        opts[0].sets += 1; apply(i, opts[0], 1, false); done = true; break;
+      }
+      if (!done) for (const i of cand) { // 2) ejercicio nuevo, solo si no hay otra forma
+        if (room(i) < 2) continue;
+        const used = new Set(sessions[i].exercises.map(e => e.pattern || e.name));
+        const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
+          .filter(x => !used.has(basePattern(x)))
+          .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
+        if (!ex) continue;
+        const entry = makeEntry(ex, mu, 2);
+        sessions[i].exercises.push(entry); apply(i, entry, 2, true); done = true; break;
+      }
+      if (!done) exhausted.add(mu);
+    }
+    sessions.forEach(s => { s.totalSets = total(s); });
+    return log;
+  }
+
   function computeTraining(p, t) {
     const days = clamp(Math.round(p.daysPerWeek) || 4, 3, 6);
     const split = SPLITS[days];
@@ -747,6 +802,27 @@
         ? `${o.session}: ${o.sets} series, por encima de las ${sessionLimit.cap} por sesión. Aceptaste una sesión más larga el ${sessionLimit.accepted}.`
         : `${o.session}: ${o.sets} series, por encima de las ${sessionLimit.cap} por sesión (E4 · convención de la app). No se recortó más para no quitar multiarticulares ni bajar un grupo mayor del piso semanal.` });
     });
+
+    // DEC-017 · completar hasta el piso dentro del tope (ver completeToFloor).
+    const fillLog = completeToFloor(sessions, split.days, injuryZones, sessionLimit.cap);
+    sessionLimit.filled = [];
+    if (fillLog.length) {
+      new Set(fillLog.map(x => x.bucket)).forEach(mu => {
+        weeklySets[mu] = sessions.reduce((a, s) => a + s.exercises.filter(e => e.bucket === mu).reduce((b, e) => b + e.sets, 0), 0);
+      });
+      const byGroup = {};
+      fillLog.forEach(x => { (byGroup[x.bucket] = byGroup[x.bucket] || []).push(x); });
+      Object.keys(byGroup).forEach(mu => {
+        const merged = {};
+        byGroup[mu].forEach(x => { const k = `${x.sessionIndex}|${x.exerciseId}`; merged[k] = merged[k] || { session: x.session, exerciseId: x.exerciseId, sets: 0, isNew: x.isNew }; merged[k].sets += x.sets; });
+        const items = Object.values(merged);
+        const sets = items.reduce((a, x) => a + x.sets, 0);
+        sessionLimit.filled.push({ muscle: mu, sets, items });
+        const detail = items.map(x => `${x.session}: ${K.EXERCISE_INDEX[x.exerciseId].entry.name} +${x.sets}${x.isNew ? ' (ejercicio nuevo)' : ''}`).join('; ');
+        trainingWarnings.push({ level: 'info', evidence: 'E1', rule: 'R2', kind: 'completado_piso', muscle: mu, items,
+          text: `${K.MUSCLE_LABELS[mu]} quedaba bajo el piso semanal de ${K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value} series fraccionadas (objetivo de hipertrofia del ACSM 2026, usado como piso protector): se ${sets === 1 ? 'agregó 1 serie' : `agregaron ${sets} series`} dentro del tope de ${sessionLimit.cap} por sesión. ${detail}.` });
+      });
+    }
 
     // DEC-016 · aviso de grupos bajo el mínimo. El piso de 10 series fraccionadas semanales se FUERZA solo
     // en los grupos mayores (enforceSessionCap); este aviso cubre a todos, mayores y chicos. Si el tope E4
@@ -1159,5 +1235,5 @@
 
   function unique(arr) { return arr.filter((v, i) => v && arr.indexOf(v) === i); }
 
-  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, diminishingReturnsWarnings, computeHealthScreen, buildPlan, planSignature, migrateLongSessionAcceptance, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
+  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, completeToFloor, diminishingReturnsWarnings, computeHealthScreen, buildPlan, planSignature, migrateLongSessionAcceptance, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
 });

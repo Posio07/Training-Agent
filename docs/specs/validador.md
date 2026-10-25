@@ -44,6 +44,7 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 - **Acción:** si un músculo queda por debajo de 10, advertir o completar.
 - **Base:** postura oficial del ACSM de 2026. Con igual volumen, la frecuencia no cambia los resultados, así que el generador puede repartir el volumen libremente.
 - **Cómo se usa el piso (DEC-016):** es el objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana), usado como **piso protector** por decisión de modelado, contrastado con la infografía oficial del ACSM (falta leer el artículo completo en MSSE 2026). Se **fuerza solo en los grupos mayores** (el tope E4 no puede bajarlos de ahí). Un aviso visible lista cualquier grupo, mayor o chico, por debajo de 10 series fraccionadas semanales, con la opción de aceptar sesiones más largas (si el tope le quitó series) o cambiar de split.
+- **Completar hasta el piso (DEC-017):** si un grupo mayor queda bajo 10 series fraccionadas semanales y hay sesiones con espacio bajo el tope E4, se agregan series de ese grupo en esas sesiones (mayor déficit y más espacio primero; series extra de ejercicios del plan antes que ejercicios nuevos; sin pasar de 25 ni de 11 fraccionadas por músculo y sesión; respetando lesiones y los días que entrenan el grupo). Si no cabe, se mantiene el aviso.
 - **Estado:** el piso semanal está implementado. La **frecuencia mínima** de los grupos mayores (2 días por semana) está configurada pero **pendiente**: ninguna lógica la lee todavía.
 
 ### R3 · Rampa de progresión (E4)

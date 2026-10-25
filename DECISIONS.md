@@ -463,3 +463,54 @@ Lectura: el pecho sube en todos los casos y la espalda nunca baja. Quedan bajo 1
 Implementar R3 y la frecuencia mínima de R2 (siguen pendientes), verificar las filas `a_verificar` restantes, y forzar el piso en los grupos chicos.
 
 **Estado: implementada.**
+
+## DEC-017 · Completar hasta el piso semanal dentro del tope E4
+Contexto: DEC-014 usa el piso de 10 series fraccionadas semanales solo para **frenar recortes** (el tope E4 no puede bajar un grupo mayor de ahí) y DEC-016 agregó un aviso para los grupos bajo el mínimo. Faltaba la otra mitad: **llegar** al piso cuando hay espacio.
+
+### Regla
+Si un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) queda bajo 10 series fraccionadas semanales y hay sesiones con espacio bajo el tope E4 (25), se agregan series de ese grupo en esas sesiones hasta llegar a 10 o hasta llenar el espacio. Corre **después** del recorte E4 (`completeToFloor` en `engine.js`).
+- **Nunca pasa de 25 por esta regla.** Una sesión solo crece si queda dentro del tope. Las sesiones que ya pasaban de 25 (por el piso de R2, o por una aceptación) no se tocan. Un test de barrido (divisiones × días × objetivos × niveles × rezagados) lo comprueba en más de 300 planes.
+- **Prioridad:** primero el grupo con **mayor déficit**; dentro del grupo, la sesión con **más espacio**. Se agrega de a una serie y se recalcula, así el reparto se equilibra entre sesiones.
+- **Compatibilidad por día:** solo en sesiones donde el split ya entrena ese grupo (`SPLITS[*].days[*].muscles`). Ningún grupo se agrega a un día que no lo trabaja.
+- **Series extra antes que ejercicios nuevos:** primero se suman series a ejercicios que ya están en esa sesión y que cuentan 1 (directa) para el grupo, empezando por el que tenga menos series. Solo si **ninguna** sesión lo permite, entra un ejercicio nuevo (2 series, como el piso del generador), tomado del catálogo ya **filtrado por lesiones** (`filterLibByInjuries`, DEC-009 / DEC-011) y sin repetir patrón en el día (DEC-006).
+- **Sin crear avisos R1:** no lleva a ningún músculo por encima de 11 series fraccionadas en una sesión (el umbral de R1), usando el valor ya configurado.
+- **Si el déficit no cabe dentro del tope**, el grupo queda como estaba y sigue el aviso de DEC-016 (grupos bajo el mínimo, con la opción de cambiar de split).
+- **Transparencia:** un aviso informativo por grupo (`rule: 'R2'`, `kind: 'completado_piso'`) dice cuántas series se agregaron y en qué sesión y ejercicio. `sessionLimit.filled` lo expone y `weeklySets` pasa a reflejar las series reales. No toca grupos chicos y no quita ninguna serie.
+- **Sesiones recortadas por E4:** el recorte se hace de a 1 o 2 series, así que una sesión recortada puede quedar con 1 de espacio; ese espacio se puede usar. El aviso del recorte ("28 → 24") describe el recorte, y el aviso de completado describe lo que se agregó después.
+- **Con aceptación vigente** (sin recortes) la regla también completa, solo en las sesiones que están bajo 25.
+
+### Decisión de modelado a tener presente
+El piso (ACSM 2026, usado como piso protector) **prevalece sobre el énfasis de la división** (DEC-001: ×0,5 a los grupos "down"). Por eso `wellness_maintain_5d` pasa de 7 a 10 series de pecho y `novice_bulk_physique_4d` sube sus piernas aunque la división de physique/wellness las reduzca a propósito. Es consistente con "R2 prevalece sobre E4", pero cambia el volumen que pedía el énfasis.
+
+### Resultado en los 10 perfiles de referencia de DEC-014 (sin aceptación)
+"Series agregadas" son las de esta regla. Los valores por grupo son series fraccionadas semanales.
+
+| Perfil | Series por sesión | Series agregadas | Grupos mayores que cambian | Mayores aún bajo 10 |
+| --- | --- | --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 → igual | 0 | — | — |
+| novice_bulk_physique_4d | 25/9/24/6 → 25/12/24/11 | 8 | cuádriceps 7 → 10, isquios 5 → 10, glúteos 7.5 → 10 | — |
+| wellness_maintain_5d | 21/25/15/15/25 → 21/25/18/15/25 | 3 | pecho 7 → 10 | — |
+| general_cut_3d | 25/24/26 → igual | 0 | — | — |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25 → igual | 0 | — | — |
+| bikini_cut_lagging_4d | 25/19/25/17 → igual | 0 | — | pecho |
+| emanuel_legs_cut_4d | 24/24/24/21 → igual | 0 | — | — |
+| figure_maintain_novice_3d | 24/25/25 → 25/25/25 | 1 | pecho 9 → 10, hombros 17.5 → 18 | — |
+| physique_cut_adv_lag_5d | 25/12/24/25/12 → 25/13/24/25/13 | 2 | isquios 8 → 10 | — |
+| physique_w_bulk_6d | 20/22/23/20/20/23 → igual | 0 | — | — |
+
+Lectura:
+- **`novice_bulk_physique_4d`:** las sesiones de 9 y 6 series pasan a 12 y 11 y las tres piernas llegan a 10. Todo son series extra de ejercicios que ya estaban (peso muerto rumano, curl femoral, sentadilla búlgara y prensa), sin ejercicios nuevos.
+- **`wellness_maintain_5d`:** el pecho llega a 10 con +3 series de press inclinado en la sesión de empuje (15 → 18).
+- **`bikini_cut_lagging_4d`: el pecho NO se completa.** Sus dos días de torso, los únicos con pecho, ya estaban en 25 tras el recorte E4, así que no hay espacio y se mantiene el aviso (pecho 6). Quitarle series de aislamiento a los grupos chicos para dar lugar al pecho sería otra regla (intercambio entre grupos) y no se hizo.
+- **`figure_maintain_novice_3d`** (pecho 9 → 10, +1 serie en la sesión que el recorte dejó en 24) y **`physique_cut_adv_lag_5d`** (isquios 8 → 10) también se completan.
+- Los otros 5 perfiles no tenían grupos mayores bajo 10 y no cambian.
+
+### Pruebas
+- `engine.test.js`: los 10 perfiles de referencia antes y después (`tests/fixtures/dec017-referencia.json`) con la comprobación de que ninguna sesión pasa de 25 por la regla y que las que ya pasaban no cambian; `novice_bulk_physique_4d` (piernas con sesiones de 9 y 6, solo series extra, mayor déficit con más series), `wellness_maintain_5d` y `bikini_cut_lagging_4d` (sin espacio: se mantiene el aviso); barrido de 300+ planes contra el tope y contra R1; pruebas unitarias de prioridad (déficit y espacio), compatibilidad por día, series extra antes que ejercicio nuevo, lesión de rodilla (la sentadilla y la extensión no entran) y control sin lesión.
+- Pruebas de mutación: permitir pasar del tope falla 4 tests; quitar la prioridad por déficit, 3; por espacio, 6; ignorar la compatibilidad por día, 5; ignorar lesiones, 1; ejercicio nuevo antes que series extra, 10; apagar la regla, 9.
+- Se actualizaron a propósito: los volúmenes semanales de `regression.test.js` para `bulk` (cuádriceps, isquios y glúteos) y `maintain` (pecho), la lista blanca del test de línea base de DEC-010 (series, totales, duración y `weeklySets` de los cuatro grupos) y las huellas de los 30 planes. `sw.js` pasa a la caché v10.
+
+### Fuera de alcance
+Intercambiar series entre grupos (quitar de un grupo chico para completar un mayor), completar grupos chicos, y el límite de duración (la regla topa por series; la duración derivada puede crecer).
+
+**Estado: implementada.**
