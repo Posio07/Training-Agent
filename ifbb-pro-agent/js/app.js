@@ -638,8 +638,8 @@
     if (sl.belowMinimum && sl.belowMinimum.length) {
       const canAccept = !sl.accepted && sl.belowMinimum.some(x => x.trimmedByCap > 0);
       out += `<div class="card"><h3>Grupos por debajo del mínimo semanal</h3>
-        <p>Objetivo de hipertrofia del ACSM 2026: ~10 series fraccionadas por grupo a la semana (la app lo usa como piso protector). ${evTag('E1')}</p>
-        <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de 10${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
+        <p>Objetivo de hipertrofia del ACSM 2026: ~10 series fraccionadas por grupo a la semana (la app lo usa como piso protector; en los grupos con énfasis reducido por la división, el piso es el de mantenimiento). ${evTag('E1')}</p>
+        <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de ${x.floor}${x.floor < 10 ? ' (mantenimiento: énfasis reducido por la división)' : ''}${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
         <div class="btn-row">${canAccept ? acceptBtn : ''}${splitBtn}</div></div>`;
     }
     return out;

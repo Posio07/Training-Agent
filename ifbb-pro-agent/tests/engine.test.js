@@ -584,14 +584,6 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.input.longSessionAcceptedOn': 'DEC-014: aceptación explícita de sesiones más largas (vacía por defecto)',
     'plan.input.longSessionAcceptance': 'DEC-016: la aceptación acotada a la firma del plan y a un máximo de series (null por defecto)',
     'plan.training.sessionLimit': 'DEC-014: regla E4 (tope, recortes, sesiones por encima)',
-    // DEC-017: completar hasta el piso dentro del tope agrega series a los grupos mayores bajo 10 (solo los perfiles que lo necesitan).
-    'plan.training.sessions.#.exercises.#.sets': 'DEC-017: series agregadas para llegar al piso semanal',
-    'plan.training.sessions.#.totalSets': 'DEC-017: total de la sesión con las series agregadas',
-    'plan.training.sessions.#.durationMin': 'DEC-017: duración derivada con las series agregadas',
-    'plan.training.weeklySets.chest': 'DEC-017: pecho completado hasta el piso',
-    'plan.training.weeklySets.quads': 'DEC-017: cuádriceps completado hasta el piso',
-    'plan.training.weeklySets.hamstrings': 'DEC-017: isquios completados hasta el piso',
-    'plan.training.weeklySets.glutes': 'DEC-017: glúteos completados hasta el piso',
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
@@ -1855,7 +1847,8 @@ test('DEC-016: con el bucket directo, pecho y espalda de los perfiles de referen
     const f = fracWeek(plan);
     assert.ok((f.chest || 0) >= REF016.antes[key].pecho && (f.back || 0) >= REF016.antes[key].espalda, `${key}: el conteo del bucket solo suma`);
     // El aviso de grupos bajo el mínimo coincide con el conteo fraccionado real.
-    assert.deepEqual(plan.training.sessionLimit.belowMinimum.map(x => x.muscle).sort(), Object.keys(K.MUSCLE_LABELS).filter(mu => (f[mu] || 0) < 10).sort(), `${key}: grupos bajo el mínimo`);
+    const floors = plan.training.sessionLimit.floors; // DEC-017: 10 o, en los grupos con énfasis reducido, el de mantenimiento
+    assert.deepEqual(plan.training.sessionLimit.belowMinimum.map(x => x.muscle).sort(), Object.keys(K.MUSCLE_LABELS).filter(mu => (f[mu] || 0) < floors[mu]).sort(), `${key}: grupos bajo el mínimo`);
   });
 });
 
@@ -2003,78 +1996,148 @@ test('DEC-016: cada regla de VALIDATOR_RULES lleva un estado, y R3 y la frecuenc
 /* ---------- DEC-017 · completar hasta el piso dentro del tope ---------- */
 
 const REF017 = require('./fixtures/dec017-referencia.json');
+const SPLIT_DAYS_4 = E.SPLITS[4].days; // Torso A, Pierna A, Torso B, Pierna B
 const mk = (id, sets) => { const ix = K.EXERCISE_INDEX[id]; return Object.assign(E.exerciseFields(ix.entry, ix.bucket), { name: ix.entry.name, type: ix.entry.type, pattern: ix.entry.pattern, unilateral: !!ix.entry.unilateral, sets }); };
 const sess = (name, ...ex) => ({ name, exercises: ex, totalSets: ex.reduce((a, e) => a + e.sets, 0) });
 const fracOf = sessions => sessions.reduce((acc, s) => { Object.entries(E.fractionalByMuscle(s.exercises)).forEach(([m, n]) => { acc[m] = (acc[m] || 0) + n; }); return acc; }, {});
 
-test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptación)', () => {
+test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptación), con duración por sesión', () => {
   assert.equal(Object.keys(REF017.despues).length, 10);
   Object.entries(BASELINE016.cases).forEach(([key, c]) => {
     const plan = E.buildPlan(c.profile, BASELINE016.today);
     const f = fracWeek(plan), t = plan.training, d = REF017.despues[key], a = REF017.antes[key];
+    const floors = t.sessionLimit.floors;
     assert.deepEqual(t.sessions.map(s => s.totalSets), d.sesiones, `${key}: series por sesión`);
+    assert.deepEqual(t.sessions.map(s => s.durationMin), d.minutos, `${key}: duración derivada por sesión`);
     assert.deepEqual(t.sessionLimit.overCap.map(o => o.sets), d.sobreTope, `${key}: sesiones sobre el tope`);
-    K.MAJOR_GROUPS.forEach(mu => assert.equal(Math.round((f[mu] || 0) * 100) / 100, d.mayores[mu], `${key}: ${mu}`));
-    assert.deepEqual(K.MAJOR_GROUPS.filter(mu => (f[mu] || 0) < 10), d.bajoMinimoMayores, `${key}: grupos mayores bajo 10`);
+    K.MAJOR_GROUPS.forEach(mu => { assert.equal(Math.round((f[mu] || 0) * 100) / 100, d.mayores[mu], `${key}: ${mu}`); assert.equal(floors[mu], d.pisos[mu], `${key}: piso de ${mu}`); });
+    assert.deepEqual(K.MAJOR_GROUPS.filter(mu => (f[mu] || 0) < floors[mu]), d.bajoMinimoMayores, `${key}: grupos mayores bajo su piso`);
     assert.equal(t.sessionLimit.filled.reduce((x, y) => x + y.sets, 0), d.agregadas, `${key}: series agregadas`);
     // Nunca pasa de 25 por esta regla: una sesión solo crece si queda dentro del tope; las que ya pasaban no se tocan.
     t.sessions.forEach((s, i) => {
       assert.ok(s.totalSets >= a.sesiones[i], `${key}: la regla no quita series`);
       if (s.totalSets > a.sesiones[i]) assert.ok(s.totalSets <= t.sessionLimit.cap, `${key} ${s.name}: ${s.totalSets} pasa del tope`);
-      else assert.equal(s.totalSets, a.sesiones[i]);
+      else { assert.equal(s.totalSets, a.sesiones[i]); assert.equal(s.durationMin, a.minutos[i], `${key}: una sesión sin cambios conserva su duración`); }
     });
     assert.deepEqual(d.sobreTope, a.sobreTope, `${key}: mismas sesiones sobre el tope que antes`);
-    // Un grupo mayor que estaba bajo 10 nunca empeora.
     K.MAJOR_GROUPS.forEach(mu => assert.ok(d.mayores[mu] >= a.mayores[mu], `${key}: ${mu} no baja`));
   });
+  // Sesiones de más de 90 minutos: ya existían antes y esta regla no las crea ni las alarga.
+  const over90 = k => REF017.despues[k].minutos.filter(m => m > 90);
+  assert.deepEqual(over90('wellness_maintain_5d'), [92, 92]);
+  assert.deepEqual(over90('bb_bulk_advanced_6d'), [98, 96]);
+  Object.keys(REF017.despues).forEach(k => assert.deepEqual(over90(k), REF017.antes[k].minutos.filter(m => m > 90), `${k}: sin sesiones nuevas de más de 90 min`));
 });
 
-test('DEC-017: novice_bulk_physique_4d completa las piernas con las sesiones de 9 y 6 series, usando ejercicios que ya estaban', () => {
+test('DEC-017: piso de mantenimiento: los grupos "down" de la división usan 5, los rezagados y los demás 10', () => {
+  const floors = c => E.buildPlan(BASELINE016.cases[c].profile, BASELINE016.today).training.sessionLimit.floors;
+  // physique_m reduce cuádriceps, isquios y glúteos (EMPHASIS_MAP.down).
+  const phys = floors('novice_bulk_physique_4d');
+  ['quads', 'hamstrings', 'glutes'].forEach(mu => assert.equal(phys[mu], 5, mu));
+  ['chest', 'back', 'shoulders', 'calves', 'abs'].forEach(mu => assert.equal(phys[mu], 10, mu));
+  // bikini_w reduce pecho, cuádriceps, bíceps y tríceps; los glúteos e isquios son rezagados y no están en "down".
+  const bik = floors('bikini_cut_lagging_4d');
+  ['chest', 'quads', 'biceps', 'triceps'].forEach(mu => assert.equal(bik[mu], 5, mu));
+  ['glutes', 'hamstrings', 'back', 'shoulders'].forEach(mu => assert.equal(bik[mu], 10, mu));
+  // wellness_w reduce pecho, hombros, bíceps y tríceps.
+  const well = floors('wellness_maintain_5d');
+  ['chest', 'shoulders', 'biceps', 'triceps'].forEach(mu => assert.equal(well[mu], 5, mu));
+  // Una división sin "down" no tiene pisos de mantenimiento.
+  Object.values(floors('oscar_cut_classic_5d')).forEach(v => assert.equal(v, 10));
+  // Un grupo rezagado anula el énfasis reducido (DEC-001) y vuelve al piso completo.
+  const lagQuads = E.buildPlan(Object.assign({}, BASELINE016.cases.novice_bulk_physique_4d.profile, { laggingMuscles: ['quads'] }), BASELINE016.today).training.sessionLimit.floors;
+  assert.equal(lagQuads.quads, 10);
+  assert.equal(lagQuads.hamstrings, 5);
+  // El factor sale de la configuración y se etiqueta como convención, no como cifra del estudio.
+  const r = K.VALIDATOR_RULES.maintenanceFloorFactor;
+  assert.equal(r.value, 0.5);
+  assert.equal(r.level, 'E4');
+  assert.equal(r.convention, true);
+  assert.equal(r.status, 'implementada');
+  assert.equal(phys.quads, K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value * r.value);
+  assert.match(r.source.label, /Spiering et al\. 2021, J Strength Cond Res 35\(5\):1449-1458/);
+  assert.equal(r.source.url, 'https://pubmed.ncbi.nlm.nih.gov/33629972/');
+  assert.match(r.note, /El 0,5 no sale del estudio/);
+  assert.match(r.note, /alineada con DEC-001/);
+});
+
+test('DEC-017: novice_bulk_physique_4d (physique_m): las piernas están reducidas a propósito y quedan sobre su piso de 5, así que no se completan', () => {
   const c = BASELINE016.cases.novice_bulk_physique_4d;
-  const before = REF017.antes.novice_bulk_physique_4d;
-  assert.deepEqual(before.sesiones, [25, 9, 24, 6]);
-  assert.deepEqual(before.bajoMinimoMayores, ['quads', 'hamstrings', 'glutes']);
   const plan = E.buildPlan(c.profile, BASELINE016.today);
   const f = fracWeek(plan), t = plan.training;
-  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 12, 24, 11], 'solo crecen las dos sesiones de pierna');
-  ['quads', 'hamstrings', 'glutes'].forEach(mu => assert.ok(f[mu] >= 10, `${mu}: ${f[mu]}`));
-  assert.equal(t.sessionLimit.filled.length, 3);
-  t.sessionLimit.filled.forEach(x => x.items.forEach(i => assert.equal(i.isNew, false, `${x.muscle}: series extra de ejercicios del plan, sin ejercicios nuevos`)));
-  // Prioridad: el mayor déficit (isquios, 5) recibe más series que el menor (cuádriceps, 7).
-  const added = Object.fromEntries(t.sessionLimit.filled.map(x => [x.muscle, x.sets]));
-  assert.ok(added.hamstrings > added.glutes && added.glutes > added.quads, JSON.stringify(added));
-  // Un aviso por grupo lo explica; los grupos mayores ya no están en el aviso de bajo el mínimo.
-  assert.equal(plan.warnings.filter(w => w.kind === 'completado_piso').length, 3);
-  assert.deepEqual(t.sessionLimit.belowMinimum.map(x => x.muscle).filter(m => K.MAJOR_GROUPS.includes(m)), []);
-  assert.equal(t.weeklySets.hamstrings, t.sessions.reduce((a, s) => a + s.exercises.filter(e => e.bucket === 'hamstrings').reduce((b, e) => b + e.sets, 0), 0), 'weeklySets sigue siendo el real');
-});
-
-test('DEC-017: wellness_maintain_5d completa el pecho en la sesión con espacio', () => {
-  const c = BASELINE016.cases.wellness_maintain_5d;
-  assert.deepEqual(REF017.antes.wellness_maintain_5d.bajoMinimoMayores, ['chest']);
-  const plan = E.buildPlan(c.profile, BASELINE016.today);
-  const t = plan.training;
-  assert.ok(fracWeek(plan).chest >= 10);
-  assert.deepEqual(t.sessions.map(s => s.totalSets), [21, 25, 18, 15, 25]);
-  const w = plan.warnings.find(x => x.kind === 'completado_piso');
-  assert.equal(w.muscle, 'chest');
-  assert.match(w.text, /Pecho/);
-  assert.match(w.text, /Empuje: Press inclinado con mancuernas \+3/);
-  assert.match(w.text, /se agregaron 3 series dentro del tope de 25/);
-});
-
-test('DEC-017: bikini_cut_lagging_4d no tiene espacio para el pecho: se mantiene el aviso y nada pasa del tope', () => {
-  const c = BASELINE016.cases.bikini_cut_lagging_4d;
-  const plan = E.buildPlan(c.profile, BASELINE016.today);
-  const t = plan.training, f = fracWeek(plan);
-  assert.ok(f.chest < 10);
-  assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.antes.bikini_cut_lagging_4d.sesiones, 'sin cambios');
+  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 9, 24, 6], 'las sesiones de 9 y 6 series no cambian');
+  assert.deepEqual([f.quads, f.hamstrings, f.glutes], [7, 5, 7.5]);
+  ['quads', 'hamstrings', 'glutes'].forEach(mu => assert.ok(f[mu] >= t.sessionLimit.floors[mu], `${mu} cumple su piso de mantenimiento`));
   assert.deepEqual(t.sessionLimit.filled, []);
-  assert.ok(!plan.warnings.some(x => x.kind === 'completado_piso'));
+  assert.ok(!plan.warnings.some(w => w.kind === 'completado_piso'));
+  assert.deepEqual(t.sessionLimit.belowMinimum.map(x => x.muscle).filter(m => K.MAJOR_GROUPS.includes(m)), [], 'tampoco avisa de las piernas');
+  // Con el piso completo (10) la regla sí las completa: es el piso de mantenimiento lo que lo evita.
+  const sessions = t.sessions.map(s => ({ name: s.name, exercises: s.exercises.map(e => Object.assign({}, e)), totalSets: s.totalSets }));
+  const log = E.completeToFloor(sessions, SPLIT_DAYS_4, [], 25);
+  assert.ok(log.length > 0 && sessions.every(s => s.totalSets <= 25));
+  assert.ok([1, 3].every(i => sessions[i].totalSets > t.sessions[i].totalSets), 'con piso 10 crecen las sesiones de 9 y 6');
+});
+
+test('DEC-017: wellness_maintain_5d y bikini_cut_lagging_4d tienen el pecho "down" y con el piso de mantenimiento ya no hay déficit', () => {
+  ['wellness_maintain_5d', 'bikini_cut_lagging_4d'].forEach(key => {
+    const c = BASELINE016.cases[key];
+    assert.ok(K.DIVISIONS && c.profile.division, key);
+    const plan = E.buildPlan(c.profile, BASELINE016.today);
+    const f = fracWeek(plan), t = plan.training;
+    assert.equal(t.sessionLimit.floors.chest, 5, `${key}: el pecho es "down" en ${c.profile.division}`);
+    assert.ok(f.chest >= 5 && f.chest < 10, `${key}: pecho ${f.chest}`);
+    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.antes[key].sesiones, `${key}: sin series agregadas`);
+    assert.deepEqual(t.sessionLimit.filled, []);
+    assert.ok(!t.sessionLimit.belowMinimum.some(x => x.muscle === 'chest'), `${key}: el pecho ya no está en el aviso`);
+  });
+  assert.equal(fracWeek(E.buildPlan(BASELINE016.cases.wellness_maintain_5d.profile, BASELINE016.today)).chest, 7);
+  assert.equal(fracWeek(E.buildPlan(BASELINE016.cases.bikini_cut_lagging_4d.profile, BASELINE016.today)).chest, 6);
+});
+
+test('DEC-017: un grupo "down" por debajo de 5 sí avisa, con su piso de mantenimiento', () => {
+  // bikini_w, 3 días, rezagados cuádriceps/isquios/glúteos (el pecho sigue "down"): el pecho queda en 4.
+  const p = { name: 'B', sex: 'F', age: 28, heightCm: 165, weightKg: 58, bodyFatPct: 20, activity: 'moderate', level: 'novice', daysPerWeek: 3, division: 'bikini_w', goal: 'cut', laggingMuscles: ['quads', 'hamstrings', 'glutes'] };
+  const plan = E.buildPlan(p, TODAY);
   const w = plan.warnings.find(x => x.kind === 'bajo_minimo');
-  assert.ok(w.muscles.some(x => x.muscle === 'chest'), 'el aviso actual sigue nombrando el pecho');
-  // Los dos días de torso (donde está el pecho) ya están en el tope: no hay espacio.
-  [0, 2].forEach(i => assert.equal(t.sessions[i].totalSets, t.sessionLimit.cap));
+  const chest = w.muscles.find(x => x.muscle === 'chest');
+  assert.equal(chest.floor, 5);
+  assert.ok(chest.fractionalSets < 5);
+  assert.match(w.text, /Pecho 4 \(piso de mantenimiento 5\)/);
+  assert.match(w.text, /énfasis reducido por la división/);
+});
+
+test('DEC-017: el piso de mantenimiento se aplica igual al freno de recortes y al completado (unidad)', () => {
+  // Freno: 27 series, la única forma de recortar es la extensión de cuádriceps (aislamiento); cuádriceps = 8 fraccionadas.
+  const build = () => [sess('S', mk('chest.bench_press_barbell', 11), mk('back.row_barbell', 8), mk('quads.leg_press', 4), mk('quads.leg_extension', 4))];
+  const uniform = build();
+  E.enforceSessionCap(uniform, null);
+  assert.equal(uniform[0].totalSets, 27, 'con piso 10 (el cuádriceps ya está en 8) el freno no deja recortar');
+  const down = build();
+  const info = E.enforceSessionCap(down, null, { quads: 5 });
+  assert.equal(down[0].totalSets, 25, 'con piso de mantenimiento 5 se puede recortar hasta el tope');
+  assert.ok(fracOf(down).quads >= 5 && fracOf(down).quads < 8);
+  assert.equal(info.trimmed.length, 1);
+  // Completado: cuádriceps en 7. Con piso 10 se completa; con piso de mantenimiento 5 no.
+  const mkSess = () => [sess('P', mk('quads.leg_press', 4), mk('quads.leg_extension', 3), mk('hamstrings.rdl', 5))];
+  const a = mkSess(); assert.ok(E.completeToFloor(a, [{ muscles: ['quads', 'hamstrings'] }], [], 25).length > 0);
+  const b = mkSess(); assert.deepEqual(E.completeToFloor(b, [{ muscles: ['quads', 'hamstrings'] }], [], 25, { quads: 5, hamstrings: 5 }), []);
+  // Un grupo "down" por debajo de 5 sí se completa, hasta 5.
+  const c = [sess('P', mk('quads.leg_press', 2), mk('hamstrings.rdl', 3))];
+  const logC = E.completeToFloor(c, [{ muscles: ['quads', 'hamstrings'] }], [], 25, { quads: 5, hamstrings: 10 });
+  assert.ok(fracOf(c).quads >= 5 && fracOf(c).quads < 7, 'se detiene al llegar al piso de mantenimiento');
+  assert.ok(logC.length > 0);
+});
+
+test('DEC-017: figure_maintain_novice_3d (figure_w, sin "down") completa el pecho con el piso completo', () => {
+  const key = 'figure_maintain_novice_3d';
+  const plan = E.buildPlan(BASELINE016.cases[key].profile, BASELINE016.today);
+  const t = plan.training;
+  assert.equal(t.sessionLimit.floors.chest, 10);
+  assert.equal(REF017.antes[key].mayores.chest, 9);
+  assert.ok(fracWeek(plan).chest >= 10);
+  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 25, 25]);
+  assert.equal(t.sessionLimit.filled.reduce((a, x) => a + x.sets, 0), 1);
+  assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.despues[key].minutos);
 });
 
 test('DEC-017: nunca pasa de 25 por esta regla (barrido de divisiones, días, objetivos, niveles y rezagados)', () => {
@@ -2093,7 +2156,7 @@ test('DEC-017: nunca pasa de 25 por esta regla (barrido de divisiones, días, ob
       t.sessionLimit.filled.forEach(x => t.sessions.forEach(s => { if (x.items.some(i => i.session === s.name)) assert.ok((s.fractionalSets[x.muscle] || 0) <= 11, `${division} ${s.name}: R1`); }));
     }))));
   });
-  assert.ok(plans > 300 && touched > 10, `el barrido tiene que ejercitar la regla (planes ${plans}, series ${touched})`);
+  assert.ok(plans > 300 && touched > 50, `el barrido tiene que ejercitar la regla (planes ${plans}, series ${touched})`);
 });
 
 test('DEC-017 (unidad): prioriza el mayor déficit y la sesión con más espacio, y solo en días que entrenan el grupo', () => {
@@ -2143,14 +2206,15 @@ test('DEC-017 (unidad): primero series extra de ejercicios del plan; ejercicio n
   assert.equal(full.totalSets, 25);
 });
 
-test('DEC-017: la regla no toca grupos chicos ni quita series; el aceptado sin recortes también completa dentro del tope', () => {
-  const c = BASELINE016.cases.novice_bulk_physique_4d;
-  const accepted = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24' }), BASELINE016.today).training;
-  accepted.sessions.forEach(s => { const tot = s.exercises.reduce((a, e) => a + e.sets, 0); assert.equal(tot, s.totalSets); });
-  // Con la aceptación vigente (sin recortes) la regla sigue completando los grupos mayores dentro del tope.
-  assert.ok(K.MAJOR_GROUPS.every(mu => (fracOf(accepted.sessions)[mu] || 0) >= 10), 'con aceptación también se completan las piernas');
-  accepted.sessions.forEach(s => { if (accepted.sessionLimit.filled.some(x => x.items.some(i => i.session === s.name))) assert.ok(s.totalSets <= 25); });
-  // Los grupos chicos no reciben series por esta regla.
-  const plan = E.buildPlan(c.profile, BASELINE016.today).training;
-  plan.sessionLimit.filled.forEach(x => assert.ok(K.MAJOR_GROUPS.includes(x.muscle)));
+test('DEC-017: la regla solo completa grupos mayores y también corre con la aceptación vigente, sin pasar del tope', () => {
+  let filledAccepted = 0;
+  Object.keys(K.DIVISIONS).forEach(division => [3, 4, 5, 6].forEach(days => {
+    const p = { name: 'S', sex: K.DIVISIONS[division].sex, age: 30, heightCm: 175, weightKg: 75, bodyFatPct: 18, activity: 'moderate', level: 'novice', daysPerWeek: days, division, goal: 'maintain', longSessionAcceptedOn: '2026-10-24' };
+    const t = E.buildPlan(p, TODAY).training;
+    t.sessionLimit.filled.forEach(x => {
+      assert.ok(K.MAJOR_GROUPS.includes(x.muscle), `${division}: solo grupos mayores`);
+      x.items.forEach(i => { filledAccepted++; assert.ok(t.sessions.find(s => s.name === i.session).totalSets <= t.sessionLimit.cap); });
+    });
+  }));
+  assert.ok(filledAccepted > 0, 'con la aceptación vigente la regla también completa');
 });

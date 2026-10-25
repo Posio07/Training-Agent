@@ -459,6 +459,17 @@
     return out;
   }
 
+  // DEC-017 (ajuste) · piso semanal por grupo. Un grupo con énfasis reducido por la división (DEC-001, ×0,5) y que
+  // no es rezagado (un rezagado anula el énfasis) usa el piso de mantenimiento = piso × maintenanceFloorFactor
+  // (5); los demás usan el piso completo (10).
+  function weeklyFloors(emph, lagging) {
+    const full = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    const factor = K.VALIDATOR_RULES.maintenanceFloorFactor.value;
+    const floors = {};
+    Object.keys(K.MUSCLE_LABELS).forEach(mu => { floors[mu] = (emph.down || []).includes(mu) && !lagging.has(mu) ? full * factor : full; });
+    return floors;
+  }
+
   // DEC-016 · aceptación del tope E4, acotada. La aceptación queda ligada a la firma del plan
   // (días, división, objetivo, rezagados y nivel) y al máximo de series por sesión que el usuario
   // vio y aceptó. Si cambia la firma, o alguna sesión generada supera ese máximo, deja de valer y
@@ -505,19 +516,20 @@
   // primero los de grupos chicos, y nunca baja un grupo mayor por debajo del piso
   // semanal de R2 (E1, en series fraccionadas y en series reales): si no se puede, la sesión queda por encima y
   // se avisa. Con `accepted` (aceptación explícita del usuario) no se recorta nada.
-  function enforceSessionCap(sessions, accepted) {
+  function enforceSessionCap(sessions, accepted, floors) {
     const cap = K.VALIDATOR_RULES.sessionSetCap.value;
     const floorWeekly = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
     const info = { cap, level: 'E4', basis: 'Convención de la app (DEC-003 v2 / DEC-014), sin fuente externa', accepted: accepted || null, trimmed: [], overCap: [], acceptance: null, acceptanceInvalidated: null, proposed: null };
     const weekly = sumFractional(sessions);
     const floor = {};
-    K.MAJOR_GROUPS.forEach(mu => { floor[mu] = Math.min(floorWeekly, weekly[mu] || 0); });
+    const floorOf = mu => (floors && floors[mu] != null ? floors[mu] : floorWeekly);
+    K.MAJOR_GROUPS.forEach(mu => { floor[mu] = Math.min(floorOf(mu), weekly[mu] || 0); });
     // El piso también protege las series reales del grupo (no solo las fraccionadas): una relación
     // a_verificar cuenta 0 en el conteo, pero sus series existen y no se descartan por eso.
     const plain = {};
     sessions.forEach(s => s.exercises.forEach(e => { plain[e.bucket] = (plain[e.bucket] || 0) + e.sets; }));
     const plainFloor = {};
-    K.MAJOR_GROUPS.forEach(mu => { plainFloor[mu] = Math.min(floorWeekly, plain[mu] || 0); });
+    K.MAJOR_GROUPS.forEach(mu => { plainFloor[mu] = Math.min(floorOf(mu), plain[mu] || 0); });
     const tier = e => (SMALL_MUSCLES_LIST.includes(e.bucket) ? 0 : 1);
     if (!accepted) {
       const before = sessions.map(s => s.totalSets);
@@ -564,8 +576,9 @@
   //    elegido del catálogo ya filtrado por lesiones (DEC-009 / DEC-011) y sin repetir patrón en el día (DEC-006).
   //  - No lleva a ningún músculo por encima del umbral de R1 en una sesión (11 fraccionadas): sería crear el aviso.
   //  - Si el déficit no cabe, el grupo queda como estaba y sigue el aviso de grupos bajo el mínimo.
-  function completeToFloor(sessions, splitDays, injuryZones, cap) {
-    const floor = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+  function completeToFloor(sessions, splitDays, injuryZones, cap, floors) {
+    const fullFloor = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    const floorOf = mu => (floors && floors[mu] != null ? floors[mu] : fullFloor);
     const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
     const direct = K.VALIDATOR_RULES.directSetWeight.value;
     const EPS = 1e-9;
@@ -581,8 +594,8 @@
     };
     const exhausted = new Set();
     for (;;) {
-      const mu = K.MAJOR_GROUPS.filter(m => !exhausted.has(m) && (weekly[m] || 0) < floor - EPS)
-        .sort((a, b) => (weekly[a] || 0) - (weekly[b] || 0))[0]; // mayor déficit primero (estable: orden de MAJOR_GROUPS)
+      const mu = K.MAJOR_GROUPS.filter(m => !exhausted.has(m) && (weekly[m] || 0) < floorOf(m) - EPS)
+        .sort((a, b) => ((weekly[a] || 0) - floorOf(a)) - ((weekly[b] || 0) - floorOf(b)))[0]; // mayor déficit (piso − fraccionadas) primero (estable: orden de MAJOR_GROUPS)
       if (!mu) break;
       const cand = splitDays.map((d, i) => i).filter(i => splitDays[i].muscles.includes(mu) && room(i) > 0)
         .sort((a, b) => room(b) - room(a) || a - b); // más espacio primero
@@ -617,6 +630,7 @@
     const small = ['biceps', 'triceps', 'calves', 'abs'];
     const lagging = new Set(p.laggingMuscles || []); // DEC-001
     const injuryZones = (p.health && p.health.injuries || []).map(i => i.zone); // DEC-009
+    const floors = weeklyFloors(emph, lagging); // DEC-017 (ajuste): piso completo o de mantenimiento por grupo
 
     const weeklySets = {};
     const laggingApplied = {};
@@ -773,7 +787,8 @@
     const untrimmedMax = maxSessionSets(sessions);
     const acceptance = resolveAcceptance(p, signature, untrimmedMax);
     const accepted = acceptance && acceptance.valid ? acceptance.on : null;
-    const sessionLimit = enforceSessionCap(sessions, accepted);
+    const sessionLimit = enforceSessionCap(sessions, accepted, floors);
+    sessionLimit.floors = floors;
     // Lo que se guardaría si el usuario acepta ahora: la firma de este plan y su máximo sin recortar.
     sessionLimit.proposed = { signature, maxSets: untrimmedMax };
     if (acceptance && acceptance.valid) sessionLimit.acceptance = { on: acceptance.on, signature: acceptance.signature, maxSets: acceptance.maxSets, legacy: !!acceptance.legacy };
@@ -804,7 +819,7 @@
     });
 
     // DEC-017 · completar hasta el piso dentro del tope (ver completeToFloor).
-    const fillLog = completeToFloor(sessions, split.days, injuryZones, sessionLimit.cap);
+    const fillLog = completeToFloor(sessions, split.days, injuryZones, sessionLimit.cap, floors);
     sessionLimit.filled = [];
     if (fillLog.length) {
       new Set(fillLog.map(x => x.bucket)).forEach(mu => {
@@ -820,7 +835,7 @@
         sessionLimit.filled.push({ muscle: mu, sets, items });
         const detail = items.map(x => `${x.session}: ${K.EXERCISE_INDEX[x.exerciseId].entry.name} +${x.sets}${x.isNew ? ' (ejercicio nuevo)' : ''}`).join('; ');
         trainingWarnings.push({ level: 'info', evidence: 'E1', rule: 'R2', kind: 'completado_piso', muscle: mu, items,
-          text: `${K.MUSCLE_LABELS[mu]} quedaba bajo el piso semanal de ${K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value} series fraccionadas (objetivo de hipertrofia del ACSM 2026, usado como piso protector): se ${sets === 1 ? 'agregó 1 serie' : `agregaron ${sets} series`} dentro del tope de ${sessionLimit.cap} por sesión. ${detail}.` });
+          text: `${K.MUSCLE_LABELS[mu]} quedaba bajo el piso semanal de ${floors[mu]} series fraccionadas (${floors[mu] < K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value ? 'piso de mantenimiento: énfasis reducido por la división' : 'objetivo de hipertrofia del ACSM 2026, usado como piso protector'}): se ${sets === 1 ? 'agregó 1 serie' : `agregaron ${sets} series`} dentro del tope de ${sessionLimit.cap} por sesión. ${detail}.` });
       });
     }
 
@@ -835,14 +850,14 @@
       const w = K.EXERCISE_CONTRIBUTION[c.exerciseId].setWeights;
       Object.keys(w).forEach(mu => { capLoss[mu] = (capLoss[mu] || 0) + w[mu] * c.sets; });
     }));
-    const belowMin = Object.keys(K.MUSCLE_LABELS).map(mu => ({ muscle: mu, fractionalSets: Math.round((weeklyFrac[mu] || 0) * 100) / 100, trimmedByCap: Math.round((capLoss[mu] || 0) * 100) / 100 }))
-      .filter(x => x.fractionalSets < floorSets);
+    const belowMin = Object.keys(K.MUSCLE_LABELS).map(mu => ({ muscle: mu, fractionalSets: Math.round((weeklyFrac[mu] || 0) * 100) / 100, floor: floors[mu], trimmedByCap: Math.round((capLoss[mu] || 0) * 100) / 100 }))
+      .filter(x => x.fractionalSets < x.floor);
     sessionLimit.belowMinimum = belowMin;
     if (belowMin.length) {
-      const list = belowMin.map(x => `${K.MUSCLE_LABELS[x.muscle]} ${x.fractionalSets}${x.trimmedByCap > 0 ? ` (el tope E4 quitó ${x.trimmedByCap})` : ''}`).join(', ');
+      const list = belowMin.map(x => `${K.MUSCLE_LABELS[x.muscle]} ${x.fractionalSets}${x.floor < floorSets ? ` (piso de mantenimiento ${x.floor})` : ''}${x.trimmedByCap > 0 ? ` (el tope E4 quitó ${x.trimmedByCap})` : ''}`).join(', ');
       const canAccept = !accepted && belowMin.some(x => x.trimmedByCap > 0);
       trainingWarnings.push({ level: 'warn', evidence: 'E1', rule: 'R2', kind: 'bajo_minimo', muscles: belowMin, options: canAccept ? ['aceptar_sesiones_largas', 'cambiar_split'] : ['cambiar_split'],
-        text: `Grupos por debajo de ${floorSets} series fraccionadas por semana: ${list}. ${floorSets} es el objetivo de hipertrofia del ACSM 2026, que la app usa como piso protector. ${canAccept ? 'Puedes aceptar sesiones más largas (sin recortes) o cambiar de split (más días por semana).' : 'Puedes cambiar de split (más días por semana).'}` });
+        text: `Grupos por debajo de ${floorSets} series fraccionadas por semana: ${list}. ${floorSets} es el objetivo de hipertrofia del ACSM 2026, que la app usa como piso protector${belowMin.some(x => x.floor < floorSets) ? '; en los grupos con énfasis reducido por la división el piso es el de mantenimiento' : ''}. ${canAccept ? 'Puedes aceptar sesiones más largas (sin recortes) o cambiar de split (más días por semana).' : 'Puedes cambiar de split (más días por semana).'}` });
     }
 
     // DEC-014 · R1: aviso de rendimiento decreciente (E3, preprint). NO es un tope:

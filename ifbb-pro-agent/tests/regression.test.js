@@ -36,15 +36,12 @@ const BASELINE = {
     targets: { targetBf: 6, targetWeight: 73.69, ratePct: 0.7 },
   },
   bulk: {
-    // DEC-017: cuádriceps, isquios y glúteos (5, 5, 5) estaban bajo el piso de 10 series fraccionadas; la regla de completar
-    // hasta el piso dentro del tope les agrega series en las sesiones con espacio (quads 6, hamstrings 10, glutes 7).
-    weeklySets: { chest: 10, back: 13, shoulders: 13, quads: 6, hamstrings: 10, glutes: 7, calves: 6, biceps: 6, triceps: 6, abs: 8 },
+    weeklySets: { chest: 10, back: 13, shoulders: 13, quads: 5, hamstrings: 5, glutes: 5, calves: 6, biceps: 6, triceps: 6, abs: 8 },
     nutrition: { calories: 3280, protein: 150, carbs: 465, fat: 91 },
     targets: { targetBf: 15, targetWeight: 75.88, ratePct: 0.5 },
   },
   maintain: {
-    // DEC-017: el pecho (7) estaba bajo el piso de 10; se completa hasta 10 en las sesiones con espacio.
-    weeklySets: { chest: 10, back: 14, shoulders: 7, quads: 18, hamstrings: 18, glutes: 18, calves: 8, biceps: 4, triceps: 4, abs: 8 },
+    weeklySets: { chest: 7, back: 14, shoulders: 7, quads: 18, hamstrings: 18, glutes: 18, calves: 8, biceps: 4, triceps: 4, abs: 8 },
     nutrition: { calories: 2140, protein: 120, carbs: 281, fat: 59 },
     targets: { targetBf: 22, targetWeight: 60, ratePct: 0 },
   },
@@ -54,7 +51,6 @@ Object.entries(PROFILES).forEach(([key, profile]) => {
   test(`regresión ${key}: sin inputs nuevos, mismos resultados que antes de DECISIONS.md`, () => {
     // DEC-014: el tope E4 recorta series de aislamiento por defecto. Con la aceptación explícita de
     // sesiones más largas el volumen semanal sigue siendo el de siempre; ese es el invariante que fija este test.
-    // DEC-017: salvo los grupos mayores que estaban bajo el piso de 10, que se completan dentro del tope (ver BASELINE).
     const plan = E.buildPlan(Object.assign({ longSessionAcceptedOn: '2026-10-24' }, profile), TODAY);
     const base = BASELINE[key];
     assert.deepEqual(plan.training.weeklySets, base.weeklySets, `${key}: weeklySets cambió`);
