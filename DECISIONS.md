@@ -558,3 +558,25 @@ Lectura:
 Intercambiar series entre grupos (quitar de un grupo chico para completar un mayor): no se implementó. Completar grupos chicos, y un límite de duración (la regla topa por series).
 
 **Estado: implementada.**
+
+## DEC-018 · El import restaura el entrenamiento registrado (workouts y sessions)
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte.
+
+Contexto: B-001. El export (`ENGINE.exportProfile`) lleva `workouts` y `sessions` (sin el dolor por serie, DEC-009), pero `prepareImportedProfile` solo devolvía `createdAt`, `updatedAt`, `data`, `log` y `droppedHealth`, y `importJson` creaba el perfil sin ellos. Un ciclo export → import perdía todo el entrenamiento registrado.
+
+### Cambio
+- `prepareImportedProfile(item, today, newProfileId)` ahora también devuelve `workouts` y `sessions`, y `importJson` los guarda en el perfil nuevo. El aviso final dice cuántas series se restauraron.
+- **Privacidad (DEC-009) sin cambios:** el export no cambia (sigue sin `health`, `painFlags` ni `workouts[].pain`). Al importar se **quita siempre** el `pain` de cada serie, aunque el archivo lo traiga (versiones anteriores lo exportaban), y se avisa como "datos de salud ignorados". `painFlags` y `health` siguen sin importarse.
+- **`profileId`:** el import siempre crea un perfil nuevo con id nuevo (nunca pisa uno existente). Si una fila trae `profileId`, se remapea al id del perfil nuevo. Hoy ninguna fila guardada lo trae: solo la sesión en curso (`sessionStore.js`), que no se exporta. El remapeo es una protección para archivos de otras versiones o armados a mano.
+- Se descartan las filas mal formadas (sin `sessionId`). Las filas anteriores a DEC-015 (sin `setKey`) vuelven tal cual, sin migrar.
+
+### Lo que no cambia
+La política del export; que el import crea un perfil nuevo; que la sesión en curso nunca viaja (DEC-015); que `painFlags` y la salud nunca se importan. Consecuencias a tener presentes: el historial de dolor por serie **no** sobrevive a un export → import (es por diseño de DEC-009), e importar dos veces el mismo archivo crea dos perfiles con las mismas series (comportamiento previo del import).
+
+### Pruebas
+- `engine.test.js`: ida y vuelta export → import (series, sesiones y mediciones idénticas, ediciones conservadas, filas viejas sin migrar); el archivo exportado no lleva dolor, salud ni `painFlags` y lo importado tampoco; un archivo con dolor por serie lo descarta y avisa; remapeo de `profileId`; filas mal formadas; archivos viejos sin `workouts`/`sessions`; el export del perfil importado es idéntico al original. Se corrigió el test de DEC-009 que daba por buena la pérdida de `workouts` ("no se guardan workouts"): lo que la privacidad exige es que no entre el dolor.
+- `tests/e2e-import.js` (navegador): exporta un perfil con entrenamiento, dolor y lesiones, lo importa y comprueba el perfil nuevo (series, sesión, sin dolor ni salud), que el original no se toca y que Progreso muestra la sesión.
+- Mutaciones: volver a descartar `workouts`/`sessions` falla 5 tests; conservar el dolor, 2; no remapear `profileId`, 1; no descartar filas mal formadas, 1; no adjuntar las series en `app.js`, el E2E.
+- No cambia el plan generado (sin tabla de perfiles de referencia); `sw.js` pasa a la caché v11.
+
+**Estado: implementada, pendiente de aceptación.**
