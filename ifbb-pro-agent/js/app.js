@@ -201,7 +201,7 @@
       try {
         const obj = JSON.parse(reader.result);
         const list = Array.isArray(obj) ? obj : Array.isArray(obj.profiles) ? obj.profiles : [obj];
-        let count = 0, droppedHealth = false, cancelled = false;
+        let count = 0, droppedHealth = false, cancelled = false, restoredSets = 0;
         list.forEach(item => {
           if (!item || !item.data || !item.data.name) return;
           const errs = ENGINE.validateProfile(item.data);
@@ -211,13 +211,19 @@
           // lesiones declaradas que se parece, se avisa antes de importar.
           const conflicts = ENGINE.localHealthConflicts(state.profiles, item);
           if (conflicts.length && !confirm(`Ya tenés un perfil "${conflicts[0].data.name}" con lesiones declaradas. Este archivo no trae datos de salud (por privacidad no se exportan), así que se va a importar como un perfil NUEVO sin lesiones declaradas. Tu perfil actual no se modifica y conserva sus lesiones. ¿Importar de todos modos?`)) { cancelled = true; return; }
-          const prepared = ENGINE.prepareImportedProfile(item, todayIso());
+          const newId = uid();
+          const prepared = ENGINE.prepareImportedProfile(item, todayIso(), newId);
           droppedHealth = droppedHealth || prepared.droppedHealth;
-          state.profiles.push({ id: uid(), createdAt: prepared.createdAt, updatedAt: prepared.updatedAt, data: prepared.data, log: prepared.log });
+          const imported = { id: newId, createdAt: prepared.createdAt, updatedAt: prepared.updatedAt, data: prepared.data, log: prepared.log };
+          // B-001: el entrenamiento registrado (series y sesiones, sin dolor) vuelve con el perfil.
+          if (prepared.workouts.length) imported.workouts = prepared.workouts;
+          if (prepared.sessions.length) imported.sessions = prepared.sessions;
+          restoredSets += prepared.workouts.length;
+          state.profiles.push(imported);
           count++;
         });
         if (count) { state.activeId = state.profiles[state.profiles.length - 1].id; save(); }
-        toast(count ? `${count} perfil(es) importado(s)${droppedHealth ? ' · se ignoraron los datos de salud del archivo' : ''}` : cancelled ? 'Importación cancelada' : 'El archivo no contiene perfiles válidos');
+        toast(count ? `${count} perfil(es) importado(s)${restoredSets ? ` · ${restoredSets} series restauradas` : ''}${droppedHealth ? ' · se ignoraron los datos de salud del archivo' : ''}` : cancelled ? 'Importación cancelada' : 'El archivo no contiene perfiles válidos');
         render();
       } catch (e) { toast('Archivo JSON no válido'); }
     };
