@@ -560,7 +560,7 @@ Intercambiar series entre grupos (quitar de un grupo chico para completar un may
 **Estado: implementada.**
 
 ## DEC-018 · El import restaura el entrenamiento registrado (workouts y sessions)
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-10-25). Lo creó el agente como Propuesto; Emanuel lo aceptó en el chat.
 
 Contexto: B-001. El export (`ENGINE.exportProfile`) lleva `workouts` y `sessions` (sin el dolor por serie, DEC-009), pero `prepareImportedProfile` solo devolvía `createdAt`, `updatedAt`, `data`, `log` y `droppedHealth`, y `importJson` creaba el perfil sin ellos. Un ciclo export → import perdía todo el entrenamiento registrado.
 
@@ -579,4 +579,4 @@ La política del export; que el import crea un perfil nuevo; que la sesión en c
 - Mutaciones: volver a descartar `workouts`/`sessions` falla 5 tests; conservar el dolor, 2; no remapear `profileId`, 1; no descartar filas mal formadas, 1; no adjuntar las series en `app.js`, el E2E.
 - No cambia el plan generado (sin tabla de perfiles de referencia); `sw.js` pasa a la caché v11.
 
-**Estado: implementada, pendiente de aceptación.**
+**Estado: implementada.**
