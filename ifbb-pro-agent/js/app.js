@@ -412,6 +412,7 @@
       if (errors.length) { $('#form-errors').innerHTML = errors.map(x => `<div class="alert danger">${esc(x)}</div>`).join(''); window.scrollTo({ top: document.body.scrollHeight }); return; }
       const norm = ENGINE.normalizeProfile(data);
       norm.health = ENGINE.reconcileInjuryClearances(editing && editing.data.health, norm.health); // DEC-011
+      norm.longSessionAcceptance = (editing && editing.data.longSessionAcceptance) || null; // DEC-016: la firma del plan decide si sigue valiendo
       if (editing) { editing.data = norm; editing.updatedAt = todayIso(); state.activeId = editing.id; }
       else {
         const p = { id: uid(), createdAt: todayIso(), updatedAt: todayIso(), data: norm, log: [] };
@@ -502,9 +503,12 @@
   }
 
   function wireTrainingDays(plan, profile) {
-    const setLong = value => { profile.data.longSessionAcceptedOn = value; profile.updatedAt = todayIso(); save(); toast(value ? 'Aceptación registrada' : 'Tope restablecido'); renderPlan(); };
-    const accept = $('#btn-accept-long'); if (accept) accept.onclick = () => setLong(todayIso());
-    const revoke = $('#btn-revoke-long'); if (revoke) revoke.onclick = () => setLong('');
+    // DEC-016: la aceptación guarda la firma del plan y el máximo de series que se vio (no es un permiso abierto).
+    const setLong = value => { profile.data.longSessionAcceptedOn = ''; profile.data.longSessionAcceptance = value; profile.updatedAt = todayIso(); save(); toast(value ? 'Aceptación registrada' : 'Tope restablecido'); renderPlan(); };
+    const proposed = plan.training.sessionLimit.proposed;
+    view.querySelectorAll('[data-accept-long]').forEach(b => b.onclick = () => setLong({ on: todayIso(), signature: proposed.signature, maxSets: proposed.maxSets }));
+    view.querySelectorAll('[data-revoke-long]').forEach(b => b.onclick = () => setLong(null));
+    view.querySelectorAll('[data-change-split]').forEach(b => b.onclick = () => { ui.editingId = profile.id; go('data'); });
     view.querySelectorAll('[data-toggle-day]').forEach(btn => {
       btn.onclick = () => {
         const bodyEl = document.getElementById('day-body-' + btn.dataset.toggleDay);
@@ -613,16 +617,32 @@
   }
 
   // DEC-014 · regla E4: tope de series por sesión. El usuario puede aceptar sesiones más largas (queda con fecha).
+  // DEC-016: la aceptación vale para este plan y hasta un máximo de series; si cambia, se vuelve a pedir.
+  // También avisa de los grupos que quedan bajo el mínimo semanal (mayores y chicos).
   function htmlSessionLimit(sl) {
+    const acceptBtn = '<button class="btn" data-accept-long>Aceptar sesiones más largas (sin recortes)</button>';
+    const splitBtn = '<button class="btn" data-change-split>Cambiar de split</button>';
+    let out = '';
     if (sl.accepted) {
-      return `<div class="card"><h3>Sesiones más largas aceptadas</h3>
-        <p>Aceptaste sesiones por encima de las ${sl.cap} series el ${esc(sl.accepted)}: no se recorta ninguna serie. ${evTag('E4')}</p>
-        <div class="btn-row"><button class="btn" id="btn-revoke-long">Volver al tope de ${sl.cap} series</button></div></div>`;
+      const a = sl.acceptance;
+      out += `<div class="card"><h3>Sesiones más largas aceptadas</h3>
+        <p>Aceptaste sesiones por encima de las ${sl.cap} series el ${esc(sl.accepted)}${a ? `, hasta ${a.maxSets} series por sesión y para este plan (días, división, objetivo, rezagados y nivel)` : ''}: no se recorta ninguna serie. Si cambias el plan o alguna sesión supera ese máximo, se vuelve a pedir. ${evTag('E4')}</p>
+        <div class="btn-row"><button class="btn" data-revoke-long>Volver al tope de ${sl.cap} series</button></div></div>`;
+    } else if (sl.trimmed.length) {
+      const inv = sl.acceptanceInvalidated;
+      out += `<div class="card"><h3>Tope de ${sl.cap} series por sesión</h3>
+        ${inv ? `<div class="alert warn">Tu aceptación del ${esc(inv.on)} ya no aplica (${inv.reason === 'firma' ? 'cambió el plan' : 'una sesión supera el máximo que aceptaste'}). Hay que volver a aceptar.</div>` : ''}
+        <p>Para respetar el tope se recortaron series de aislamiento (el detalle está en los avisos del plan). Es una convención de la app, sin fuente externa. ${evTag('E4')}</p>
+        <div class="btn-row">${acceptBtn}</div></div>`;
     }
-    if (!sl.trimmed.length) return '';
-    return `<div class="card"><h3>Tope de ${sl.cap} series por sesión</h3>
-      <p>Para respetar el tope se recortaron series de aislamiento (el detalle está en los avisos del plan). Es una convención de la app, sin fuente externa. ${evTag('E4')}</p>
-      <div class="btn-row"><button class="btn" id="btn-accept-long">Aceptar sesiones más largas (sin recortes)</button></div></div>`;
+    if (sl.belowMinimum && sl.belowMinimum.length) {
+      const canAccept = !sl.accepted && sl.belowMinimum.some(x => x.trimmedByCap > 0);
+      out += `<div class="card"><h3>Grupos por debajo del mínimo semanal</h3>
+        <p>Objetivo de hipertrofia del ACSM 2026: ~10 series fraccionadas por grupo a la semana (la app lo usa como piso protector). ${evTag('E1')}</p>
+        <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de 10${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
+        <div class="btn-row">${canAccept ? acceptBtn : ''}${splitBtn}</div></div>`;
+    }
+    return out;
   }
 
   function htmlTraining(plan) {
@@ -1687,6 +1707,16 @@
   }
 
   /* ---------- Arranque ---------- */
+  // DEC-016: la aceptación de sesiones largas era solo una fecha; se migra al formato con firma y máximo
+  // tomados del plan vigente. Se guarda una sola vez: después ya no hay campo viejo que migrar.
+  (function migrateAcceptances() {
+    let changed = false;
+    state.profiles.forEach(p => {
+      if (!p.data || !p.data.longSessionAcceptedOn || p.data.longSessionAcceptance) return;
+      try { const next = ENGINE.migrateLongSessionAcceptance(p.data, todayIso()); if (next !== p.data) { p.data = next; changed = true; } } catch (e) { /* un perfil ilegible no frena el arranque */ }
+    });
+    if (changed) save();
+  })();
   if (active()) ui.tab = 'plan';
   go(ui.tab);
   offerResume(); // DEC-015

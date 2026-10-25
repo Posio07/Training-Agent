@@ -524,8 +524,14 @@ test('DEC-010: reglas centralizadas con valor, nivel, fuente y fecha de revisió
     assert.ok(['E1', 'E2', 'E3', 'E4'].includes(r.level), `${key}: nivel inválido`);
     assert.ok(r.source === null || (r.source.label && r.source.url), `${key}: fuente mal formada`);
     assert.match(r.reviewedAt, /^\d{4}-\d{2}-\d{2}$/, `${key}: fecha de revisión`);
+    // DEC-016: ninguna regla está verificada contra su fuente primaria; el piso semanal se contrastó con la infografía oficial del ACSM, pero falta el artículo completo (MSSE 2026).
     assert.equal(r.verifiedAgainstPrimarySource, false, `${key}: nada está verificado contra la fuente primaria todavía`);
   });
+  assert.equal(R.minWeeklySetsPerMuscle.verifiedAgainst, 'verificado contra material oficial del ACSM (infografía)');
+  assert.equal(R.minWeeklySetsPerMuscle.source.url, 'https://acsm.org/wp-content/uploads/2026/03/Resistance-Training-Position-Stand-infographic.pdf');
+  assert.match(R.minWeeklySetsPerMuscle.note, /MSSE 2026/);
+  assert.match(R.minWeeklySetsPerMuscle.usage, /piso protector/i);
+  assert.match(R.minWeeklySetsPerMuscle.note, /objetivo de hipertrofia del ACSM 2026/i);
   assert.equal(R.sessionSetCap.value, 25);
   assert.equal(R.sessionSetCap.level, 'E4');
   assert.equal(R.sessionSetCap.source, null);
@@ -576,17 +582,13 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.health.injuryClearance': 'DEC-011: zonas pendientes de autorización (vacío sin lesiones)',
     // DEC-014: el aviso del tope pasó a regla E4 con aceptación explícita; los avisos nuevos (E4 y R1) llevan evidencia y regla.
     'plan.input.longSessionAcceptedOn': 'DEC-014: aceptación explícita de sesiones más largas (vacía por defecto)',
+    'plan.input.longSessionAcceptance': 'DEC-016: la aceptación acotada a la firma del plan y a un máximo de series (null por defecto)',
     'plan.training.sessionLimit': 'DEC-014: regla E4 (tope, recortes, sesiones por encima)',
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
-    'plan.training.warnings.#.evidence': 'DEC-014: etiqueta de evidencia de los avisos E4 y R1',
-    'plan.training.warnings.#.rule': 'DEC-014: regla que originó el aviso',
-    'plan.training.warnings.#.text': 'DEC-014: textos de los avisos E4 y R1',
-    'plan.training.warnings.length': 'DEC-014: avisos nuevos (E4, R1)',
-    'plan.warnings.#.evidence': 'DEC-014: ídem, en la lista combinada',
-    'plan.warnings.#.rule': 'DEC-014: ídem, en la lista combinada',
-    'plan.warnings.#.text': 'DEC-014: ídem, en la lista combinada',
-    'plan.warnings.length': 'DEC-014: ídem, en la lista combinada',
+    // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
+    'plan.training.warnings.length': 'DEC-014 / DEC-016: avisos nuevos (E4, R1, grupos bajo el mínimo)',
+    'plan.warnings.length': 'DEC-014 / DEC-016: ídem, en la lista combinada',
   };
   assert.ok(Object.keys(fx.cases).length >= 10);
   const seen = new Set();
@@ -1277,6 +1279,8 @@ test('DEC-014: muscle y secondary del plan salen de los datos v2 (bucket si es d
       const w = r.evidencia === 'a_verificar' ? 0 : ({ directa: 1, indirecta: 0.5, ninguna: 0 })[r.relacion];
       if (w > 0) expected[r.muscle] = w;
     });
+    // DEC-016: el músculo del bucket cuenta siempre como directo (1), aunque su fila sea a_verificar.
+    if (!K.NO_MUSCLE_CONTRIBUTION.includes(id)) expected[bucket] = 1;
     assert.deepEqual(c.setWeights, expected, `${id}: setWeights`);
     Object.values(c.setWeights).forEach(w => assert.ok([0.5, 1].includes(w), `${id}: peso a medida ${w}`));
   });
@@ -1306,9 +1310,12 @@ test('DEC-014: el conteo fraccionado usa directa = 1, indirecta = 0,5 y ninguna 
   // 4 series de prensa: cuádriceps directa (4), glúteo indirecta (2). 3 de hip thrust: glúteo 3, isquios 0 (ninguna).
   const f = E.fractionalByMuscle([entry('quads.leg_press', 4), entry('glutes.hip_thrust', 3)]);
   assert.deepEqual(f, { quads: 4, glutes: 5 });
-  // a_verificar cuenta 0: el pectoral del press inclinado está a_verificar y no suma.
+  // a_verificar cuenta 0 en las relaciones que NO son el bucket: el deltoides anterior del press inclinado.
+  assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.shoulders.evidencia, 'a_verificar');
+  assert.equal(E.fractionalByMuscle([entry('chest.incline_press_db', 4)]).shoulders, undefined);
+  // DEC-016: el pectoral del press inclinado también está a_verificar, pero es su bucket: suma 1 por serie.
   assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.chest.evidencia, 'a_verificar');
-  assert.equal(E.fractionalByMuscle([entry('chest.incline_press_db', 4)]).chest, undefined);
+  assert.equal(E.fractionalByMuscle([entry('chest.incline_press_db', 4)]).chest, 4);
   // El paseo del granjero no suma a nadie.
   assert.deepEqual(E.fractionalByMuscle([entry('functional.farmer_carry', 2)]), {});
 });
@@ -1772,4 +1779,221 @@ test('DEC-015: un descanso guardado con datos inválidos se descarta sin invalid
   SS.startRest(r2, 90, 1_000_000);
   assert.equal(SS.restRemaining(r2, 0), 90, 'si el reloj retrocede, nunca muestra más que la duración total');
   assert.equal(SS.restRemaining(restRec(), 5), 0, 'sin descanso en marcha');
+});
+
+
+/* ---------- DEC-016 · tres correcciones del validador ---------- */
+
+const REF016 = require('./fixtures/dec016-referencia.json');
+const BASELINE016 = require('./fixtures/plan-identity-baseline.json');
+const fracWeek = plan => weekly(plan, 'fractionalSets');
+const g3 = Object.assign({}, fullBody3, { name: 'G3' }); // 3 días, definición, división general
+
+test('DEC-016 (1): el músculo del bucket cuenta siempre como directo (1), sea cual sea su evidencia; a_verificar = 0 solo en las demás relaciones', () => {
+  const aVerificarBucket = [];
+  catalogIds().forEach(id => {
+    const c = K.EXERCISE_CONTRIBUTION[id];
+    if (K.NO_MUSCLE_CONTRIBUTION.includes(id)) { assert.deepEqual(c.setWeights, {}, `${id}: sin aporte`); return; }
+    assert.equal(c.setWeights[c.bucket], 1, `${id}: el bucket ${c.bucket} debe pesar 1`);
+    if (c.relations[c.bucket].evidencia === 'a_verificar') aVerificarBucket.push(id);
+    // Toda relación a_verificar que no es el bucket sigue valiendo 0.
+    Object.entries(c.relations).forEach(([mu, r]) => {
+      if (mu !== c.bucket && r.evidencia === 'a_verificar') assert.equal(c.setWeights[mu], undefined, `${id}/${mu}: a_verificar fuera del bucket cuenta 0`);
+    });
+  });
+  // Los 7 ejercicios cuyo bucket estaba a_verificar son justo los que cambian.
+  assert.deepEqual(aVerificarBucket.sort(), ['abs.vacuum', 'back.pullover_cable', 'chest.dip_or_machine_press', 'chest.incline_press_db', 'functional.step_up', 'shoulders.press_landmine_neutral', 'shoulders.rear_delt_facepull']);
+  // La evidencia de la fila NO se toca: sigue siendo a_verificar.
+  assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.chest.evidencia, 'a_verificar');
+  // Los datos son coherentes con la regla: todo bucket es una fila directa (salvo el paseo del granjero, sin filas).
+  catalogIds().filter(id => !K.NO_MUSCLE_CONTRIBUTION.includes(id)).forEach(id => assert.equal(K.EXERCISE_CONTRIBUTION[id].relations[K.EXERCISE_INDEX[id].bucket].relacion, 'directa', id));
+});
+
+test('DEC-016 (1): el pecho cuenta el press inclinado en un plan real', () => {
+  // Divisiones con pecho en la rotación: el press inclinado aparece en alguna sesión.
+  let found = 0;
+  Object.entries(BASELINE016.cases).forEach(([key, c]) => {
+    const plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24' }), BASELINE016.today);
+    plan.training.sessions.forEach(s => {
+      const inc = s.exercises.filter(e => e.exerciseId === 'chest.incline_press_db');
+      if (!inc.length) return;
+      found++;
+      const sets = inc.reduce((a, e) => a + e.sets, 0);
+      const chestWithout = E.fractionalByMuscle(s.exercises.filter(e => e.exerciseId !== 'chest.incline_press_db')).chest || 0;
+      assert.equal(s.fractionalSets.chest, chestWithout + sets, `${key} ${s.name}: el press inclinado suma 1 por serie al pecho`);
+      assert.ok(sets > 0);
+    });
+  });
+  assert.ok(found >= 3, `el press inclinado tiene que aparecer en varios planes (aparece en ${found})`);
+});
+
+test('DEC-016 (1): pecho y espalda semanales en los splits de 3, 4 y 5 días (antes → después)', () => {
+  Object.entries(REF016.generico3a5.despues).forEach(([key, d]) => {
+    const [days, goal] = key.split('d ');
+    const plan = E.buildPlan(Object.assign({}, g3, { daysPerWeek: Number(days), goal }), TODAY);
+    const f = fracWeek(plan);
+    assert.equal(f.chest, d.pecho, `${key}: pecho`);
+    assert.equal(f.back, d.espalda, `${key}: espalda`);
+    assert.ok(d.pecho > REF016.generico3a5.antes[key].pecho, `${key}: el pecho sube`);
+    assert.ok(d.espalda >= REF016.generico3a5.antes[key].espalda, `${key}: la espalda no baja`);
+    assert.ok(f.chest >= 10 && f.back >= 10, `${key}: pecho y espalda llegan a 10 en los splits genéricos de 3 a 5 días`);
+  });
+});
+
+test('DEC-016: perfiles de referencia de DEC-014 antes y después (sin aceptación)', () => {
+  assert.equal(Object.keys(REF016.despues).length, 10);
+  Object.entries(BASELINE016.cases).forEach(([key, c]) => {
+    const plan = E.buildPlan(c.profile, BASELINE016.today);
+    const f = fracWeek(plan), t = plan.training;
+    const d = REF016.despues[key];
+    assert.deepEqual(t.sessions.map(s => s.totalSets), d.sesiones, `${key}: series por sesión`);
+    assert.deepEqual(t.sessionLimit.overCap.map(o => o.sets), d.sobreTope, `${key}: sesiones sobre el tope`);
+    assert.equal(f.chest || 0, d.pecho, `${key}: pecho`);
+    assert.equal(f.back || 0, d.espalda, `${key}: espalda`);
+    assert.deepEqual(t.sessionLimit.belowMinimum.map(x => `${x.muscle}=${x.fractionalSets}`).sort(), d.bajoMinimo.map(x => x.replace(/^(\w+)=.*/, '$1') && x).sort(), `${key}: grupos bajo el mínimo`);
+    // Las series por sesión no cambian con la corrección 1: solo cambia el conteo fraccionado y los avisos.
+    assert.deepEqual(d.sesiones, REF016.antes[key].sesiones, `${key}: el tope recorta lo mismo que antes`);
+    assert.deepEqual(d.sobreTope, REF016.antes[key].sobreTope, `${key}: mismas sesiones sobre el tope`);
+    assert.ok(d.pecho >= REF016.antes[key].pecho && d.espalda >= REF016.antes[key].espalda, `${key}: el conteo del bucket solo suma`);
+  });
+});
+
+test('DEC-016 (3): el piso de 10 se sigue forzando solo en los grupos mayores; el aviso cubre a todos', () => {
+  const sl = E.buildPlan(g3, TODAY).training.sessionLimit;
+  const below = sl.belowMinimum.map(x => x.muscle);
+  assert.ok(below.includes('calves') && below.includes('abs'), 'grupos chicos incluidos en el aviso');
+  assert.ok(below.every(mu => !K.MAJOR_GROUPS.includes(mu)), 'en este plan ningún grupo mayor queda bajo 10');
+  // Los grupos chicos SÍ se recortan por debajo de 10 (no tienen piso forzado); los mayores no.
+  const noCap = E.buildPlan(Object.assign({}, g3, { longSessionAcceptedOn: '2026-10-24' }), TODAY);
+  const withCap = E.buildPlan(g3, TODAY);
+  const wNo = weekly(noCap, 'fractionalSets'), wCap = weekly(withCap, 'fractionalSets');
+  K.MAJOR_GROUPS.forEach(mu => assert.ok((wCap[mu] || 0) >= Math.min(10, wNo[mu] || 0), `${mu}: el tope no baja un grupo mayor de 10`));
+  assert.ok((wCap.calves || 0) < (wNo.calves || 0), 'las pantorrillas sí se recortan');
+});
+
+test('DEC-016 (3): aviso visible de grupos bajo el mínimo, con opciones y cuánto quitó el tope', () => {
+  const plan = E.buildPlan(g3, TODAY);
+  const w = plan.warnings.find(x => x.kind === 'bajo_minimo');
+  assert.ok(w, 'el aviso llega a la lista combinada que ve el usuario');
+  assert.equal(w.rule, 'R2');
+  assert.equal(w.evidence, 'E1');
+  assert.deepEqual(w.options, ['aceptar_sesiones_largas', 'cambiar_split']);
+  assert.match(w.text, /Pantorrillas 2 \(el tope E4 quitó 5\)/);
+  assert.match(w.text, /objetivo de hipertrofia del ACSM 2026/);
+  assert.match(w.text, /aceptar sesiones más largas/);
+  assert.match(w.text, /cambiar de split/);
+  // Con la aceptación vigente ya no se ofrece aceptar (no hay recortes): solo cambiar de split.
+  const acc = E.migrateLongSessionAcceptance(E.normalizeProfile(Object.assign({}, g3, { longSessionAcceptedOn: '2026-10-20' })), TODAY);
+  const w2 = E.buildPlan(acc, TODAY).warnings.find(x => x.kind === 'bajo_minimo');
+  assert.deepEqual(w2.options, ['cambiar_split']);
+  assert.doesNotMatch(w2.text, /aceptar sesiones más largas/);
+  // Un plan sin grupos bajo el mínimo no lleva el aviso.
+  const full = E.buildPlan(Object.assign({}, g3, { daysPerWeek: 6, level: 'advanced', goal: 'bulk', division: 'bodybuilding_m' }), TODAY);
+  assert.equal(full.training.sessionLimit.belowMinimum.length === 0, !full.warnings.some(x => x.kind === 'bajo_minimo'));
+});
+
+test('DEC-016 (2): la aceptación guarda la firma del plan y el máximo de series; sigue valiendo mientras ninguno cambie', () => {
+  const sl0 = E.buildPlan(g3, TODAY).training.sessionLimit;
+  assert.equal(sl0.accepted, null);
+  assert.equal(sl0.proposed.signature, 'dias=3;division=general_m;objetivo=cut;rezagados=;nivel=intermediate');
+  assert.equal(sl0.proposed.maxSets, 35, 'el máximo propuesto es la sesión más larga SIN recortar');
+  const accepted = Object.assign({}, g3, { longSessionAcceptance: { on: '2020-01-01', signature: sl0.proposed.signature, maxSets: sl0.proposed.maxSets } });
+  const sl = E.buildPlan(accepted, TODAY).training.sessionLimit;
+  assert.equal(sl.accepted, '2020-01-01', 'no vence por fecha');
+  assert.deepEqual(sl.trimmed, []);
+  assert.equal(sl.acceptanceInvalidated, null);
+  // Cambios que no están en la firma (peso, edad, plan de dieta) no la invalidan.
+  const sl2 = E.buildPlan(Object.assign({}, accepted, { weightKg: 90, age: 31 }), TODAY).training.sessionLimit;
+  assert.equal(sl2.accepted, '2020-01-01');
+});
+
+test('DEC-016 (2): la aceptación se invalida si cambia la firma del plan, y vuelve a pedir (caso de aceptación invalidada por cambio de plan)', () => {
+  const sl0 = E.buildPlan(g3, TODAY).training.sessionLimit;
+  const accepted = Object.assign({}, g3, { longSessionAcceptance: { on: '2026-10-20', signature: sl0.proposed.signature, maxSets: sl0.proposed.maxSets } });
+  const changes = { 'días': { daysPerWeek: 4 }, 'división': { division: 'physique_m' }, 'objetivo': { goal: 'bulk' }, 'rezagados': { laggingMuscles: ['glutes'] }, 'nivel': { level: 'advanced' } };
+  Object.entries(changes).forEach(([what, patch]) => {
+    const plan = E.buildPlan(Object.assign({}, accepted, patch), TODAY);
+    const sl = plan.training.sessionLimit;
+    assert.equal(sl.accepted, null, `${what}: la aceptación ya no vale`);
+    assert.equal(sl.acceptanceInvalidated.reason, 'firma', what);
+    assert.equal(sl.acceptanceInvalidated.on, '2026-10-20');
+    const w = plan.warnings.find(x => /ya no aplica/.test(x.text));
+    assert.ok(w, `${what}: avisa que la aceptación ya no aplica`);
+    assert.equal(w.rule, 'E4');
+    assert.match(w.text, /2026-10-20/);
+    assert.match(w.text, /Vuelve a aceptar/);
+    // Vuelve a recortar (el tope E4 rige de nuevo) salvo que ese plan ya cumpla el tope.
+    sl.overCap.forEach(o => assert.ok(o.sets > sl.cap));
+  });
+  // Cambiar a 4 días con la aceptación vieja: el plan vuelve a recortar.
+  const four = E.buildPlan(Object.assign({}, accepted, { daysPerWeek: 4 }), TODAY).training;
+  assert.ok(four.sessionLimit.trimmed.length > 0, 'con la aceptación invalidada se recorta de nuevo');
+  assert.ok(four.sessions.every(s => s.totalSets <= four.sessionLimit.cap || four.sessionLimit.overCap.some(o => o.session === s.name)));
+  // Aceptar de nuevo con la firma nueva la vuelve válida.
+  const again = Object.assign({}, accepted, { daysPerWeek: 4, longSessionAcceptance: { on: '2026-10-25', signature: four.sessionLimit.proposed.signature, maxSets: four.sessionLimit.proposed.maxSets } });
+  const sl4 = E.buildPlan(again, TODAY).training.sessionLimit;
+  assert.equal(sl4.accepted, '2026-10-25');
+  assert.deepEqual(sl4.trimmed, []);
+  assert.equal(sl4.acceptanceInvalidated, null);
+});
+
+test('DEC-016 (2): la aceptación se invalida si alguna sesión supera el máximo aceptado', () => {
+  const sl0 = E.buildPlan(g3, TODAY).training.sessionLimit;
+  // Misma firma, pero el usuario aceptó hasta 30 series y el plan sin recortar llega a 35.
+  const tight = Object.assign({}, g3, { longSessionAcceptance: { on: '2026-10-20', signature: sl0.proposed.signature, maxSets: 30 } });
+  const plan = E.buildPlan(tight, TODAY);
+  const sl = plan.training.sessionLimit;
+  assert.equal(sl.accepted, null);
+  assert.equal(sl.acceptanceInvalidated.reason, 'maximo');
+  assert.deepEqual(sl.acceptanceInvalidated.previous, { signature: sl0.proposed.signature, maxSets: 30 });
+  assert.ok(sl.trimmed.length > 0);
+  assert.match(plan.warnings.find(x => /ya no aplica/.test(x.text)).text, /llegaría a 35 series y aceptaste hasta 30/);
+  // En el límite exacto sigue válida (35 aceptado, 35 generado).
+  const exact = Object.assign({}, g3, { longSessionAcceptance: { on: '2026-10-20', signature: sl0.proposed.signature, maxSets: 35 } });
+  assert.equal(E.buildPlan(exact, TODAY).training.sessionLimit.accepted, '2026-10-20');
+});
+
+test('DEC-016 (2): migra longSessionAcceptedOn: firma y máximo salen del plan vigente al migrar', () => {
+  const legacy = E.normalizeProfile(Object.assign({}, g3, { longSessionAcceptedOn: '2026-10-20' }));
+  // Antes de migrar, el formato viejo sigue funcionando (sin recortes) y se toma contra el plan vigente.
+  assert.equal(E.buildPlan(legacy, TODAY).training.sessionLimit.accepted, '2026-10-20');
+  const migrated = E.migrateLongSessionAcceptance(legacy, TODAY);
+  assert.equal(migrated.longSessionAcceptedOn, '');
+  assert.deepEqual(migrated.longSessionAcceptance, { on: '2026-10-20', signature: 'dias=3;division=general_m;objetivo=cut;rezagados=;nivel=intermediate', maxSets: 35 });
+  assert.equal(E.buildPlan(migrated, TODAY).training.sessionLimit.accepted, '2026-10-20', 'migrar no cambia el plan');
+  assert.equal(legacy.longSessionAcceptedOn, '2026-10-20', 'no muta el argumento');
+  // Idempotente, y sin nada que migrar devuelve lo mismo.
+  assert.equal(E.migrateLongSessionAcceptance(migrated, TODAY), migrated);
+  const none = E.normalizeProfile(g3);
+  assert.equal(E.migrateLongSessionAcceptance(none, TODAY), none);
+  // Ya migrada, un cambio de plan la invalida (antes de migrar el formato viejo se adaptaba a cualquier plan).
+  assert.equal(E.buildPlan(Object.assign({}, migrated, { daysPerWeek: 5 }), TODAY).training.sessionLimit.accepted, null);
+  // Una fecha ilegible no se migra.
+  assert.equal(E.migrateLongSessionAcceptance({ longSessionAcceptedOn: 'mañana' }, TODAY).longSessionAcceptance, undefined);
+  // El import migra también.
+  const imp = E.prepareImportedProfile({ data: Object.assign({}, g3, { longSessionAcceptedOn: '2026-10-20' }) }, TODAY);
+  assert.equal(imp.data.longSessionAcceptance.maxSets, 35);
+  assert.equal(imp.data.longSessionAcceptedOn, '');
+});
+
+test('DEC-016 (2): normalizeProfile valida la aceptación acotada', () => {
+  const ok = { on: '2026-10-20', signature: 'dias=3', maxSets: 35 };
+  assert.deepEqual(E.normalizeProfile({ longSessionAcceptance: ok }).longSessionAcceptance, ok);
+  [null, 'x', {}, { on: 'mañana', signature: 's', maxSets: 3 }, { on: '2026-10-20', signature: '', maxSets: 3 }, { on: '2026-10-20', signature: 's', maxSets: 0 }, { on: '2026-10-20', signature: 's', maxSets: 'a' }]
+    .forEach(bad => assert.equal(E.normalizeProfile({ longSessionAcceptance: bad }).longSessionAcceptance, null));
+});
+
+test('DEC-016: cada regla de VALIDATOR_RULES lleva un estado, y R3 y la frecuencia mínima de R2 están pendientes', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const R = K.VALIDATOR_RULES;
+  const PENDIENTES = ['historyWindowWeeks', 'maxAcuteChronicRatio', 'maxWeeklyVolumeIncreasePct', 'minHistoryWeeksForRamp', 'minWeeklyFrequencyMajorGroups'];
+  Object.entries(R).forEach(([key, r]) => assert.ok(['implementada', 'pendiente'].includes(r.status), `${key}: estado`));
+  assert.deepEqual(Object.keys(R).filter(k => R[k].status === 'pendiente').sort(), PENDIENTES);
+  // El estado coincide con el uso real: una regla implementada la lee el motor; una pendiente no la lee nadie.
+  const src = ['engine.js', 'knowledge.js'].map(f => fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8')).join('\n');
+  Object.keys(R).forEach(key => {
+    const uses = (src.match(new RegExp('VALIDATOR_RULES\\.' + key + '\\b', 'g')) || []).length;
+    if (R[key].status === 'implementada') assert.ok(uses > 0, `${key}: marcada implementada pero ningún código la lee`);
+    else assert.equal(uses, 0, `${key}: marcada pendiente pero el código ya la lee: cambiar a implementada`);
+  });
 });
