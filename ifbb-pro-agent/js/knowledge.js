@@ -501,8 +501,8 @@
   /* DEC-010 · Reglas del validador, centralizadas: valor, nivel de evidencia,
    * fuente y fecha de revisión. `verifiedAgainstPrimarySource: false` en todas
    * (el spec exige verificar cada valor contra el texto completo de su fuente
-   * primaria antes de fijarlo; solo se consultaron resúmenes). Excepción: minWeeklySetsPerMuscle, verificada
-   * contra la infografía oficial del ACSM (DEC-016). `status` dice si el motor usa la regla ('implementada')
+   * primaria antes de fijarlo; solo se consultaron resúmenes). Nota: minWeeklySetsPerMuscle se contrastó con la
+   * infografía oficial del ACSM (DEC-016) pero sigue en false hasta leer el artículo completo (MSSE 2026). `status` dice si el motor usa la regla ('implementada')
    * o está solo configurada ('pendiente'). */
   const REVIEWED = '2026-10-23';
   // `status`: 'implementada' si el motor ya usa la regla; 'pendiente' si está configurada pero
@@ -517,10 +517,10 @@
     secondaryMuscleWeight: rule(0.5, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { convention: true, note: 'Serie indirecta = 0,5: convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística. Un análisis exploratorio de Remmert et al. (preprint) sugiere ~0,32.' }),
     noRelationWeight: rule(0, 'E4', null, { note: 'Relación ninguna = 0. Una relación a_verificar también cuenta 0 hasta verificarla.' }),
     // R2 · piso semanal y frecuencia
-    minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza: infografía oficial del ACSM (~10 series por grupo muscular a la semana para hipertrofia)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }, {
-      verifiedAgainstPrimarySource: true, verifiedAgainst: 'Infografía oficial del ACSM (verificado por Emanuel Miranda)', reviewedAt: '2026-10-25',
+    minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza: infografía oficial del ACSM (~10 series por grupo muscular a la semana para hipertrofia)', url: 'https://acsm.org/wp-content/uploads/2026/03/Resistance-Training-Position-Stand-infographic.pdf' }, {
+      verifiedAgainstPrimarySource: false, verifiedAgainst: 'verificado contra material oficial del ACSM (infografía)', reviewedAt: '2026-10-25',
       usage: 'Piso protector, por decisión de modelado: el ACSM da ~10 series por grupo a la semana como objetivo de hipertrofia; la app lo usa como piso que el tope E4 no puede romper en los grupos mayores y como umbral del aviso de grupos bajo el mínimo (grupos mayores y chicos). No es un mínimo normativo.',
-      note: 'Objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana) usado como piso protector. Se fuerza solo en los grupos mayores (pecho, espalda, hombros, cuádriceps, isquios, glúteos); el aviso cubre a todos.' }),
+      note: 'Objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana) usado como piso protector. Se fuerza solo en los grupos mayores (pecho, espalda, hombros, cuádriceps, isquios, glúteos); el aviso cubre a todos. Verificado contra la infografía oficial; falta leer el artículo completo de la postura en MSSE 2026 para marcar la fuente primaria como verificada.' }),
     minWeeklyFrequencyMajorGroups: rule(2, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }, { status: PENDIENTE, note: 'Configurada pero ninguna lógica la lee todavía (R2, frecuencia).' }),
     // R3 · rampa de progresión
     maxWeeklyVolumeIncreasePct: rule(20, 'E4', { label: 'FAPESP: la progresión óptima de volumen no está definida', url: 'https://bv.fapesp.br/en/bolsas/223465/URL' }, { status: PENDIENTE }),

@@ -524,10 +524,12 @@ test('DEC-010: reglas centralizadas con valor, nivel, fuente y fecha de revisió
     assert.ok(['E1', 'E2', 'E3', 'E4'].includes(r.level), `${key}: nivel inválido`);
     assert.ok(r.source === null || (r.source.label && r.source.url), `${key}: fuente mal formada`);
     assert.match(r.reviewedAt, /^\d{4}-\d{2}-\d{2}$/, `${key}: fecha de revisión`);
-    // DEC-016: la única regla verificada contra su fuente es el piso semanal (infografía oficial del ACSM).
-    assert.equal(r.verifiedAgainstPrimarySource, key === 'minWeeklySetsPerMuscle', `${key}: verificación contra la fuente primaria`);
+    // DEC-016: ninguna regla está verificada contra su fuente primaria; el piso semanal se contrastó con la infografía oficial del ACSM, pero falta el artículo completo (MSSE 2026).
+    assert.equal(r.verifiedAgainstPrimarySource, false, `${key}: nada está verificado contra la fuente primaria todavía`);
   });
-  assert.match(R.minWeeklySetsPerMuscle.verifiedAgainst, /infografía oficial del ACSM/i);
+  assert.equal(R.minWeeklySetsPerMuscle.verifiedAgainst, 'verificado contra material oficial del ACSM (infografía)');
+  assert.equal(R.minWeeklySetsPerMuscle.source.url, 'https://acsm.org/wp-content/uploads/2026/03/Resistance-Training-Position-Stand-infographic.pdf');
+  assert.match(R.minWeeklySetsPerMuscle.note, /MSSE 2026/);
   assert.match(R.minWeeklySetsPerMuscle.usage, /piso protector/i);
   assert.match(R.minWeeklySetsPerMuscle.note, /objetivo de hipertrofia del ACSM 2026/i);
   assert.equal(R.sessionSetCap.value, 25);
