@@ -43,6 +43,8 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 - **Regla:** al menos 10 series por músculo por semana para hipertrofia, y todos los grupos mayores entrenados 2 o más días por semana. Por defecto, 2–3 series por ejercicio; se permiten más si se respeta R1.
 - **Acción:** si un músculo queda por debajo de 10, advertir o completar.
 - **Base:** postura oficial del ACSM de 2026. Con igual volumen, la frecuencia no cambia los resultados, así que el generador puede repartir el volumen libremente.
+- **Cómo se usa el piso (DEC-016):** es el objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana), usado como **piso protector** por decisión de modelado, verificado contra la infografía oficial del ACSM. Se **fuerza solo en los grupos mayores** (el tope E4 no puede bajarlos de ahí). Un aviso visible lista cualquier grupo, mayor o chico, por debajo de 10 series fraccionadas semanales, con la opción de aceptar sesiones más largas (si el tope le quitó series) o cambiar de split.
+- **Estado:** el piso semanal está implementado. La **frecuencia mínima** de los grupos mayores (2 días por semana) está configurada pero **pendiente**: ninguna lógica la lee todavía.
 
 ### R3 · Rampa de progresión (E4)
 
@@ -50,6 +52,7 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 - **Acción:** si el usuario cambia prioridades (por ejemplo, marca un músculo como rezagado), el aumento se reparte en varias semanas. El usuario puede aceptar el salto completo de forma explícita.
 - **Usuario nuevo sin historial:** arranca en el piso de R2 y sube con la rampa.
 - **Base:** heurística. El óptimo de progresión de volumen no está definido, y el ratio agudo/crónico viene de deportes de equipo y tiene críticas metodológicas.
+- **Estado:** **pendiente**. Los valores están configurados pero ninguna lógica los lee: falta el historial semanal de volumen por músculo.
 
 ### R4 · Duración derivada (cálculo + E1)
 
@@ -61,7 +64,7 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 
 - **Regla:** como máximo **25 series por sesión**. Es una convención de la app (heredada de DEC-003 v2) sin fuente externa: ningún framework define un máximo de series ni de minutos por sesión, y R4 sigue sin fijar un tope de minutos. Nivel E4.
 - **Acción:** el generador recorta al generar, antes del top set y de la duración. Solo recorta aislamientos, primero los de grupos chicos (abdomen, pantorrillas, bíceps, tríceps), y no toca multiarticulares. No baja un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) por debajo del piso semanal de R2 (E1), ni en series fraccionadas ni en series reales: R2 prevalece sobre E4. Si no se puede llegar al tope sin romper eso, la sesión queda por encima y un aviso lo explica.
-- **Aceptación del usuario:** puede aceptar de forma explícita una sesión más larga; no se recorta nada y la aceptación queda guardada con fecha (`longSessionAcceptedOn`).
+- **Aceptación del usuario (DEC-016):** puede aceptar de forma explícita una sesión más larga; no se recorta nada. La aceptación queda guardada con fecha, ligada a la **firma del plan** (días, división, objetivo, rezagados y nivel) y a un **máximo de series** (`longSessionAcceptance`). Se invalida si cambia la firma o si alguna sesión supera el máximo aceptado, y entonces se vuelve a pedir. No vence por fecha.
 - **Costo conocido:** con el tope y el piso de los grupos mayores, los grupos chicos pueden quedar con pocas series o sin series directas en los splits de 3 y 4 días. El plan lo avisa y ofrece aceptar una sesión más larga.
 - **Duración:** sigue siendo derivada (R4). 25 series no equivalen a un tiempo fijo: en el modelo actual las sesiones de 25 series duran entre ~55 y ~98 min según los ejercicios (los unilaterales cuentan doble).
 
@@ -76,7 +79,7 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 
 El validador depende de que el catálogo cuente bien los músculos. Hoy hay al menos una etiqueta mal asignada.
 
-- **Mapa ejercicio → músculos (v2, DEC-013):** una fila por par ejercicio-músculo con `relacion` (directa, indirecta o ninguna), `evidencia` (verificado, verificado (1 estudio), probable, a_verificar) y `fuente`, en `data/exercise-muscles.csv`. El bucket (dónde se programa el ejercicio) es un campo único por ejercicio en `data/exercise-buckets.csv`. Los pesos de conteo no viven en los datos: son una convención global por categoría (directa 1, indirecta 0.5, ninguna 0) y la evidencia solo mueve una relación entre categorías, nunca ajusta un peso por ejercicio. El paseo del granjero no tiene filas (no suma volumen de hipertrofia).
+- **Mapa ejercicio → músculos (v2, DEC-013):** una fila por par ejercicio-músculo con `relacion` (directa, indirecta o ninguna), `evidencia` (verificado, verificado (1 estudio), probable, a_verificar) y `fuente`, en `data/exercise-muscles.csv`. El bucket (dónde se programa el ejercicio) es un campo único por ejercicio en `data/exercise-buckets.csv`. Los pesos de conteo no viven en los datos: son una convención global por categoría (directa 1, indirecta 0.5, ninguna 0) y la evidencia solo mueve una relación entre categorías, nunca ajusta un peso por ejercicio. Una relación `a_verificar` cuenta 0, **salvo el músculo del bucket del ejercicio, que cuenta siempre como directo (1)** (DEC-016). El paseo del granjero no tiene filas (no suma volumen de hipertrofia).
 - **Historial de volumen:** series semanales por músculo de al menos las últimas 4 semanas, para R3.
 - **Tiempo disponible:** dato opcional del usuario, para R4.
 - **Tamizaje y aceptaciones:** respuestas del PAR-Q+ y cada aceptación explícita (salto de volumen, rutina larga, autorización profesional), guardadas con fecha.

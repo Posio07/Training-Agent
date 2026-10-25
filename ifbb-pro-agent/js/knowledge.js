@@ -501,9 +501,14 @@
   /* DEC-010 · Reglas del validador, centralizadas: valor, nivel de evidencia,
    * fuente y fecha de revisión. `verifiedAgainstPrimarySource: false` en todas
    * (el spec exige verificar cada valor contra el texto completo de su fuente
-   * primaria antes de fijarlo; solo se consultaron resúmenes). */
+   * primaria antes de fijarlo; solo se consultaron resúmenes). Excepción: minWeeklySetsPerMuscle, verificada
+   * contra la infografía oficial del ACSM (DEC-016). `status` dice si el motor usa la regla ('implementada')
+   * o está solo configurada ('pendiente'). */
   const REVIEWED = '2026-10-23';
-  const rule = (value, level, source, extra) => Object.assign({ value, level, source, reviewedAt: REVIEWED, verifiedAgainstPrimarySource: false }, extra);
+  // `status`: 'implementada' si el motor ya usa la regla; 'pendiente' si está configurada pero
+  // ninguna lógica la lee todavía. Un test comprueba que el estado coincide con el uso real.
+  const IMPLEMENTADA = 'implementada', PENDIENTE = 'pendiente';
+  const rule = (value, level, source, extra) => Object.assign({ value, level, source, status: IMPLEMENTADA, reviewedAt: REVIEWED, verifiedAgainstPrimarySource: false }, extra);
   const VALIDATOR_RULES = {
     // R1 · aviso de rendimiento decreciente por músculo por sesión (NO es un tope)
     maxFractionalSetsPerMuscleSession: rule(11, 'E3', { label: 'Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv)', url: 'https://sportrxiv.org/index.php/server/preprint/view/537' }, { kind: 'warning', note: 'Punto sin mejora detectable (PUOS), fijado de forma arbitraria por los autores; no es un límite superior. Mismo conteo fraccionado que Pelland et al. 2026.' }),
@@ -512,13 +517,16 @@
     secondaryMuscleWeight: rule(0.5, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { convention: true, note: 'Serie indirecta = 0,5: convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística. Un análisis exploratorio de Remmert et al. (preprint) sugiere ~0,32.' }),
     noRelationWeight: rule(0, 'E4', null, { note: 'Relación ninguna = 0. Una relación a_verificar también cuenta 0 hasta verificarla.' }),
     // R2 · piso semanal y frecuencia
-    minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }),
-    minWeeklyFrequencyMajorGroups: rule(2, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }),
+    minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza: infografía oficial del ACSM (~10 series por grupo muscular a la semana para hipertrofia)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }, {
+      verifiedAgainstPrimarySource: true, verifiedAgainst: 'Infografía oficial del ACSM (verificado por Emanuel Miranda)', reviewedAt: '2026-10-25',
+      usage: 'Piso protector, por decisión de modelado: el ACSM da ~10 series por grupo a la semana como objetivo de hipertrofia; la app lo usa como piso que el tope E4 no puede romper en los grupos mayores y como umbral del aviso de grupos bajo el mínimo (grupos mayores y chicos). No es un mínimo normativo.',
+      note: 'Objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana) usado como piso protector. Se fuerza solo en los grupos mayores (pecho, espalda, hombros, cuádriceps, isquios, glúteos); el aviso cubre a todos.' }),
+    minWeeklyFrequencyMajorGroups: rule(2, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }, { status: PENDIENTE, note: 'Configurada pero ninguna lógica la lee todavía (R2, frecuencia).' }),
     // R3 · rampa de progresión
-    maxWeeklyVolumeIncreasePct: rule(20, 'E4', { label: 'FAPESP: la progresión óptima de volumen no está definida', url: 'https://bv.fapesp.br/en/bolsas/223465/URL' }),
-    maxAcuteChronicRatio: rule(1.3, 'E4', { label: 'Gabbett, ratio de carga aguda/crónica', url: 'https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management' }),
-    historyWindowWeeks: rule(4, 'E4', null),
-    minHistoryWeeksForRamp: rule(2, 'E4', null, { note: 'Con menos de 2 semanas de historial es usuario nuevo; con 2 o 3 se compara contra el promedio de las semanas disponibles.' }),
+    maxWeeklyVolumeIncreasePct: rule(20, 'E4', { label: 'FAPESP: la progresión óptima de volumen no está definida', url: 'https://bv.fapesp.br/en/bolsas/223465/URL' }, { status: PENDIENTE }),
+    maxAcuteChronicRatio: rule(1.3, 'E4', { label: 'Gabbett, ratio de carga aguda/crónica', url: 'https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management' }, { status: PENDIENTE }),
+    historyWindowWeeks: rule(4, 'E4', null, { status: PENDIENTE }),
+    minHistoryWeeksForRamp: rule(2, 'E4', null, { status: PENDIENTE, note: 'Con menos de 2 semanas de historial es usuario nuevo; con 2 o 3 se compara contra el promedio de las semanas disponibles.' }),
     // R4 · duración derivada
     setExecutionSeconds: rule(45, 'E4', null, { assumption: true, note: 'Valor inicial fijo (transición + ejecución por serie), supuesto: se calibrará con los tiempos reales del modo sesión.' }),
     // DEC-009 / DEC-011 · dolor en Modo sesión (escala 0-10)
@@ -536,6 +544,11 @@
 
   // DEC-014 · peso de UNA serie de cada ejercicio en el conteo fraccionado, por músculo.
   // La categoría de la relación fija el peso; a_verificar cuenta como ninguna.
+  // DEC-016: EXCEPCIÓN para el músculo del bucket. El bucket es el músculo para el que se programa el
+  // ejercicio, así que cuenta SIEMPRE como directo (peso 1), sea cual sea su evidencia: el 0 por
+  // a_verificar aplica solo a las demás relaciones. La evidencia de la fila no cambia (sigue
+  // a_verificar); solo cambia que no se descuenta la serie del músculo para el que se programó.
+  // Los ejercicios sin aporte (NO_MUSCLE_CONTRIBUTION, el paseo del granjero) quedan en 0.
   const MAJOR_GROUPS = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes'];
   Object.keys(EXERCISE_CONTRIBUTION).forEach(id => {
     const c = EXERCISE_CONTRIBUTION[id];
@@ -547,6 +560,7 @@
         : VALIDATOR_RULES.noRelationWeight.value;
       if (w > 0) c.setWeights[m] = w;
     });
+    if (c.bucket && !NO_MUSCLE_CONTRIBUTION.includes(id)) c.setWeights[c.bucket] = VALIDATOR_RULES.directSetWeight.value;
   });
 
   return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, MAJOR_GROUPS, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };

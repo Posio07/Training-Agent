@@ -310,7 +310,7 @@ Contexto: `docs/specs/validador.md` (R1, R2, R4) y DEC-013 (datos v2). Esta fase
 - Una serie suma a cada músculo según la categoría de su relación: **directa = 1, indirecta = 0,5, ninguna = 0, `a_verificar` = 0**. Los pesos son una convención global en `VALIDATOR_RULES` (`directSetWeight`, `secondaryMuscleWeight`, `noRelationWeight`), nunca un valor por ejercicio; un test comprueba que solo existen los pesos 1 y 0,5.
 - El 0,5 está etiquetado como **convención del modelo de mejor ajuste** (Pelland lo declara como supuesto y heurística). La nota de la regla menciona que un análisis exploratorio de Remmert et al. sugiere ~0,32.
 - El plan expone `setWeights` por ejercicio y `fractionalSets` por sesión. `muscle` y `secondary` salen ahora de los datos v2 (primario = el bucket si es directa en él, si no la primera directa; secundarios = el resto de las relaciones que no son ninguna). Se retiró la vista v1 transitoria de DEC-013.
-- Consecuencia que conviene tener presente: como `a_verificar` cuenta 0, ejercicios como el press inclinado con mancuernas no suman nada al pectoral en el conteo (aunque sus series existen y se programan). Cuanto más se verifiquen las filas, más exacto el conteo.
+- Consecuencia que conviene tener presente: como `a_verificar` cuenta 0, ejercicios como el press inclinado con mancuernas no suman nada al pectoral en el conteo (aunque sus series existen y se programan). **Corregido en DEC-016:** el músculo del bucket cuenta siempre como directo. Cuanto más se verifiquen las filas, más exacto el conteo.
 
 ### R1 · aviso de rendimiento decreciente (E3), no un tope
 - **Método confirmado antes de activarlo** (`docs/research/fraccionado-pelland-remmert.md`, texto completo de Remmert et al., sección 2.5): usa el mismo criterio directa/indirecta que Pelland, y su "fraccionado" es directa 1 + indirecta 0,5 por músculo medido. Es comparable con el 0,5, así que se activó.
@@ -320,7 +320,7 @@ Contexto: `docs/specs/validador.md` (R1, R2, R4) y DEC-013 (datos v2). Esta fase
 - **Valor aprobado:** 25 series por sesión, nivel **E4, convención de la app**, sin fuente externa. `validador.md` no tenía un valor y no se encontró ninguna fuente que defina un máximo de series ni de minutos por sesión; el valor es el `sessionSetCap` de DEC-003 v2, que deja de ser un aviso sin recorte. R4 sigue sin fijar un tope de minutos: la duración es derivada.
 - **Cuándo y cómo recorta:** al generar el plan (antes del top set y de la duración), solo **aislamientos**, primero los de grupos chicos (abdomen, pantorrillas, bíceps, tríceps), y siempre sobre la sesión más pasada del tope. **Nunca recorta multiarticulares.**
 - **R2 prevalece sobre E4:** un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) no baja del piso semanal de 10 series, ni en fraccionadas ni en series reales (si ya estaba por debajo, no baja más). Si el tope no se alcanza sin romper eso, la sesión queda por encima y un aviso lo dice.
-- **Aceptación explícita:** `profile.longSessionAcceptedOn` (fecha `AAAA-MM-DD`). Con ella no se recorta nada y el plan lo registra. En la interfaz, un botón "Aceptar sesiones más largas (sin recortes)" guarda la fecha y otro la revierte.
+- **Aceptación explícita:** `profile.longSessionAcceptedOn` (fecha `AAAA-MM-DD`). **Reemplazada en DEC-016** por una aceptación acotada a la firma del plan y a un máximo de series. Con ella no se recorta nada y el plan lo registra. En la interfaz, un botón "Aceptar sesiones más largas (sin recortes)" guarda la fecha y otro la revierte.
 - **Transparencia:** cada sesión recortada genera un aviso E4 con las series quitadas por ejercicio y la etiqueta "E4 · heurística"; el volumen semanal mostrado (`weeklySets`) pasa a ser el real de las sesiones. Si un grupo queda sin series directas en la semana, un aviso adicional lo nombra.
 - `plan.training.sessionLimit` = `{ cap, level, basis, accepted, trimmed, overCap }`.
 
@@ -392,3 +392,74 @@ Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. P
 - `sw.js`: caché v8.
 
 **Estado: Pasos 1, 2 y 3 implementados.**
+
+## DEC-016 · Tres correcciones del validador: bucket directo, aceptación del tope acotada y aviso de grupos bajo el mínimo
+Contexto: revisión de DEC-014 contra lo acordado. Tres desvíos o huecos, corregidos juntos porque se miden sobre los mismos perfiles de referencia. Estado de las reglas de `VALIDATOR_RULES` incluido.
+
+### 1. El músculo del bucket cuenta siempre como directo
+- **Bug:** el 0 por evidencia `a_verificar` (DEC-014) se aplicaba a **todas** las relaciones, incluida la del músculo para el que se programa el ejercicio. El press inclinado con mancuernas, programado en pecho, no sumaba nada al pecho.
+- **Regla:** el músculo del **bucket** de cada ejercicio cuenta **siempre como directo (peso 1)**, sea cual sea su evidencia. El 0 por `a_verificar` aplica **solo a las demás relaciones**. Excepción: los ejercicios sin aporte de hipertrofia (`NO_MUSCLE_CONTRIBUTION`, el paseo del granjero) siguen en 0.
+- **La evidencia de la fila no cambia:** sigue siendo `a_verificar` en el CSV y en el plan; solo deja de descontarse la serie del músculo para el que se programó. Es una convención de conteo, no una verificación.
+- **Alcance real:** 7 ejercicios tenían el bucket `a_verificar` y son los únicos que cambian: press inclinado, fondos o press en máquina, pullover en polea, face pull, press landmine, vacuum y step-up. Las otras 8 relaciones `a_verificar` (fuera del bucket) siguen contando 0. Los datos son coherentes: todo bucket es una fila `directa` en el CSV.
+- **Efecto:** cambia solo el conteo fraccionado y los avisos que dependen de él (R1, grupos bajo el mínimo). **No cambia ninguna serie ni ninguna sesión:** el tope E4 recorta exactamente lo mismo que antes.
+
+### 2. Aceptación del tope E4, acotada
+- **Antes:** `longSessionAcceptedOn` era una fecha única por perfil que apagaba todo recorte, para siempre y para cualquier plan.
+- **Ahora:** `data.longSessionAcceptance = { on, signature, maxSets }`.
+  - **Firma del plan:** `dias=…;division=…;objetivo=…;rezagados=…(ordenados);nivel=…`.
+  - **Máximo aceptado:** la sesión más larga del plan **sin recortar** en el momento de aceptar (es lo que el usuario vio).
+- **Se invalida** si cambia cualquier parte de la firma, o si alguna sesión generada supera `maxSets`. En ese caso el tope E4 vuelve a recortar, el plan avisa por qué ya no aplica (qué parte de la firma cambió, o cuántas series llegaría a tener contra las aceptadas) y la pestaña Entreno vuelve a ofrecer aceptar. Con el máximo exacto sigue válida.
+- **No vence por fecha.** Las fechas de aceptación siguen guardándose (`on`), como pide el spec.
+- **Lo que no invalida:** cambios fuera de la firma (peso, edad, medidas, etc.) mientras ninguna sesión pase del máximo.
+- **Editar el perfil conserva la aceptación** (antes el formulario la borraba sin avisar): decide la firma.
+- **Migración de `longSessionAcceptedOn`:** al arrancar la app, cada perfil con la fecha vieja y sin aceptación nueva se migra **una vez**, tomando la firma y el máximo **del plan vigente al migrar** (que con la aceptación vieja sale sin recortes). Queda `longSessionAcceptedOn: ''`. Antes de migrar, el motor interpreta el formato viejo contra el plan vigente (mismo resultado). El import de un archivo con el formato viejo también migra. Migrar no cambia el plan que ve el usuario.
+- **`sessionLimit` suma:** `proposed { signature, maxSets }` (lo que se guardaría al aceptar), `acceptance`, `acceptanceInvalidated { reason: 'firma'|'maximo', on, previous }` y `belowMinimum`.
+
+### 3. Aviso de grupos bajo el mínimo
+- **El piso de 10 series semanales se sigue forzando solo en los grupos mayores** (pecho, espalda, hombros, cuádriceps, isquios, glúteos), sin cambios en `enforceSessionCap`.
+- **Aviso nuevo (`rule: 'R2'`, `evidence: 'E1'`, `kind: 'bajo_minimo'`):** uno por plan, visible en el Resumen y en la pestaña Entreno, que lista **cualquier grupo, mayor o chico,** por debajo de 10 series **fraccionadas** semanales. Si el tope E4 le quitó series a un grupo, lo dice ("el tope E4 quitó 5").
+- **Opciones:** "cambiar de split" (siempre) y "aceptar sesiones más largas" **solo si algún grupo bajo el mínimo perdió series por el tope y no hay aceptación vigente**. Decisión de modelado: si el déficit no viene del tope, aceptar no lo arregla y el botón sería engañoso.
+- **Configuración del piso:** `minWeeklySetsPerMuscle` queda documentado como **objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana), usado como piso protector por decisión de modelado** (no es un mínimo normativo), y marcado `verifiedAgainstPrimarySource: true`, verificado por Emanuel Miranda contra la infografía oficial del ACSM. Es la única regla verificada; el resto sigue en `false`. La URL guardada sigue siendo la del resumen secundario: falta añadir la de la infografía.
+
+### Estado de cada regla en `VALIDATOR_RULES`
+Cada regla lleva `status: 'implementada' | 'pendiente'`. **Pendientes** (configuradas, ningún código las lee): `minWeeklyFrequencyMajorGroups` (R2, frecuencia) y las cuatro de R3 (`maxWeeklyVolumeIncreasePct`, `maxAcuteChronicRatio`, `historyWindowWeeks`, `minHistoryWeeksForRamp`), que además necesitan el historial semanal de volumen por músculo, hoy sin agregar. Un test comprueba que el estado coincide con el uso real: una regla `implementada` tiene que leerla el motor, y una `pendiente` no puede leerla (al implementarla hay que cambiar el estado).
+
+### Resultado en los 10 perfiles de referencia de DEC-014 (sin aceptación)
+Pecho y espalda: series fraccionadas semanales, antes → después. "Sesiones" = series por sesión (idénticas antes y después). "Bajo 10" = grupos bajo 10 series fraccionadas después de DEC-016.
+
+| Perfil | Sesiones | Sobre 25 | Pecho | Espalda | Bajo 10 |
+| --- | --- | --- | --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 | — | 6 → 12 | 12 → 15 | calves 7, abs 7 |
+| novice_bulk_physique_4d | 25/9/24/6 | — | 5 → 10 | 10 → 13 | quads 7, hamstrings 5, glutes 7.5, calves 4, biceps 9, abs 0 |
+| wellness_maintain_5d | 21/25/15/15/25 | — | 4 → 7 | 11 → 14 | chest 7, calves 8, biceps 9.5, triceps 8.5, abs 8 |
+| general_cut_3d | 25/24/26 | 26 | 4 → 12 | 12 → 12 | calves 2, biceps 8, abs 0 |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25 | 26 | 9 → 18 | 18 → 23 | calves 9 |
+| bikini_cut_lagging_4d | 25/19/25/17 | — | 3 → 6 | 9 → 12 | chest 6, calves 5, biceps 8.5, triceps 9, abs 4 |
+| emanuel_legs_cut_4d | 24/24/24/21 | — | 6 → 12 | 9 → 12 | calves 2, biceps 8.5, abs 0 |
+| figure_maintain_novice_3d | 24/25/25 | — | 3 → 9 | 12 → 12 | chest 9, calves 2, biceps 8, abs 0 |
+| physique_cut_adv_lag_5d | 25/12/24/25/12 | — | 7 → 15 | 15 → 19 | hamstrings 8, calves 7, abs 6 |
+| physique_w_bulk_6d | 20/22/23/20/20/23 | — | 7 → 14 | 14 → 18 | calves 8, abs 8 |
+
+Splits genéricos de 3 a 5 días (hombre de 30 años, intermedio, división general):
+
+| Split | Sesiones | Sobre 25 | Pecho | Espalda | Bajo 10 |
+| --- | --- | --- | --- | --- | --- |
+| 3d · cut | 25/24/26 | 26 | 4 → 12 | 12 → 12 | calves 2, biceps 8, abs 0 |
+| 3d · bulk | 29/24/25 | 29 | 9 → 14 | 12 → 14 | calves 0, biceps 6, abs 0 |
+| 4d · cut | 24/18/24/18 | — | 6 → 12 | 9 → 12 | calves 2, biceps 8.5, abs 0 |
+| 4d · bulk | 25/21/25/21 | — | 7 → 14 | 11 → 14 | calves 0, biceps 7.5, abs 0 |
+| 5d · cut | 23/18/21/20/18 | — | 6 → 12 | 9 → 12 | calves 7, abs 7 |
+| 5d · bulk | 25/21/24/23/21 | — | 7 → 14 | 11 → 14 | calves 8, abs 8 |
+
+Lectura: el pecho sube en todos los casos y la espalda nunca baja. Quedan bajo 10 los grupos chicos (en 3 y 4 días el tope los recorta sin piso; en 5 y 6 días ya salen cortos de la programación) y, en cinco perfiles, un grupo mayor por la programación misma de la división (pecho en `wellness_maintain_5d`, `bikini_cut_lagging_4d` y `figure_maintain_novice_3d`; cuádriceps, isquios y glúteos en `novice_bulk_physique_4d`; isquios en `physique_cut_adv_lag_5d`): eso no lo causa el tope y el aviso nuevo lo hace visible.
+
+### Pruebas
+- `engine.test.js`: bucket directo en todos los ejercicios del catálogo, con el paseo del granjero en 0 y las 8 relaciones `a_verificar` fuera del bucket en 0; **el pecho contando el press inclinado** en planes reales; pecho y espalda de los splits de 3, 4 y 5 días; **perfiles de referencia antes y después** (`tests/fixtures/dec016-referencia.json`); aviso de grupos bajo el mínimo (con y sin aceptación); aceptación válida, **invalidada por cambio de plan** (días, división, objetivo, rezagados y nivel, cada uno por separado), invalidada por superar el máximo, límite exacto, aceptar de nuevo; migración (idempotente, sin mutar, import); validación del campo; estado de cada regla contra el uso real en el código.
+- `tests/e2e-aceptacion.js` (navegador): migración al arrancar, aceptación vigente, edición de perfil que cambia los días, aviso y nuevo botón de aceptar, aceptar de nuevo con la firma de 4 días, revertir.
+- Pruebas de mutación: quitar la regla del bucket falla 8 tests; ignorar la firma, 2; ignorar el máximo, 1; quitar el aviso, 3; marcar implementada una regla pendiente, 1.
+- Las huellas de los 30 planes (`plan-hashes.json`) se regeneraron porque la salida cambió a propósito; `sw.js` pasa a la caché v9.
+
+### Fuera de alcance
+Implementar R3 y la frecuencia mínima de R2 (siguen pendientes), verificar las filas `a_verificar` restantes, y forzar el piso en los grupos chicos.
+
+**Estado: implementada.**

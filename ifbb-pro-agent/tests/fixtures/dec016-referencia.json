@@ -1,0 +1,573 @@
+{
+ "nota": "DEC-016 · perfiles de referencia de DEC-014 (plan-identity-baseline.json), sin aceptación. antes = motor de main (c0c1cf7); despues = motor con DEC-016. pecho y espalda: series fraccionadas semanales.",
+ "antes": {
+  "oscar_cut_classic_5d": {
+   "sesiones": [
+    25,
+    20,
+    23,
+    22,
+    19
+   ],
+   "sobreTope": [],
+   "pecho": 6,
+   "espalda": 12,
+   "bajoMinimo": [
+    "chest=6",
+    "calves=7",
+    "abs=7"
+   ]
+  },
+  "novice_bulk_physique_4d": {
+   "sesiones": [
+    25,
+    9,
+    24,
+    6
+   ],
+   "sobreTope": [],
+   "pecho": 5,
+   "espalda": 10,
+   "bajoMinimo": [
+    "chest=5",
+    "quads=7",
+    "hamstrings=5",
+    "glutes=7.5",
+    "calves=4",
+    "biceps=9",
+    "abs=0"
+   ]
+  },
+  "wellness_maintain_5d": {
+   "sesiones": [
+    21,
+    25,
+    15,
+    15,
+    25
+   ],
+   "sobreTope": [],
+   "pecho": 4,
+   "espalda": 11,
+   "bajoMinimo": [
+    "chest=4",
+    "calves=8",
+    "biceps=9.5",
+    "triceps=8.5",
+    "abs=8"
+   ]
+  },
+  "general_cut_3d": {
+   "sesiones": [
+    25,
+    24,
+    26
+   ],
+   "sobreTope": [
+    26
+   ],
+   "pecho": 4,
+   "espalda": 12,
+   "bajoMinimo": [
+    "chest=4",
+    "calves=2",
+    "biceps=8",
+    "abs=0"
+   ]
+  },
+  "bb_bulk_advanced_6d": {
+   "sesiones": [
+    25,
+    25,
+    26,
+    25,
+    25,
+    25
+   ],
+   "sobreTope": [
+    26
+   ],
+   "pecho": 9,
+   "espalda": 18,
+   "bajoMinimo": [
+    "chest=9",
+    "calves=9",
+    "abs=8"
+   ]
+  },
+  "bikini_cut_lagging_4d": {
+   "sesiones": [
+    25,
+    19,
+    25,
+    17
+   ],
+   "sobreTope": [],
+   "pecho": 3,
+   "espalda": 9,
+   "bajoMinimo": [
+    "chest=3",
+    "back=9",
+    "calves=5",
+    "biceps=8.5",
+    "triceps=9",
+    "abs=4"
+   ]
+  },
+  "emanuel_legs_cut_4d": {
+   "sesiones": [
+    24,
+    24,
+    24,
+    21
+   ],
+   "sobreTope": [],
+   "pecho": 6,
+   "espalda": 9,
+   "bajoMinimo": [
+    "chest=6",
+    "back=9",
+    "calves=2",
+    "biceps=8.5",
+    "abs=0"
+   ]
+  },
+  "figure_maintain_novice_3d": {
+   "sesiones": [
+    24,
+    25,
+    25
+   ],
+   "sobreTope": [],
+   "pecho": 3,
+   "espalda": 12,
+   "bajoMinimo": [
+    "chest=3",
+    "calves=2",
+    "biceps=8",
+    "abs=0"
+   ]
+  },
+  "physique_cut_adv_lag_5d": {
+   "sesiones": [
+    25,
+    12,
+    24,
+    25,
+    12
+   ],
+   "sobreTope": [],
+   "pecho": 7,
+   "espalda": 15,
+   "bajoMinimo": [
+    "chest=7",
+    "hamstrings=8",
+    "calves=7",
+    "abs=4"
+   ]
+  },
+  "physique_w_bulk_6d": {
+   "sesiones": [
+    20,
+    22,
+    23,
+    20,
+    20,
+    23
+   ],
+   "sobreTope": [],
+   "pecho": 7,
+   "espalda": 14,
+   "bajoMinimo": [
+    "chest=7",
+    "calves=8",
+    "abs=8"
+   ]
+  }
+ },
+ "despues": {
+  "oscar_cut_classic_5d": {
+   "sesiones": [
+    25,
+    20,
+    23,
+    22,
+    19
+   ],
+   "sobreTope": [],
+   "pecho": 12,
+   "espalda": 15,
+   "bajoMinimo": [
+    "calves=7",
+    "abs=7"
+   ]
+  },
+  "novice_bulk_physique_4d": {
+   "sesiones": [
+    25,
+    9,
+    24,
+    6
+   ],
+   "sobreTope": [],
+   "pecho": 10,
+   "espalda": 13,
+   "bajoMinimo": [
+    "quads=7",
+    "hamstrings=5",
+    "glutes=7.5",
+    "calves=4",
+    "biceps=9",
+    "abs=0"
+   ]
+  },
+  "wellness_maintain_5d": {
+   "sesiones": [
+    21,
+    25,
+    15,
+    15,
+    25
+   ],
+   "sobreTope": [],
+   "pecho": 7,
+   "espalda": 14,
+   "bajoMinimo": [
+    "chest=7",
+    "calves=8",
+    "biceps=9.5",
+    "triceps=8.5",
+    "abs=8"
+   ]
+  },
+  "general_cut_3d": {
+   "sesiones": [
+    25,
+    24,
+    26
+   ],
+   "sobreTope": [
+    26
+   ],
+   "pecho": 12,
+   "espalda": 12,
+   "bajoMinimo": [
+    "calves=2",
+    "biceps=8",
+    "abs=0"
+   ]
+  },
+  "bb_bulk_advanced_6d": {
+   "sesiones": [
+    25,
+    25,
+    26,
+    25,
+    25,
+    25
+   ],
+   "sobreTope": [
+    26
+   ],
+   "pecho": 18,
+   "espalda": 23,
+   "bajoMinimo": [
+    "calves=9"
+   ]
+  },
+  "bikini_cut_lagging_4d": {
+   "sesiones": [
+    25,
+    19,
+    25,
+    17
+   ],
+   "sobreTope": [],
+   "pecho": 6,
+   "espalda": 12,
+   "bajoMinimo": [
+    "chest=6",
+    "calves=5",
+    "biceps=8.5",
+    "triceps=9",
+    "abs=4"
+   ]
+  },
+  "emanuel_legs_cut_4d": {
+   "sesiones": [
+    24,
+    24,
+    24,
+    21
+   ],
+   "sobreTope": [],
+   "pecho": 12,
+   "espalda": 12,
+   "bajoMinimo": [
+    "calves=2",
+    "biceps=8.5",
+    "abs=0"
+   ]
+  },
+  "figure_maintain_novice_3d": {
+   "sesiones": [
+    24,
+    25,
+    25
+   ],
+   "sobreTope": [],
+   "pecho": 9,
+   "espalda": 12,
+   "bajoMinimo": [
+    "chest=9",
+    "calves=2",
+    "biceps=8",
+    "abs=0"
+   ]
+  },
+  "physique_cut_adv_lag_5d": {
+   "sesiones": [
+    25,
+    12,
+    24,
+    25,
+    12
+   ],
+   "sobreTope": [],
+   "pecho": 15,
+   "espalda": 19,
+   "bajoMinimo": [
+    "hamstrings=8",
+    "calves=7",
+    "abs=6"
+   ]
+  },
+  "physique_w_bulk_6d": {
+   "sesiones": [
+    20,
+    22,
+    23,
+    20,
+    20,
+    23
+   ],
+   "sobreTope": [],
+   "pecho": 14,
+   "espalda": 18,
+   "bajoMinimo": [
+    "calves=8",
+    "abs=8"
+   ]
+  }
+ },
+ "generico3a5": {
+  "antes": {
+   "3d cut": {
+    "sesiones": [
+     25,
+     24,
+     26
+    ],
+    "sobreTope": [
+     26
+    ],
+    "pecho": 4,
+    "espalda": 12,
+    "bajoMinimo": [
+     "chest=4",
+     "calves=2",
+     "biceps=8",
+     "abs=0"
+    ]
+   },
+   "3d bulk": {
+    "sesiones": [
+     29,
+     24,
+     25
+    ],
+    "sobreTope": [
+     29
+    ],
+    "pecho": 9,
+    "espalda": 12,
+    "bajoMinimo": [
+     "chest=9",
+     "calves=0",
+     "biceps=6",
+     "abs=0"
+    ]
+   },
+   "4d cut": {
+    "sesiones": [
+     24,
+     18,
+     24,
+     18
+    ],
+    "sobreTope": [],
+    "pecho": 6,
+    "espalda": 9,
+    "bajoMinimo": [
+     "chest=6",
+     "back=9",
+     "calves=2",
+     "biceps=8.5",
+     "abs=0"
+    ]
+   },
+   "4d bulk": {
+    "sesiones": [
+     25,
+     21,
+     25,
+     21
+    ],
+    "sobreTope": [],
+    "pecho": 7,
+    "espalda": 11,
+    "bajoMinimo": [
+     "chest=7",
+     "calves=0",
+     "biceps=7.5",
+     "abs=0"
+    ]
+   },
+   "5d cut": {
+    "sesiones": [
+     23,
+     18,
+     21,
+     20,
+     18
+    ],
+    "sobreTope": [],
+    "pecho": 6,
+    "espalda": 9,
+    "bajoMinimo": [
+     "chest=6",
+     "back=9",
+     "calves=7",
+     "abs=7"
+    ]
+   },
+   "5d bulk": {
+    "sesiones": [
+     25,
+     21,
+     24,
+     23,
+     21
+    ],
+    "sobreTope": [],
+    "pecho": 7,
+    "espalda": 11,
+    "bajoMinimo": [
+     "chest=7",
+     "calves=8",
+     "abs=8"
+    ]
+   }
+  },
+  "despues": {
+   "3d cut": {
+    "sesiones": [
+     25,
+     24,
+     26
+    ],
+    "sobreTope": [
+     26
+    ],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=2",
+     "biceps=8",
+     "abs=0"
+    ]
+   },
+   "3d bulk": {
+    "sesiones": [
+     29,
+     24,
+     25
+    ],
+    "sobreTope": [
+     29
+    ],
+    "pecho": 14,
+    "espalda": 14,
+    "bajoMinimo": [
+     "calves=0",
+     "biceps=6",
+     "abs=0"
+    ]
+   },
+   "4d cut": {
+    "sesiones": [
+     24,
+     18,
+     24,
+     18
+    ],
+    "sobreTope": [],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=2",
+     "biceps=8.5",
+     "abs=0"
+    ]
+   },
+   "4d bulk": {
+    "sesiones": [
+     25,
+     21,
+     25,
+     21
+    ],
+    "sobreTope": [],
+    "pecho": 14,
+    "espalda": 14,
+    "bajoMinimo": [
+     "calves=0",
+     "biceps=7.5",
+     "abs=0"
+    ]
+   },
+   "5d cut": {
+    "sesiones": [
+     23,
+     18,
+     21,
+     20,
+     18
+    ],
+    "sobreTope": [],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=7",
+     "abs=7"
+    ]
+   },
+   "5d bulk": {
+    "sesiones": [
+     25,
+     21,
+     24,
+     23,
+     21
+    ],
+    "sobreTope": [],
+    "pecho": 14,
+    "espalda": 14,
+    "bajoMinimo": [
+     "calves=8",
+     "abs=8"
+    ]
+   }
+  }
+ }
+}

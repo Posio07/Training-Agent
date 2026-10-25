@@ -459,6 +459,47 @@
     return out;
   }
 
+  // DEC-016 · aceptación del tope E4, acotada. La aceptación queda ligada a la firma del plan
+  // (días, división, objetivo, rezagados y nivel) y al máximo de series por sesión que el usuario
+  // vio y aceptó. Si cambia la firma, o alguna sesión generada supera ese máximo, deja de valer y
+  // se vuelve a pedir. No vence por fecha.
+  const SIGNATURE_LABELS = { dias: 'los días por semana', division: 'la división', objetivo: 'el objetivo', rezagados: 'los grupos rezagados', nivel: 'el nivel' };
+  function planSignature(p) {
+    const days = clamp(Math.round(p.daysPerWeek) || 4, 3, 6);
+    const lag = unique(p.laggingMuscles || []).slice().sort().join(',');
+    return `dias=${days};division=${p.division};objetivo=${p.goal};rezagados=${lag};nivel=${p.level}`;
+  }
+  const signatureParts = sig => String(sig || '').split(';').reduce((o, kv) => { const i = kv.indexOf('='); if (i > 0) o[kv.slice(0, i)] = kv.slice(i + 1); return o; }, {});
+  const changedSignatureParts = (a, b) => { const x = signatureParts(a), y = signatureParts(b); return Object.keys(SIGNATURE_LABELS).filter(k => x[k] !== y[k]).map(k => SIGNATURE_LABELS[k]); };
+  const maxSessionSets = sessions => sessions.reduce((m, s) => Math.max(m, s.exercises.reduce((a, e) => a + e.sets, 0)), 0);
+
+  // Decide si la aceptación guardada sigue valiendo para el plan que se acaba de generar (sin recortar).
+  // Devuelve null si no hay aceptación. `longSessionAcceptedOn` suelto es el formato anterior, aún sin
+  // migrar: se toma como válido contra el plan vigente (firma y máximo de este mismo plan).
+  function resolveAcceptance(p, signature, maxSets) {
+    const a = p.longSessionAcceptance;
+    if (a) {
+      if (a.signature !== signature) return { valid: false, reason: 'firma', previous: a };
+      if (maxSets > a.maxSets) return { valid: false, reason: 'maximo', previous: a };
+      return { valid: true, on: a.on, signature: a.signature, maxSets: a.maxSets };
+    }
+    if (p.longSessionAcceptedOn) return { valid: true, legacy: true, on: p.longSessionAcceptedOn, signature, maxSets };
+    return null;
+  }
+
+  // Migración: pasa `longSessionAcceptedOn` (solo fecha) al formato acotado. La firma y el máximo se
+  // toman del plan vigente al momento de migrar (que, con la aceptación vieja, sale sin recortes).
+  // Devuelve los mismos datos si no hay nada que migrar. No muta el argumento.
+  function migrateLongSessionAcceptance(data, today) {
+    if (!data || data.longSessionAcceptance || !/^\d{4}-\d{2}-\d{2}$/.test(data.longSessionAcceptedOn || '')) return data;
+    const plan = buildPlan(data, today);
+    const proposed = plan.training.sessionLimit.proposed;
+    return Object.assign({}, data, {
+      longSessionAcceptedOn: '',
+      longSessionAcceptance: { on: data.longSessionAcceptedOn, signature: proposed.signature, maxSets: proposed.maxSets },
+    });
+  }
+
   // Regla E4 (DEC-014): tope de series por sesión. Se aplica al GENERAR, antes del
   // top set y de la duración. Solo recorta aislamientos (nunca multiarticulares),
   // primero los de grupos chicos, y nunca baja un grupo mayor por debajo del piso
@@ -467,7 +508,7 @@
   function enforceSessionCap(sessions, accepted) {
     const cap = K.VALIDATOR_RULES.sessionSetCap.value;
     const floorWeekly = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
-    const info = { cap, level: 'E4', basis: 'Convención de la app (DEC-003 v2 / DEC-014), sin fuente externa', accepted: accepted || null, trimmed: [], overCap: [] };
+    const info = { cap, level: 'E4', basis: 'Convención de la app (DEC-003 v2 / DEC-014), sin fuente externa', accepted: accepted || null, trimmed: [], overCap: [], acceptance: null, acceptanceInvalidated: null, proposed: null };
     const weekly = sumFractional(sessions);
     const floor = {};
     K.MAJOR_GROUPS.forEach(mu => { floor[mu] = Math.min(floorWeekly, weekly[mu] || 0); });
@@ -673,8 +714,21 @@
     // DEC-014 · Regla E4: tope de series por sesión (25, convención de la app).
     // Reemplaza al aviso sin recorte de DEC-003 v2: ahora se recortan aislamientos
     // al generar, salvo que el usuario acepte una sesión más larga.
-    const accepted = (p.longSessionAcceptedOn || '') || null;
+    const signature = planSignature(p);
+    const untrimmedMax = maxSessionSets(sessions);
+    const acceptance = resolveAcceptance(p, signature, untrimmedMax);
+    const accepted = acceptance && acceptance.valid ? acceptance.on : null;
     const sessionLimit = enforceSessionCap(sessions, accepted);
+    // Lo que se guardaría si el usuario acepta ahora: la firma de este plan y su máximo sin recortar.
+    sessionLimit.proposed = { signature, maxSets: untrimmedMax };
+    if (acceptance && acceptance.valid) sessionLimit.acceptance = { on: acceptance.on, signature: acceptance.signature, maxSets: acceptance.maxSets, legacy: !!acceptance.legacy };
+    if (acceptance && !acceptance.valid) {
+      sessionLimit.acceptanceInvalidated = { reason: acceptance.reason, on: acceptance.previous.on, previous: { signature: acceptance.previous.signature, maxSets: acceptance.previous.maxSets } };
+      const why = acceptance.reason === 'firma'
+        ? `cambió ${changedSignatureParts(acceptance.previous.signature, signature).join(', ') || 'el plan'}`
+        : `una sesión llegaría a ${untrimmedMax} series y aceptaste hasta ${acceptance.previous.maxSets}`;
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'E4', text: `Tu aceptación de sesiones más largas del ${acceptance.previous.on} ya no aplica: ${why}. Vuelve a aceptar para quitar los recortes (E4 · convención de la app).` });
+    }
     const trimmedMuscles = new Set();
     sessionLimit.trimmed.forEach(t => t.cuts.forEach(c => trimmedMuscles.add(K.EXERCISE_INDEX[c.exerciseId].bucket)));
     trimmedMuscles.forEach(mu => {
@@ -694,9 +748,29 @@
         : `${o.session}: ${o.sets} series, por encima de las ${sessionLimit.cap} por sesión (E4 · convención de la app). No se recortó más para no quitar multiarticulares ni bajar un grupo mayor del piso semanal.` });
     });
 
+    // DEC-016 · aviso de grupos bajo el mínimo. El piso de 10 series fraccionadas semanales se FUERZA solo
+    // en los grupos mayores (enforceSessionCap); este aviso cubre a todos, mayores y chicos. Si el tope E4
+    // les quitó series, se dice cuántas, porque en ese caso aceptar sesiones más largas lo resuelve.
+    sessions.forEach(s => { s.fractionalSets = fractionalByMuscle(s.exercises); });
+    const floorSets = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
+    const weeklyFrac = sumFractional(sessions);
+    const capLoss = {};
+    sessionLimit.trimmed.forEach(t => t.cuts.forEach(c => {
+      const w = K.EXERCISE_CONTRIBUTION[c.exerciseId].setWeights;
+      Object.keys(w).forEach(mu => { capLoss[mu] = (capLoss[mu] || 0) + w[mu] * c.sets; });
+    }));
+    const belowMin = Object.keys(K.MUSCLE_LABELS).map(mu => ({ muscle: mu, fractionalSets: Math.round((weeklyFrac[mu] || 0) * 100) / 100, trimmedByCap: Math.round((capLoss[mu] || 0) * 100) / 100 }))
+      .filter(x => x.fractionalSets < floorSets);
+    sessionLimit.belowMinimum = belowMin;
+    if (belowMin.length) {
+      const list = belowMin.map(x => `${K.MUSCLE_LABELS[x.muscle]} ${x.fractionalSets}${x.trimmedByCap > 0 ? ` (el tope E4 quitó ${x.trimmedByCap})` : ''}`).join(', ');
+      const canAccept = !accepted && belowMin.some(x => x.trimmedByCap > 0);
+      trainingWarnings.push({ level: 'warn', evidence: 'E1', rule: 'R2', kind: 'bajo_minimo', muscles: belowMin, options: canAccept ? ['aceptar_sesiones_largas', 'cambiar_split'] : ['cambiar_split'],
+        text: `Grupos por debajo de ${floorSets} series fraccionadas por semana: ${list}. ${floorSets} es el objetivo de hipertrofia del ACSM 2026, que la app usa como piso protector. ${canAccept ? 'Puedes aceptar sesiones más largas (sin recortes) o cambiar de split (más días por semana).' : 'Puedes cambiar de split (más días por semana).'}` });
+    }
+
     // DEC-014 · R1: aviso de rendimiento decreciente (E3, preprint). NO es un tope:
     // no recorta nada. Mismo conteo fraccionado que Pelland et al. 2026.
-    sessions.forEach(s => { s.fractionalSets = fractionalByMuscle(s.exercises); });
     diminishingReturnsWarnings(sessions).forEach(w => trainingWarnings.push(w));
 
     // DEC-002 / DEC-008: en definición, el primer ejercicio ELEGIBLE del día
@@ -1015,7 +1089,7 @@
     const droppedHealth = healthHasContent(normalizeHealth(item.data)) || !!(item.painFlags && Object.keys(item.painFlags).length);
     return {
       createdAt: item.createdAt || today, updatedAt: today,
-      data: normalizeProfile(stripHealthFields(item.data)),
+      data: migrateLongSessionAcceptance(normalizeProfile(stripHealthFields(item.data)), today),
       log: Array.isArray(item.log) ? item.log : [],
       droppedHealth,
     };
@@ -1028,6 +1102,13 @@
   function localHealthConflicts(localProfiles, item) {
     const name = ((item.data && item.data.name) || '').toString().trim();
     return localProfiles.filter(p => (p.id === item.id || p.data.name === name) && ((p.data.health && p.data.health.injuries) || []).length > 0);
+  }
+
+  function normalizeAcceptance(a) {
+    if (!a || typeof a !== 'object') return null;
+    const maxSets = Math.round(Number(a.maxSets));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(a.on || '') || typeof a.signature !== 'string' || !a.signature || !(maxSets > 0)) return null;
+    return { on: a.on, signature: a.signature, maxSets };
   }
 
   function normalizeProfile(src) {
@@ -1050,6 +1131,8 @@
       laggingMuscles, healthGoal: !!src.healthGoal,
       // DEC-014: aceptación explícita de sesiones más largas que el tope E4 (fecha AAAA-MM-DD).
       longSessionAcceptedOn: /^\d{4}-\d{2}-\d{2}$/.test(src.longSessionAcceptedOn || '') ? src.longSessionAcceptedOn : '',
+      // DEC-016: la misma aceptación, acotada a la firma del plan y a un máximo de series. Reemplaza al campo anterior.
+      longSessionAcceptance: normalizeAcceptance(src.longSessionAcceptance),
       health: normalizeHealth(src), // DEC-009
       // Fase 5: ajustes de la barra cargada. No participan de ningún cálculo
       // de volumen/calorías/selección de ejercicios, solo de la vista de
@@ -1076,5 +1159,5 @@
 
   function unique(arr) { return arr.filter((v, i) => v && arr.indexOf(v) === i); }
 
-  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, diminishingReturnsWarnings, computeHealthScreen, buildPlan, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
+  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, diminishingReturnsWarnings, computeHealthScreen, buildPlan, planSignature, migrateLongSessionAcceptance, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
 });
