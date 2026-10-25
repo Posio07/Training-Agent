@@ -3,9 +3,13 @@
 Cada decisión lleva su nivel de respaldo:
 **[Posicionamiento]** sociedad oficial · **[Evidencia]** metaanálisis o revisión · **[Criterio]** juicio práctico, sin estándar específico.
 
+**Estado de cada DEC** (línea justo bajo el título): `Propuesto` (lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte) · `Aceptado` · `Reemplazado`. Cada DEC dice **quién lo decidió**. El agente solo crea DEC como `Propuesto`; **solo Emanuel** los pasa a `Aceptado`, y solo él cambia o revierte uno aceptado. La línea `Estado: implementada` que cierran algunos DEC es otra cosa: dice si el código ya lo aplica.
+
 Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar cualquier cálculo del motor (`ifbb-pro-agent/js/engine.js`), consultarlo.
 
 ## DEC-001 · Grupos rezagados
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Input opcional nuevo en el perfil: lista de grupos rezagados.
 - Volumen de esos grupos = base × ajuste de fase × 1,25.
 - Precedencia: rezagado > énfasis de división. Si la división reduce el grupo (×0,5), el rezagado anula esa reducción.
@@ -16,6 +20,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: implementada.**
 
 ## DEC-002 · Top set de fuerza en definición
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Solo en fase de definición: el primer multiarticular de cada día arranca con 1 serie × 4-6 reps @ RIR 1-2, y luego las series de back-off con −10% de carga en el rango normal.
 - Mostrarlo en el plan como una línea separada ("Top set").
 - Respaldo: Formato top set/back-off: [Criterio], construido sobre [Evidencia] Helms et al. 2015, Bickel, Cross & Bamman 2011, Spiering et al. 2021 y [Posicionamiento] ACSM 2009.
@@ -24,6 +30,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: implementada.** Fuentes agregadas a la pestaña Fuentes: `BICKEL_2011`, `SPIERING_2021`.
 
 ## DEC-003 · Tope por sesión
+**Estado del DEC:** Aceptado y luego reemplazado por DEC-003 v2 — **Decidido por:** Emanuel
+
 - Parámetro configurable: máximo de series por sesión (default 25).
 - Mostrar la duración estimada de cada día: series × (descanso medio + 45 s).
 - Si una sesión se pasa del tope, recortar en este orden: grupos pequeños (brazos, pantorrillas) hasta su mínimo → aislamientos. Nunca recortar multiarticulares. Reubicar las series recortadas en otro día que entrene el mismo grupo, si lo hay.
@@ -33,6 +41,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: REEMPLAZADA por DEC-003 v2** (motivo: el plan recortaba series de grupos chicos cuando un día se pasaba del tope e intentaba pasarlas a otro día; si ese otro día también estaba al límite, las series se perdían sin avisar, y el total semanal mostrado dejaba de coincidir con lo que realmente aparecía en la rutina).
 
 ## DEC-003 v2 · Distribución balanceada + aviso de tope
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Al GENERAR el plan (no después), los grupos pequeños se asignan a los días compatibles con menos series totales:
   · Abdomen y pantorrillas: cualquier día; prioridad a los días que no son de pierna.
   · Bíceps: días de torso o tirón. Tríceps: días de torso o empuje.
@@ -45,6 +55,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: implementada.**
 
 ## DEC-006 · Sin patrones duplicados por sesión
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Un mismo ejercicio base (incluidas sus variantes, por ejemplo "búlgara" y "búlgara con énfasis en cadera") aparece como máximo una vez por sesión. Puede repetirse en días distintos.
 - Para el segundo ejercicio de cuádriceps, priorizar prensa.
 - Respaldo: [Criterio].
@@ -52,12 +64,16 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: implementada.** Corrección posterior: la primera versión agrupaba por texto del nombre (regex), lo que en un caso real hizo que la sentadilla trasera desapareciera del Día 2 de un perfil y quedara reemplazada por la búlgara. Ahora cada ejercicio del catálogo (`knowledge.js`) lleva un id de patrón explícito (`pattern`, p. ej. `squat_bilateral` vs `split_squat`); la comparación de duplicados usa ese id, no el nombre. Las dos búlgaras (cuádriceps y glúteos) y la búlgara funcional comparten a propósito el id `split_squat`.
 
 ## DEC-007 · Tiempo de unilaterales
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - En la duración estimada, los ejercicios unilaterales cuentan doble.
 - Respaldo: [Criterio].
 
 **Estado: implementada.**
 
 ## DEC-004 · Aviso de inconsistencia en % de grasa
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Si hay % de grasa ingresado Y circunferencias, calcular también el % por fórmula Navy. Si la diferencia es mayor a 4 puntos, mostrar un aviso no bloqueante con ambos valores.
 - Respaldo: [Evidencia] Hodgdon & Beckett 1984 (error ±3-4%). Umbral: [Criterio].
 - Test: diferencia de 5 puntos → aviso; diferencia de 2 → sin aviso.
@@ -65,6 +81,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Estado: implementada.**
 
 ## DEC-005 · Objetivo "salud/funcional"
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - Bandera nueva en el perfil, desactivada por defecto.
 - Si está activa: en definición el cardio no se minimiza; piso de 150 min/semana a intensidad moderada.
 - Agregar al catálogo de ejercicios de pierna: sentadilla búlgara, step-up con carga y paseo del granjero. Solo se incluyen en el plan si la bandera está activa.
@@ -81,6 +99,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 **Corrección por DEC-010:** la regla de financiamiento descrita arriba solo vale para los funcionales que SÍ aportan volumen de hipertrofia al grupo (búlgara con mancuernas y step-up: primario cuádriceps, glúteo secundario). El paseo del granjero no aporta a ningún grupo: si se financiara quitándole series a un aislamiento, el volumen real de cuádriceps bajaría hasta 2 series por semana sin que nada lo reemplace. Por eso el paseo ahora se agrega aparte (2 series, `muscle: null`, etiqueta "Funcional"), sin descontar de ningún ejercicio. Cuenta en `totalSets` y en la duración, no en el volumen del grupo. Efecto visible, solo con la bandera activa: el último día de pierna suma 2 series y, en los 10 perfiles de prueba, entre 6 y 13 minutos de duración, y puede acercarse o cruzar el aviso de 25 series.
 
 ## DEC-008 · Elegibilidad del top set
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 - El top set solo se asigna a multiarticulares bilaterales con carga libre o guiada pesada, de esta lista: sentadilla trasera, sentadilla hack, press banca, press militar, peso muerto rumano, remo con barra, dominadas/fondos lastrados.
 - Nunca a unilaterales ni a máquinas de press.
 - Si el primer ejercicio del día no es elegible, el top set pasa al primer ejercicio elegible del día, y ese ejercicio se ordena primero. Si ninguno es elegible, ese día no lleva top set.
@@ -97,6 +117,8 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 - *Precisión por DEC-011:* "adaptar" aplica al tamizaje y a diabetes (posicionamientos oficiales). Para lesiones no existe un marco validado: la app no adapta la rutina, exige autorización profesional y solo evita ejercicios como precaución E4.
 
 ## DEC-009 · Condiciones de salud y lesiones
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 
 ### Capa 1 · Tamizaje previo (ACSM, Riebe et al. 2015) [Posicionamiento]
 Preguntas en el perfil:
@@ -160,6 +182,8 @@ Visible en el perfil y en el plan cuando haya cualquier condición declarada (ta
 **Estado: implementada.**
 
 ## DEC-010 · Aporte de volumen por ejercicio (base del validador)
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: `docs/specs/validador.md` (23-oct-2026). El validador necesita contar series fraccionadas por músculo (primario 1.0, secundario 0.5) y un historial confiable. Hasta ahora el "músculo" de un ejercicio era el grupo donde vive en el catálogo, sin secundarios.
 
 - **Ubicación ≠ aporte.** El bucket (`EXERCISES[grupo]` / `FUNCTIONAL_EXERCISES[grupo]`) define dónde vive un ejercicio: día, rotación, mapa de lesiones. El aporte de volumen sale de una tabla por ejercicio (`EXERCISE_CONTRIBUTION` en `knowledge.js`).
@@ -176,6 +200,8 @@ Contexto: `docs/specs/validador.md` (23-oct-2026). El validador necesita contar 
 **Nota (DEC-012):** la tabla de aporte ya no es un literal en `knowledge.js`: ahora se carga desde `data/exercise-muscles.csv` y suma un nivel de evidencia por fila. Los valores no cambiaron.
 
 ## DEC-011 · Lesiones: autorización profesional por zona, precauciones E4 y aviso por dolor
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: `docs/specs/validador.md`, R5: "Lesiones musculoesqueléticas: no hay un framework validado para adaptar la rutina desde una app. Se advierte, se deriva a un profesional y solo se genera la rutina tras confirmación explícita de que un profesional autorizó el entrenamiento. Nunca: generar como si la condición no existiera, ni fingir una adaptación." Esta decisión reencuadra la Capa 3 de DEC-009 (que hablaba de "adaptar") sin cambiar el mapa de exclusiones.
 
 ### Flujo con cualquier zona declarada
@@ -223,6 +249,8 @@ La versión original de esta decisión conservaba la autorización de una zona a
 **Estado: implementada (Fase 1b y ajuste posterior).**
 
 ## DEC-012 · Tabla de músculos por ejercicio en un CSV versionado, con nivel de evidencia
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: `docs/specs/validador.md` pide contar series fraccionadas (primario 1,0, secundario 0,5) y que el conteo "se verifique contra el catálogo completo con las etiquetas corregidas". Para eso la tabla de DEC-010 necesita fuente por fila y un lugar donde se pueda revisar y corregir sin tocar código. Esta fase solo crea la capa de datos: **no cambia cómo se cuenta el volumen** (eso es la Fase 2) y la salida del plan es idéntica.
 
 ### Decisión
@@ -262,6 +290,8 @@ Cada `exerciseId` del CSV existe en el catálogo y viceversa (salvo el paseo); e
 **Nota (DEC-013):** el CSV pasó a formato largo (`relacion` y `evidencia` en vez de `role` y `evidence_level`) y el bucket tiene su propio CSV.
 
 ## DEC-013 · Datos v2: relación ejercicio-músculo en formato largo, bucket separado y reglas de evidencia
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: `docs/specs/validador.md` (Requisitos de datos). La Fase 2 necesita contar series directas e indirectas por músculo, y la tabla de DEC-012 (un `primary` por ejercicio y `secondary` a 0,5) no puede decir que un ejercicio tiene dos directas, ni que un par no tiene relación. Esta decisión migra solo los **datos**: **la salida del plan es idéntica a la de `main`** y ningún cálculo lee todavía la relación ni la evidencia.
 
 ### Formato
@@ -304,6 +334,8 @@ Los de DEC-012 adaptados al formato nuevo, más: al menos una directa por ejerci
 **Estado: implementada (capa de datos v2).** Ningún cálculo usa todavía la relación ni la evidencia.
 
 ## DEC-014 · Fase 2 del validador: conteo fraccionado, regla E4 (tope por sesión) y aviso de rendimiento decreciente (R1)
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: `docs/specs/validador.md` (R1, R2, R4) y DEC-013 (datos v2). Esta fase es la primera que **cambia la salida del plan**, a propósito, y que hace que el motor use los datos de relación.
 
 ### Conteo fraccionado (Pelland et al., Sports Med 2026)
@@ -351,6 +383,8 @@ Costos que la regla trae (se avisan en el plan): en los splits de 3 y 4 días lo
 **Estado: implementada (Fase 2).** Fuera de alcance: antagonistas, superseries y base de datos externa.
 
 ## DEC-015 · Integridad del registro de sesión: sesión persistente, edición de series y cronómetro por timestamp
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. Problemas encontrados: la sesión en curso vivía solo en memoria (`sm`); un cierre o apagón perdía en qué ejercicio ibas, los valores tecleados y la hora de inicio; las series hechas quedaban en `profile.workouts` sin marca de sesión terminada; repetir el día creaba otro `sessionId` y permitía series duplicadas; no se podía editar ni borrar una serie; el cronómetro era un `setInterval` que restaba 1 por tick (se desfasa con la pantalla bloqueada), no se persistía y el Wake Lock no se volvía a pedir al volver a la pestaña.
 
 **Alcance por paso.** Paso 1 (sesión persistente y reanudable): implementado abajo. Pasos 2 (editar y borrar series) y 3 (cronómetro, Wake Lock y tono): pendientes, se documentan aquí al implementarlos.
@@ -394,6 +428,8 @@ Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. P
 **Estado: Pasos 1, 2 y 3 implementados.**
 
 ## DEC-016 · Tres correcciones del validador: bucket directo, aceptación del tope acotada y aviso de grupos bajo el mínimo
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: revisión de DEC-014 contra lo acordado. Tres desvíos o huecos, corregidos juntos porque se miden sobre los mismos perfiles de referencia. Estado de las reglas de `VALIDATOR_RULES` incluido.
 
 ### 1. El músculo del bucket cuenta siempre como directo
@@ -465,6 +501,8 @@ Implementar R3 y la frecuencia mínima de R2 (siguen pendientes), verificar las 
 **Estado: implementada.**
 
 ## DEC-017 · Completar hasta el piso semanal dentro del tope E4, con piso de mantenimiento para grupos de énfasis reducido
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel
+
 Contexto: DEC-014 usa el piso de 10 series fraccionadas semanales solo para **frenar recortes** (el tope E4 no puede bajar un grupo mayor de ahí) y DEC-016 agregó un aviso para los grupos bajo el mínimo. Faltaba la otra mitad: **llegar** al piso cuando hay espacio. Y el piso de 10 no puede ser igual para un grupo que la división redujo a propósito.
 
 ### Regla de completado
@@ -484,7 +522,7 @@ Si un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) qued
 - **Dónde se aplica:** el **mismo piso** rige el **freno de recortes** (`enforceSessionCap`: el tope E4 puede recortar un grupo "down" hasta su piso de 5, no solo hasta lo que ya tenía) y el **completado** (`completeToFloor`). También fija el umbral del **aviso** de grupos bajo el mínimo (DEC-016), para no avisar de 10 en un grupo reducido a propósito; el aviso nombra el piso ("Pecho 4 (piso de mantenimiento 5)").
 - **Justificación:** el piso de 10 del ACSM es un **objetivo de hipertrofia**. En un grupo que la división redujo a propósito el objetivo es **mantener**, y la literatura sobre dosis mínima indica que se puede conservar lo ya ganado con volúmenes bastante menores si se mantiene la intensidad. Referencia verificada: Spiering BA et al., *Maintaining Physical Performance: The Minimal Dose of Exercise Needed to Preserve Endurance and Strength Over Time*, J Strength Cond Res 2021;35(5):1449-1458, [PMID 33629972](https://pubmed.ncbi.nlm.nih.gov/33629972/). Es una **revisión narrativa**, no un metaanálisis. Según su resumen, fuerza y tamaño muscular (al menos en jóvenes) se mantuvieron hasta 32 semanas con tan poco como 1 sesión semanal y 1 serie por ejercicio, y la intensidad parece ser la variable clave.
 - **El 0,5 es una convención alineada con DEC-001, no una cifra del estudio.** Spiering no dice "50 % del piso". Se etiqueta nivel **E4** y `convention: true` en `VALIDATOR_RULES`. Límites del respaldo: es evidencia de **mantener lo ya ganado a corto plazo**, no de un volumen óptimo para una división que reduce un grupo de forma permanente; y solo se consultó el resumen (la página de PubMed no se pudo leer completa), así que `verifiedAgainstPrimarySource` sigue en `false`.
-- **Ojo con la confusión de referencias:** `knowledge.js` ya tiene una fuente `SPIERING_2021` que es **otro artículo** (Spiering et al., *Progressive overload…*, J Strength Cond Res 2021;35(10):2919-33). La referencia de mantenimiento no se agregó a `SOURCES` (la pestaña Fuentes afirma que solo cita revisiones sistemáticas, metaanálisis y posicionamientos): vive en la regla.
+- **Ojo con la fuente `SPIERING_2021` de `knowledge.js`:** es una entrada distinta de la referencia de mantenimiento y **no se pudo verificar** (auditoría del 2026-10-25: su URL de PubMed lleva a un artículo ajeno y no se encontró en PubMed el título citado; ver `docs/BACKLOG.md` B-013). La referencia de mantenimiento no se agregó a `SOURCES` (la pestaña Fuentes afirma que solo cita revisiones sistemáticas, metaanálisis y posicionamientos): vive en la regla.
 
 ### Resultado en los 10 perfiles de referencia de DEC-014 (sin aceptación)
 Antes = `main` con DEC-016. Minutos = duración derivada por sesión; **⚠ = más de 90 minutos**. Los valores por grupo son series fraccionadas semanales.
