@@ -100,11 +100,11 @@
       url: 'https://pubmed.ncbi.nlm.nih.gov/21131862/',
       type: 'Artículo revisado por pares',
     },
-    SPIERING_2021: {
-      id: 'SPIERING_2021',
-      short: 'Spiering et al. 2021 (J Strength Cond Res)',
-      title: 'Spiering BA, Mujika I, Sharp MH, Foster C. Progressive overload: a necessary perspective for improving muscular strength and relevant long-term adaptations. J Strength Cond Res 2021;35(10):2919-33. La sobrecarga progresiva requiere series puntuales a intensidad máxima (cercanas al límite) combinadas con series de trabajo a menor intensidad.',
-      url: 'https://pubmed.ncbi.nlm.nih.gov/34132710/',
+    SPIERING_MANT_2021: {
+      id: 'SPIERING_MANT_2021',
+      short: 'Spiering et al. 2021 (J Strength Cond Res, mantenimiento)',
+      title: 'Spiering BA, Mujika I, Sharp MA, Foulis SA. Maintaining Physical Performance: The Minimal Dose of Exercise Needed to Preserve Endurance and Strength Over Time. J Strength Cond Res 2021;35(5):1449-58. Revisión narrativa (solo se leyó el resumen): la fuerza y el tamaño muscular (al menos en jóvenes) se mantienen hasta 32 semanas con muy poco volumen y frecuencia siempre que se mantenga la intensidad relativa de carga; la intensidad parece ser la variable clave para mantener. No describe el formato de serie pesada más series livianas ni la fase de definición.',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/33629972/',
       type: 'Revisión revisada por pares',
     },
     SCHOENFELD_VOL: {
@@ -207,9 +207,9 @@
     },
     SILBERNAGEL_2007: {
       id: 'SILBERNAGEL_2007',
-      short: 'Silbernagel et al. 2007 (Br J Sports Med)',
-      title: 'Silbernagel KG, Thomeé R, Karlsson J. Full symptomatic recovery does not ensure full recovery of muscle-tendon function in patients with Achilles tendinopathy. Br J Sports Med 2007;41(4):276-80. Modelo de monitoreo del dolor en tendinopatías: dolor ≤5/10 durante el ejercicio que no empeora al día siguiente se considera una carga aceptable para seguir entrenando la zona.',
-      url: 'https://pubmed.ncbi.nlm.nih.gov/17224440/',
+      short: 'Silbernagel et al. 2007 (Am J Sports Med)',
+      title: 'Silbernagel KG, Thomeé R, Eriksson BI, Karlsson J. Continued sports activity, using a pain-monitoring model, during rehabilitation in patients with Achilles tendinopathy: a randomized controlled study. Am J Sports Med 2007;35(6):897-906. Aplica a la tendinopatía de Aquiles un modelo de monitoreo del dolor que se atribuye a Thomeé 1997 (dolor patelofemoral). El umbral (dolor ≤5/10 durante o justo después de la actividad y de vuelta al nivel previo a la mañana siguiente) se verificó en el texto completo de Sprague et al. 2021 (Pilot Feasibility Stud, PMC7905015); el texto completo de este artículo es de pago y no se leyó.',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/17307888/',
       type: 'Artículo revisado por pares',
     },
     SCHOENFELD_MEAL: {
@@ -536,7 +536,9 @@
     // R4 · duración derivada
     setExecutionSeconds: rule(45, 'E4', null, { assumption: true, note: 'Valor inicial fijo (transición + ejecución por serie), supuesto: se calibrará con los tiempos reales del modo sesión.' }),
     // DEC-009 / DEC-011 · dolor en Modo sesión (escala 0-10)
-    painFlagThreshold: rule(5, 'E4', { label: 'Silbernagel et al. 2007 (Br J Sports Med): ≤5/10 sin empeorar al día siguiente = carga aceptable (modelo de tendinopatías, extendido a otras zonas por criterio de la app)', url: 'https://pubmed.ncbi.nlm.nih.gov/17224440/' }),
+    painFlagThreshold: rule(5, 'E4', { label: 'Pain-Monitoring Model (Thomeé 1997, dolor patelofemoral; adaptado a la tendinopatía de Aquiles en Silbernagel et al. 2007, Am J Sports Med 35(6):897-906): dolor ≤5/10 durante o justo después de la actividad y de vuelta al nivel previo a la mañana siguiente', url: 'https://pubmed.ncbi.nlm.nih.gov/17307888/' }, {
+      reviewRequired: true,
+      note: 'El umbral 5/10 y la condición de la mañana siguiente se verificaron en el texto completo de Sprague et al. 2021 (Pilot Feasibility Stud, PMC7905015), una fuente secundaria; el texto completo de Silbernagel 2007 es de pago y no se leyó. Otro protocolo para Aquiles usa 4/10 y 24 h: el número varía según la publicación. La app lo extiende de tendinopatías a otras zonas y a dolor por serie por criterio propio, y no implementa la condición de la mañana siguiente (usa dos sesiones sin pasar el umbral, DEC-011).' }),
     painAdviceMinSessions: rule(2, 'E4', null, { note: 'Sesiones DISTINTAS con dolor por encima del umbral en el mismo patrón, no necesariamente seguidas.' }),
     painAdviceWindowDays: rule(28, 'E4', null, { note: 'Últimas 4 semanas, contadas en días (28 días hacia atrás, inclusive).' }),
     // DEC-005 / DEC-010 · series del ejercicio funcional que no aporta volumen
