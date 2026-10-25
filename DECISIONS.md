@@ -24,10 +24,10 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 
 - Solo en fase de definición: el primer multiarticular de cada día arranca con 1 serie × 4-6 reps @ RIR 1-2, y luego las series de back-off con −10% de carga en el rango normal.
 - Mostrarlo en el plan como una línea separada ("Top set").
-- Respaldo: Formato top set/back-off: [Criterio], construido sobre [Evidencia] Helms et al. 2015, Bickel, Cross & Bamman 2011, Spiering et al. 2021 y [Posicionamiento] ACSM 2009.
+- Respaldo: **[Criterio]** (convención de la app). El formato top set/back-off no tiene un estudio que lo respalde directamente; el apoyo es indirecto y parcial: Helms et al. 2015 (no revisada en B-013); Bickel, Cross & Bamman 2011, *Med Sci Sports Exerc* 43(7):1177-87 (ensayo: una dosis reducida preservó la hipertrofia en jóvenes; solo se leyó el resumen); Spiering BA, Mujika I, Sharp MA, Foulis SA, *J Strength Cond Res* 2021;35(5):1449-58 (revisión narrativa, solo resumen: al reducir volumen y frecuencia, mantener la intensidad relativa parece ser la clave para conservar la fuerza); y [Posicionamiento] ACSM 2009. **Límite:** Bickel y Spiering respaldan *mantener la intensidad con menos volumen*; **no** respaldan el formato de una serie pesada seguida de series más livianas ni su uso en una fase de definición. Por eso el nivel es [Criterio] y no [Evidencia]. *Corrección del 2026-10-25 (B-013/B-017, aprobada por Emanuel): antes citaba como "Spiering et al. 2021" un artículo ("Progressive overload…") que no se pudo verificar en ninguna base.*
 - Test: en definición aparece el top set; en volumen/mantenimiento no.
 
-**Estado: implementada.** Fuentes agregadas a la pestaña Fuentes: `BICKEL_2011`, `SPIERING_2021`.
+**Estado: implementada.** Fuentes agregadas a la pestaña Fuentes: `BICKEL_2011`, `SPIERING_MANT_2021` (antes `SPIERING_2021`, reemplazada en B-013).
 
 ## DEC-003 · Tope por sesión
 **Estado del DEC:** Aceptado y luego reemplazado por DEC-003 v2 — **Decidido por:** Emanuel
@@ -154,7 +154,7 @@ El plan de la app se considera de intensidad vigorosa a estos efectos. Lógica:
   · **Tobillo**: excluye `calf_raise_standing` de pantorrillas (deja `calf_raise_seated`) y `split_squat` de cuádriceps/glúteos (apoyo unilateral inestable).
 - "Sustituir" significa, por defecto, que el motor elige el siguiente ejercicio no excluido de la misma lista del grupo muscular (ya existe en el catálogo); solo se agregó un ejercicio nuevo al catálogo en el caso de hombro, donde excluir dejaba el grupo sin ningún compuesto.
 - Modo sesión: escala de dolor 0-10 en cada serie de ejercicios cuyo GRUPO MUSCULAR figure en el mapa de exclusión de alguna zona declarada por el usuario (tenga o no diagnóstico); no solo el patrón excluido, porque ese nunca llega a aparecer en el plan una vez excluido, y el que sí aparece (el sustituto, u otro ejercicio del mismo grupo) sigue involucrando la zona igual. Dolor ≤5 que no empeora al día siguiente → aceptable, sigue igual. Dolor >5 → se marca el ejercicio (por patrón) para sustituir en la próxima sesión por otro de la misma lista, y se sugiere consultar a un profesional. La marca se limpia recién cuando 2 sesiones DISTINTAS seguidas (no 2 series de la misma sesión) quedan con dolor ≤5.
-  Respaldo: [Evidencia] modelo de monitoreo del dolor para tendinopatías (Silbernagel KG et al. Full symptomatic recovery does not ensure full recovery of muscle-tendon function in patients with Achilles tendinopathy. Br J Sports Med 2007;41(4):276-80; escala 0-10, ≤5 sin empeorar al día siguiente = carga aceptable). Extensión del modelo (pensado para tendinopatías) a otras zonas y mecanismos de dolor: [Criterio].
+  Respaldo: **[Evidencia indirecta]** Pain-Monitoring Model, descrito originalmente por Thomeé et al. para dolor patelofemoral (Thomeé R, *Phys Ther* 1997;77(12):1690-703; solo metadatos verificados) y adaptado a la tendinopatía de Aquiles en Silbernagel KG, Thomeé R, Eriksson BI, Karlsson J, *Am J Sports Med* 2007;35(6):897-906 (PMID 17307888; texto completo de pago, **no leído**). El umbral (dolor ≤5/10 durante o justo después de la actividad y de vuelta al nivel previo a la mañana siguiente) se verificó en el texto completo de Sprague et al. 2021 (*Pilot Feasibility Stud*, PMC7905015), una fuente secundaria; el programa de ejercicios de Silbernagel, tal como lo describen Griffin C, Daniels K, Hill C, Franklyn-Miller A, Morin JB (*BMC Musculoskelet Disord* 2021;22:695, protocolo de ensayo, DOI 10.1186/s12891-021-04553-6, PMC8364697), progresa los ejercicios con dolor de 4/10 como máximo durante y en las 24 h posteriores a la sesión, así que el número varía según la publicación. Extensión del modelo (pensado para tendinopatías) a otras zonas, a dolor por serie y a cualquier mecanismo de dolor: [Criterio]. *Corrección del 2026-10-25 (B-013/B-017, aprobada por Emanuel): antes citaba el artículo de* Br J Sports Med *2007;41(4):276-80, que no es el del modelo.* **Nota:** la app mide el dolor solo durante la serie y no registra cómo está a la mañana siguiente, así que la condición "vuelve a su nivel previo" del modelo original no se implementa (ver B-019); "no empeora al día siguiente", arriba, describe la intención y no lo que hoy se mide.
 - Un ejercicio marcado por dolor nunca recibe el top set de DEC-002/008 ni progresión de carga sugerida mientras siga marcado; la marca se limpia si dos sesiones seguidas quedan con dolor ≤5.
 
 ### Privacidad
@@ -556,5 +556,27 @@ Lectura:
 
 ### Fuera de alcance
 Intercambiar series entre grupos (quitar de un grupo chico para completar un mayor): no se implementó. Completar grupos chicos, y un límite de duración (la regla topa por series).
+
+**Estado: implementada.**
+
+## DEC-018 · El import restaura el entrenamiento registrado (workouts y sessions)
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-10-25). Lo creó el agente como Propuesto; Emanuel lo aceptó en el chat.
+
+Contexto: B-001. El export (`ENGINE.exportProfile`) lleva `workouts` y `sessions` (sin el dolor por serie, DEC-009), pero `prepareImportedProfile` solo devolvía `createdAt`, `updatedAt`, `data`, `log` y `droppedHealth`, y `importJson` creaba el perfil sin ellos. Un ciclo export → import perdía todo el entrenamiento registrado.
+
+### Cambio
+- `prepareImportedProfile(item, today, newProfileId)` ahora también devuelve `workouts` y `sessions`, y `importJson` los guarda en el perfil nuevo. El aviso final dice cuántas series se restauraron.
+- **Privacidad (DEC-009) sin cambios:** el export no cambia (sigue sin `health`, `painFlags` ni `workouts[].pain`). Al importar se **quita siempre** el `pain` de cada serie, aunque el archivo lo traiga (versiones anteriores lo exportaban), y se avisa como "datos de salud ignorados". `painFlags` y `health` siguen sin importarse.
+- **`profileId`:** el import siempre crea un perfil nuevo con id nuevo (nunca pisa uno existente). Si una fila trae `profileId`, se remapea al id del perfil nuevo. Hoy ninguna fila guardada lo trae: solo la sesión en curso (`sessionStore.js`), que no se exporta. El remapeo es una protección para archivos de otras versiones o armados a mano.
+- Se descartan las filas mal formadas (sin `sessionId`). Las filas anteriores a DEC-015 (sin `setKey`) vuelven tal cual, sin migrar.
+
+### Lo que no cambia
+La política del export; que el import crea un perfil nuevo; que la sesión en curso nunca viaja (DEC-015); que `painFlags` y la salud nunca se importan. Consecuencias a tener presentes: el historial de dolor por serie **no** sobrevive a un export → import (es por diseño de DEC-009), e importar dos veces el mismo archivo crea dos perfiles con las mismas series (comportamiento previo del import).
+
+### Pruebas
+- `engine.test.js`: ida y vuelta export → import (series, sesiones y mediciones idénticas, ediciones conservadas, filas viejas sin migrar); el archivo exportado no lleva dolor, salud ni `painFlags` y lo importado tampoco; un archivo con dolor por serie lo descarta y avisa; remapeo de `profileId`; filas mal formadas; archivos viejos sin `workouts`/`sessions`; el export del perfil importado es idéntico al original. Se corrigió el test de DEC-009 que daba por buena la pérdida de `workouts` ("no se guardan workouts"): lo que la privacidad exige es que no entre el dolor.
+- `tests/e2e-import.js` (navegador): exporta un perfil con entrenamiento, dolor y lesiones, lo importa y comprueba el perfil nuevo (series, sesión, sin dolor ni salud), que el original no se toca y que Progreso muestra la sesión.
+- Mutaciones: volver a descartar `workouts`/`sessions` falla 5 tests; conservar el dolor, 2; no remapear `profileId`, 1; no descartar filas mal formadas, 1; no adjuntar las series en `app.js`, el E2E.
+- No cambia el plan generado (sin tabla de perfiles de referencia); `sw.js` pasa a la caché v11.
 
 **Estado: implementada.**

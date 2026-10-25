@@ -929,7 +929,7 @@
       deload: 'Cada 4-6 semanas, o cuando el rendimiento caiga 2 sesiones seguidas, reduce el volumen a la mitad durante una semana manteniendo la carga.',
       cardio,
       posing: p.division.startsWith('general') ? null : 'Practica las poses obligatorias de tu división 2-3 veces/semana durante 10-15 min; en las últimas 8 semanas a diario. Es parte del juicio y también gasto energético.',
-      sources: ['HELMS_TRAIN', 'SCHOENFELD_VOL', 'SCHOENFELD_FREQ', 'ACSM_RT', 'ACSM_CARDIO', 'WHO_PA', 'BICKEL_2011', 'SPIERING_2021'],
+      sources: ['HELMS_TRAIN', 'SCHOENFELD_VOL', 'SCHOENFELD_FREQ', 'ACSM_RT', 'ACSM_CARDIO', 'WHO_PA', 'BICKEL_2011', 'SPIERING_MANT_2021'],
       warnings: trainingWarnings,
     };
   }
@@ -1172,16 +1172,38 @@
     return JSON.parse(JSON.stringify(out));
   }
 
+  // B-001 / DEC-018: restaura el entrenamiento registrado de un item importado. El export lleva `workouts` y
+  // `sessions` (sin el dolor por serie, DEC-009) y el import los descartaba: un ciclo export -> import perdía todo el
+  // entrenamiento. Se descartan las filas mal formadas y SIEMPRE se quita `pain` (un archivo de otra versión podría
+  // traerlo; DEC-009: el dolor no entra al perfil por el import). Si una fila trae `profileId`, se remapea al perfil
+  // nuevo (el import siempre crea un perfil nuevo con id nuevo). `droppedPain` avisa si se descartó algún dolor.
+  function importedTraining(item, newProfileId) {
+    const isRow = x => !!x && typeof x === 'object' && !Array.isArray(x) && typeof x.sessionId === 'string' && x.sessionId !== '';
+    const remap = row => { const c = Object.assign({}, row); if ('profileId' in c && newProfileId) c.profileId = newProfileId; return c; };
+    let droppedPain = false;
+    const workouts = (Array.isArray(item.workouts) ? item.workouts : []).filter(isRow).map(w => {
+      const c = remap(w);
+      if (c.pain != null) droppedPain = true;
+      delete c.pain;
+      return c;
+    });
+    const sessions = (Array.isArray(item.sessions) ? item.sessions : []).filter(isRow).map(remap);
+    return { workouts, sessions, droppedPain };
+  }
+
   // Arma el perfil a guardar desde un item importado. Ignora (y no guarda)
   // `health`, los campos planos de salud y `painFlags`, también en archivos
   // exportados por la versión anterior que sí los incluían. `droppedHealth`
-  // avisa si el archivo traía algo de salud con contenido.
-  function prepareImportedProfile(item, today) {
-    const droppedHealth = healthHasContent(normalizeHealth(item.data)) || !!(item.painFlags && Object.keys(item.painFlags).length);
+  // avisa si el archivo traía algo de salud con contenido (o dolor por serie).
+  // B-001: también restaura `workouts` y `sessions` (sin dolor), con `profileId` remapeado a `newProfileId`.
+  function prepareImportedProfile(item, today, newProfileId) {
+    const training = importedTraining(item, newProfileId);
+    const droppedHealth = healthHasContent(normalizeHealth(item.data)) || !!(item.painFlags && Object.keys(item.painFlags).length) || training.droppedPain;
     return {
       createdAt: item.createdAt || today, updatedAt: today,
       data: migrateLongSessionAcceptance(normalizeProfile(stripHealthFields(item.data)), today),
       log: Array.isArray(item.log) ? item.log : [],
+      workouts: training.workouts, sessions: training.sessions,
       droppedHealth,
     };
   }

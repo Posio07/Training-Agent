@@ -584,6 +584,9 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.input.longSessionAcceptedOn': 'DEC-014: aceptación explícita de sesiones más largas (vacía por defecto)',
     'plan.input.longSessionAcceptance': 'DEC-016: la aceptación acotada a la firma del plan y a un máximo de series (null por defecto)',
     'plan.training.sessionLimit': 'DEC-014: regla E4 (tope, recortes, sesiones por encima)',
+    // B-013: la fuente SPIERING_2021 (cita que no verifica) se reemplazó por SPIERING_MANT_2021; solo cambia el id en las listas de fuentes.
+    'plan.training.sources.#': 'B-013: id de la fuente de mantenimiento (SPIERING_MANT_2021)',
+    'plan.sourcesUsed.#': 'B-013: ídem, en la lista combinada de fuentes usadas',
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
@@ -860,7 +863,9 @@ test('DEC-009 privacidad: importar un archivo viejo con health y painFlags los i
   assert.deepEqual(prepared.data.health, { screening: { regularExercise: false, cvMetabolicRenal: false, symptoms: false, medicalClearance: false }, diabetes: { type: 'none', medication: false }, injuries: [] });
   // `health` queda como el objeto vacío por defecto; nada de lo que traía el archivo sobrevive.
   assert.doesNotMatch(JSON.stringify(prepared), /"(painFlags|painNow|painSessions|pain|clearanceDate|healthSymptoms|diabetesType|injuryZones)":/);
-  assert.ok(!('painFlags' in prepared) && !('workouts' in prepared), 'no se guardan painFlags ni workouts del archivo');
+  // B-001: las series y sesiones vuelven (el import ya no pierde el entrenamiento), pero NUNCA con el dolor por serie.
+  assert.ok(!('painFlags' in prepared), 'no se guardan painFlags del archivo');
+  assert.ok(prepared.workouts.length > 0 && prepared.workouts.every(w => !('pain' in w)), 'las series vuelven sin el dolor por serie');
   // El perfil importado no queda pausado por nada que venga del archivo.
   const plan = E.buildPlan(prepared.data, TODAY);
   assert.equal(plan.health.blocked, false);
@@ -2217,4 +2222,108 @@ test('DEC-017: la regla solo completa grupos mayores y también corre con la ace
     });
   }));
   assert.ok(filledAccepted > 0, 'con la aceptación vigente la regla también completa');
+});
+
+
+/* ---------- B-013 · fuentes verificadas contra PubMed ---------- */
+
+test('B-013: las fuentes corregidas apuntan a los registros verificados y ninguna fuente usada falta en SOURCES', () => {
+  assert.equal(K.SOURCES.SPIERING_2021, undefined, 'la cita SPIERING_2021 no se pudo verificar y se reemplazó');
+  assert.equal(K.SOURCES.SPIERING_MANT_2021.url, 'https://pubmed.ncbi.nlm.nih.gov/33629972/');
+  assert.match(K.SOURCES.SPIERING_MANT_2021.title, /J Strength Cond Res 2021;35\(5\):1449-58/);
+  assert.match(K.SOURCES.SPIERING_MANT_2021.title, /solo se leyó el resumen/);
+  assert.equal(K.SOURCES.SILBERNAGEL_2007.url, 'https://pubmed.ncbi.nlm.nih.gov/17307888/');
+  assert.match(K.SOURCES.SILBERNAGEL_2007.title, /Am J Sports Med 2007;35\(6\):897-906/);
+  assert.match(K.SOURCES.SILBERNAGEL_2007.title, /de pago y no se leyó/);
+  const r = K.VALIDATOR_RULES.painFlagThreshold;
+  assert.equal(r.source.url, 'https://pubmed.ncbi.nlm.nih.gov/17307888/');
+  assert.equal(r.level, 'E4');
+  assert.equal(r.reviewRequired, true);
+  assert.match(r.note, /Sprague et al\. 2021/);
+  assert.match(r.note, /no implementa la condición de la mañana siguiente/);
+  // Todo id de fuente que el plan declara existe en SOURCES (con y sin lesiones ni objetivo de salud).
+  [{}, { healthGoal: true }, { healthGoal: true, injuryZones: ['shoulder', 'knee'] }].forEach(extra => {
+    const plan = E.buildPlan(Object.assign({}, male, extra, extra.injuryZones ? { health: cleared(cleared(E.normalizeProfile(Object.assign({}, male, extra)).health, 'shoulder', '2026-09-01'), 'knee', '2026-09-01') } : {}), TODAY);
+    plan.sourcesUsed.forEach(id => assert.ok(K.SOURCES[id], `fuente usada sin definir: ${id}`));
+  });
+});
+
+/* ---------- B-001 / DEC-018 · el import restaura workouts y sessions ---------- */
+
+const trainedProfile = () => {
+  const data = E.normalizeProfile(Object.assign({}, male, { injuryZones: ['shoulder'], healthSymptoms: 'on' }));
+  return {
+    id: 'orig1', createdAt: '2026-09-01', updatedAt: '2026-10-20', data, log: [{ date: '2026-09-01', weightKg: 84, bodyFatPct: null, waistCm: 88, neckCm: null, hipCm: null, notes: 'Datos iniciales' }],
+    workouts: [
+      { setKey: 's1:0:0', sessionId: 's1', date: '2026-10-01', dayIndex: 0, dayName: 'Día 1', exercise: 'Press banca con barra', exerciseId: 'chest.bench_press_barbell', muscle: 'chest', setType: 'top', setNumber: 1, weight: 80, reps: 5, pain: 3, short: false, savedAt: 1790000000000 },
+      { setKey: 's1:0:1', sessionId: 's1', date: '2026-10-01', dayIndex: 0, dayName: 'Día 1', exercise: 'Press banca con barra', exerciseId: 'chest.bench_press_barbell', muscle: 'chest', setType: 'backoff', setNumber: 1, weight: 72, reps: 8, pain: null, short: false, savedAt: 1790000100000, editedAt: 1790000200000 },
+      { sessionId: 'old', date: '2026-09-20', exercise: 'Sentadilla', setType: 'normal', setNumber: 1, weight: 100, reps: 6, short: false, savedAt: 1789000000000 }, // fila anterior a DEC-015 (sin setKey)
+    ],
+    sessions: [{ sessionId: 's1', status: 'completada', date: '2026-10-01', dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1789999000000, finishedAt: 1790001000000, setsDone: 2, setsTotal: 3 }],
+    painFlags: { bench_press: { flagged: true, cleanStreak: 0, lastSessionId: 's1', painSessions: [{ sessionId: 's1', date: '2026-10-01' }] } },
+  };
+};
+const roundTrip = p => JSON.parse(JSON.stringify(E.exportProfile(p))); // lo que pasa por el archivo .json
+
+test('B-001: export -> import restaura workouts y sessions (ida y vuelta) sin cambiar la privacidad del export', () => {
+  const p = trainedProfile();
+  const file = roundTrip(p);
+  // La política del export no cambia (DEC-009): el archivo lleva las series sin dolor y no lleva salud ni painFlags.
+  assert.equal(file.workouts.length, 3);
+  assert.ok(file.workouts.every(w => !('pain' in w)));
+  assert.ok(!('painFlags' in file) && !('health' in file.data));
+  const back = E.prepareImportedProfile(file, TODAY, 'nuevo1');
+  // Vuelve todo el entrenamiento, idéntico a lo exportado.
+  assert.deepEqual(back.workouts, file.workouts);
+  assert.deepEqual(back.sessions, p.sessions);
+  assert.deepEqual(back.log, p.log);
+  assert.equal(back.workouts[1].editedAt, 1790000200000, 'se conserva lo editado');
+  assert.equal(back.workouts[2].setKey, undefined, 'las filas anteriores a DEC-015 vuelven tal cual, sin migrar');
+  // Y sigue sin entrar nada de salud ni de dolor.
+  assert.deepEqual(back.data.health.injuries, []);
+  assert.ok(!('painFlags' in back));
+  assert.equal(back.droppedHealth, false, 'el archivo exportado ya viene sin salud ni dolor: no hay nada que avisar');
+  assert.doesNotMatch(JSON.stringify(back), /"(pain|painFlags|painNow|painSessions|clearanceDate)":/);
+  // Idempotente: exportar el perfil importado da el mismo archivo (salvo id y fechas).
+  const imported = { id: 'nuevo1', createdAt: back.createdAt, updatedAt: back.updatedAt, data: back.data, log: back.log, workouts: back.workouts, sessions: back.sessions };
+  const again = roundTrip(imported);
+  ['workouts', 'sessions', 'log'].forEach(k => assert.deepEqual(again[k], file[k], k));
+});
+
+test('B-001: un archivo con dolor por serie lo descarta al importar y avisa', () => {
+  const file = JSON.parse(JSON.stringify(trainedProfile())); // formato viejo: workouts con pain y painFlags
+  assert.equal(file.workouts[0].pain, 3);
+  const back = E.prepareImportedProfile(file, TODAY, 'nuevo1');
+  assert.ok(back.workouts.every(w => !('pain' in w)), 'ninguna fila conserva el dolor');
+  assert.equal(back.workouts.length, 3, 'las series sí vuelven');
+  assert.equal(back.droppedHealth, true, 'avisa que se ignoraron datos de salud / dolor');
+  // Solo dolor en una serie (sin salud ni painFlags) también cuenta como dato descartado.
+  const onlyRowPain = E.prepareImportedProfile({ data: male, workouts: [{ sessionId: 's', exercise: 'X', weight: 1, reps: 1, pain: 7 }] }, TODAY, 'n');
+  assert.equal(onlyRowPain.droppedHealth, true);
+  assert.ok(!('pain' in onlyRowPain.workouts[0]));
+  assert.equal(file.workouts[0].pain, 3, 'no muta el item de entrada');
+});
+
+test('B-001: remapea profileId al perfil nuevo y descarta filas mal formadas', () => {
+  const file = roundTrip(trainedProfile());
+  file.workouts[0].profileId = 'orig1';
+  file.sessions[0].profileId = 'orig1';
+  const back = E.prepareImportedProfile(file, TODAY, 'nuevo1');
+  assert.equal(back.workouts[0].profileId, 'nuevo1');
+  assert.equal(back.sessions[0].profileId, 'nuevo1');
+  assert.ok(!('profileId' in back.workouts[1]), 'solo se remapea donde la fila lo traía');
+  assert.equal(file.workouts[0].profileId, 'orig1', 'no muta el item de entrada');
+  const dirty = E.prepareImportedProfile({ data: male, workouts: [null, 'x', 5, [], {}, { sessionId: '' }, { sessionId: 's', exercise: 'ok', weight: 1, reps: 1 }], sessions: [null, { status: 'x' }, { sessionId: 's' }] }, TODAY, 'n');
+  assert.equal(dirty.workouts.length, 1);
+  assert.equal(dirty.sessions.length, 1);
+});
+
+test('B-001: archivos exportados antes (sin workouts ni sessions) o con otros tipos siguen importando', () => {
+  const noTraining = E.prepareImportedProfile({ data: male, log: [] }, TODAY, 'n');
+  assert.deepEqual(noTraining.workouts, []);
+  assert.deepEqual(noTraining.sessions, []);
+  const weird = E.prepareImportedProfile({ data: male, workouts: 'no', sessions: { a: 1 } }, TODAY, 'n');
+  assert.deepEqual([weird.workouts, weird.sessions], [[], []]);
+  // Sin newProfileId (llamada vieja) no rompe.
+  assert.equal(E.prepareImportedProfile({ data: male, workouts: [{ sessionId: 's', profileId: 'x', exercise: 'e' }] }, TODAY).workouts[0].profileId, 'x');
 });
