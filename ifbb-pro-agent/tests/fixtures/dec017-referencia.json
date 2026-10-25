@@ -1,0 +1,707 @@
+{
+ "nota": "DEC-017 · perfiles de referencia de DEC-014 (plan-identity-baseline.json), sin aceptación. antes = main con DEC-016 (5a40374); despues = con completar hasta el piso y piso de mantenimiento para grupos con énfasis reducido (DEC-017). minutos = duración derivada por sesión. pisos = piso semanal por grupo mayor (10 o 5). mayores = series fraccionadas semanales por grupo mayor.",
+ "antes": {
+  "oscar_cut_classic_5d": {
+   "sesiones": [
+    25,
+    20,
+    23,
+    22,
+    19
+   ],
+   "minutos": [
+    72,
+    72,
+    55,
+    53,
+    70
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 12,
+    "back": 15,
+    "shoulders": 23.5,
+    "quads": 18,
+    "hamstrings": 12,
+    "glutes": 19.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "novice_bulk_physique_4d": {
+   "sesiones": [
+    25,
+    9,
+    24,
+    6
+   ],
+   "minutos": [
+    70,
+    29,
+    59,
+    24
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 10,
+    "back": 13,
+    "shoulders": 20.5,
+    "quads": 7,
+    "hamstrings": 5,
+    "glutes": 7.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [
+    "quads",
+    "hamstrings",
+    "glutes"
+   ],
+   "agregadas": 0
+  },
+  "wellness_maintain_5d": {
+   "sesiones": [
+    21,
+    25,
+    15,
+    15,
+    25
+   ],
+   "minutos": [
+    58,
+    92,
+    36,
+    35,
+    92
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 7,
+    "back": 14,
+    "shoulders": 11,
+    "quads": 22,
+    "hamstrings": 16,
+    "glutes": 25
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [
+    "chest"
+   ],
+   "agregadas": 0
+  },
+  "general_cut_3d": {
+   "sesiones": [
+    25,
+    24,
+    26
+   ],
+   "minutos": [
+    76,
+    80,
+    88
+   ],
+   "sobreTope": [
+    26
+   ],
+   "mayores": {
+    "chest": 12,
+    "back": 12,
+    "shoulders": 18,
+    "quads": 15,
+    "hamstrings": 11,
+    "glutes": 16
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "bb_bulk_advanced_6d": {
+   "sesiones": [
+    25,
+    25,
+    26,
+    25,
+    25,
+    25
+   ],
+   "minutos": [
+    69,
+    65,
+    98,
+    64,
+    58,
+    96
+   ],
+   "sobreTope": [
+    26
+   ],
+   "mayores": {
+    "chest": 18,
+    "back": 23,
+    "shoulders": 31,
+    "quads": 27,
+    "hamstrings": 13,
+    "glutes": 26.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "bikini_cut_lagging_4d": {
+   "sesiones": [
+    25,
+    19,
+    25,
+    17
+   ],
+   "minutos": [
+    67,
+    70,
+    60,
+    49
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 6,
+    "back": 12,
+    "shoulders": 19,
+    "quads": 10,
+    "hamstrings": 15,
+    "glutes": 18
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [
+    "chest"
+   ],
+   "agregadas": 0
+  },
+  "emanuel_legs_cut_4d": {
+   "sesiones": [
+    24,
+    24,
+    24,
+    21
+   ],
+   "minutos": [
+    67,
+    87,
+    61,
+    75
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 12,
+    "back": 12,
+    "shoulders": 20,
+    "quads": 19,
+    "hamstrings": 15,
+    "glutes": 22.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "figure_maintain_novice_3d": {
+   "sesiones": [
+    24,
+    25,
+    25
+   ],
+   "minutos": [
+    72,
+    81,
+    85
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 9,
+    "back": 12,
+    "shoulders": 17.5,
+    "quads": 13,
+    "hamstrings": 10,
+    "glutes": 18
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [
+    "chest"
+   ],
+   "agregadas": 0
+  },
+  "physique_cut_adv_lag_5d": {
+   "sesiones": [
+    25,
+    12,
+    24,
+    25,
+    12
+   ],
+   "minutos": [
+    82,
+    40,
+    57,
+    61,
+    47
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 15,
+    "back": 19,
+    "shoulders": 26.5,
+    "quads": 12,
+    "hamstrings": 8,
+    "glutes": 12
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [
+    "hamstrings"
+   ],
+   "agregadas": 0
+  },
+  "physique_w_bulk_6d": {
+   "sesiones": [
+    20,
+    22,
+    23,
+    20,
+    20,
+    23
+   ],
+   "minutos": [
+    58,
+    55,
+    81,
+    49,
+    46,
+    85
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 14,
+    "back": 18,
+    "shoulders": 28,
+    "quads": 21,
+    "hamstrings": 14,
+    "glutes": 23
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  }
+ },
+ "despues": {
+  "oscar_cut_classic_5d": {
+   "sesiones": [
+    25,
+    20,
+    23,
+    22,
+    19
+   ],
+   "minutos": [
+    72,
+    72,
+    55,
+    53,
+    70
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 12,
+    "back": 15,
+    "shoulders": 23.5,
+    "quads": 18,
+    "hamstrings": 12,
+    "glutes": 19.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "novice_bulk_physique_4d": {
+   "sesiones": [
+    25,
+    9,
+    24,
+    6
+   ],
+   "minutos": [
+    70,
+    29,
+    59,
+    24
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 10,
+    "back": 13,
+    "shoulders": 20.5,
+    "quads": 7,
+    "hamstrings": 5,
+    "glutes": 7.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 5,
+    "hamstrings": 5,
+    "glutes": 5
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "wellness_maintain_5d": {
+   "sesiones": [
+    21,
+    25,
+    15,
+    15,
+    25
+   ],
+   "minutos": [
+    58,
+    92,
+    36,
+    35,
+    92
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 7,
+    "back": 14,
+    "shoulders": 11,
+    "quads": 22,
+    "hamstrings": 16,
+    "glutes": 25
+   },
+   "pisos": {
+    "chest": 5,
+    "back": 10,
+    "shoulders": 5,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "general_cut_3d": {
+   "sesiones": [
+    25,
+    24,
+    26
+   ],
+   "minutos": [
+    76,
+    80,
+    88
+   ],
+   "sobreTope": [
+    26
+   ],
+   "mayores": {
+    "chest": 12,
+    "back": 12,
+    "shoulders": 18,
+    "quads": 15,
+    "hamstrings": 11,
+    "glutes": 16
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "bb_bulk_advanced_6d": {
+   "sesiones": [
+    25,
+    25,
+    26,
+    25,
+    25,
+    25
+   ],
+   "minutos": [
+    69,
+    65,
+    98,
+    64,
+    58,
+    96
+   ],
+   "sobreTope": [
+    26
+   ],
+   "mayores": {
+    "chest": 18,
+    "back": 23,
+    "shoulders": 31,
+    "quads": 27,
+    "hamstrings": 13,
+    "glutes": 26.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "bikini_cut_lagging_4d": {
+   "sesiones": [
+    25,
+    19,
+    25,
+    17
+   ],
+   "minutos": [
+    67,
+    70,
+    60,
+    49
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 6,
+    "back": 12,
+    "shoulders": 19,
+    "quads": 10,
+    "hamstrings": 15,
+    "glutes": 18
+   },
+   "pisos": {
+    "chest": 5,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 5,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "emanuel_legs_cut_4d": {
+   "sesiones": [
+    24,
+    24,
+    24,
+    21
+   ],
+   "minutos": [
+    67,
+    87,
+    61,
+    75
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 12,
+    "back": 12,
+    "shoulders": 20,
+    "quads": 19,
+    "hamstrings": 15,
+    "glutes": 22.5
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "figure_maintain_novice_3d": {
+   "sesiones": [
+    25,
+    25,
+    25
+   ],
+   "minutos": [
+    75,
+    81,
+    85
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 10,
+    "back": 12,
+    "shoulders": 18,
+    "quads": 13,
+    "hamstrings": 10,
+    "glutes": 18
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 1
+  },
+  "physique_cut_adv_lag_5d": {
+   "sesiones": [
+    25,
+    12,
+    24,
+    25,
+    12
+   ],
+   "minutos": [
+    82,
+    40,
+    57,
+    61,
+    47
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 15,
+    "back": 19,
+    "shoulders": 26.5,
+    "quads": 12,
+    "hamstrings": 8,
+    "glutes": 12
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 5,
+    "hamstrings": 5,
+    "glutes": 5
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  },
+  "physique_w_bulk_6d": {
+   "sesiones": [
+    20,
+    22,
+    23,
+    20,
+    20,
+    23
+   ],
+   "minutos": [
+    58,
+    55,
+    81,
+    49,
+    46,
+    85
+   ],
+   "sobreTope": [],
+   "mayores": {
+    "chest": 14,
+    "back": 18,
+    "shoulders": 28,
+    "quads": 21,
+    "hamstrings": 14,
+    "glutes": 23
+   },
+   "pisos": {
+    "chest": 10,
+    "back": 10,
+    "shoulders": 10,
+    "quads": 10,
+    "hamstrings": 10,
+    "glutes": 10
+   },
+   "bajoMinimoMayores": [],
+   "agregadas": 0
+  }
+ }
+}

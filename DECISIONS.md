@@ -463,3 +463,60 @@ Lectura: el pecho sube en todos los casos y la espalda nunca baja. Quedan bajo 1
 Implementar R3 y la frecuencia mínima de R2 (siguen pendientes), verificar las filas `a_verificar` restantes, y forzar el piso en los grupos chicos.
 
 **Estado: implementada.**
+
+## DEC-017 · Completar hasta el piso semanal dentro del tope E4, con piso de mantenimiento para grupos de énfasis reducido
+Contexto: DEC-014 usa el piso de 10 series fraccionadas semanales solo para **frenar recortes** (el tope E4 no puede bajar un grupo mayor de ahí) y DEC-016 agregó un aviso para los grupos bajo el mínimo. Faltaba la otra mitad: **llegar** al piso cuando hay espacio. Y el piso de 10 no puede ser igual para un grupo que la división redujo a propósito.
+
+### Regla de completado
+Si un grupo mayor (pecho, espalda, hombros, cuádriceps, isquios, glúteos) queda bajo su piso semanal y hay sesiones con espacio bajo el tope E4 (25), se agregan series de ese grupo en esas sesiones hasta llegar al piso o hasta llenar el espacio. Corre **después** del recorte E4 (`completeToFloor` en `engine.js`).
+- **Nunca pasa de 25 por esta regla.** Una sesión solo crece si queda dentro del tope. Las sesiones que ya pasaban de 25 (por el piso de R2, o por una aceptación) no se tocan. Un barrido de 648 planes (divisiones × días × objetivos × niveles × rezagados) lo comprueba.
+- **Prioridad:** primero el grupo con **mayor déficit** (piso − fraccionadas); dentro del grupo, la sesión con **más espacio**. Se agrega de a una serie y se recalcula, así el reparto se equilibra entre sesiones.
+- **Compatibilidad por día:** solo en sesiones donde el split ya entrena ese grupo (`SPLITS[*].days[*].muscles`).
+- **Series extra antes que ejercicios nuevos:** primero se suman series a ejercicios que ya están en esa sesión y que cuentan 1 (directa) para el grupo, empezando por el que tenga menos series. Solo si **ninguna** sesión lo permite, entra un ejercicio nuevo (2 series, como el piso del generador), del catálogo ya **filtrado por lesiones** (`filterLibByInjuries`, DEC-009 / DEC-011) y sin repetir patrón en el día (DEC-006).
+- **Sin crear avisos R1:** no lleva a ningún músculo por encima de 11 series fraccionadas en una sesión (umbral de R1, ya configurado).
+- **Si el déficit no cabe dentro del tope**, el grupo queda como estaba y sigue el aviso de DEC-016.
+- **Transparencia:** un aviso informativo por grupo (`rule: 'R2'`, `kind: 'completado_piso'`) dice cuántas series se agregaron, en qué sesión y ejercicio; `sessionLimit.filled` lo expone y `weeklySets` refleja las series reales. No toca grupos chicos ni quita series.
+- **Sesiones recortadas por E4:** el recorte se hace de a 1 o 2 series, así que una sesión recortada puede quedar con 1 de espacio y ese espacio se puede usar. El aviso del recorte describe el recorte y el de completado lo que se agregó después.
+- **Con aceptación vigente** (sin recortes) la regla también completa, solo en las sesiones bajo 25.
+
+### Piso de mantenimiento para grupos "down"
+- **Qué:** un grupo con énfasis reducido por la división (`EMPHASIS_MAP[división].down`, DEC-001, ×0,5) que **no** es rezagado (un rezagado anula el énfasis, DEC-001) usa un **piso de mantenimiento** = piso × `maintenanceFloorFactor` (0,5) = **5 series fraccionadas semanales**. Los demás grupos usan el piso completo, **10**. `sessionLimit.floors` expone el piso de cada grupo.
+- **Dónde se aplica:** el **mismo piso** rige el **freno de recortes** (`enforceSessionCap`: el tope E4 puede recortar un grupo "down" hasta su piso de 5, no solo hasta lo que ya tenía) y el **completado** (`completeToFloor`). También fija el umbral del **aviso** de grupos bajo el mínimo (DEC-016), para no avisar de 10 en un grupo reducido a propósito; el aviso nombra el piso ("Pecho 4 (piso de mantenimiento 5)").
+- **Justificación:** el piso de 10 del ACSM es un **objetivo de hipertrofia**. En un grupo que la división redujo a propósito el objetivo es **mantener**, y la literatura sobre dosis mínima indica que se puede conservar lo ya ganado con volúmenes bastante menores si se mantiene la intensidad. Referencia verificada: Spiering BA et al., *Maintaining Physical Performance: The Minimal Dose of Exercise Needed to Preserve Endurance and Strength Over Time*, J Strength Cond Res 2021;35(5):1449-1458, [PMID 33629972](https://pubmed.ncbi.nlm.nih.gov/33629972/). Es una **revisión narrativa**, no un metaanálisis. Según su resumen, fuerza y tamaño muscular (al menos en jóvenes) se mantuvieron hasta 32 semanas con tan poco como 1 sesión semanal y 1 serie por ejercicio, y la intensidad parece ser la variable clave.
+- **El 0,5 es una convención alineada con DEC-001, no una cifra del estudio.** Spiering no dice "50 % del piso". Se etiqueta nivel **E4** y `convention: true` en `VALIDATOR_RULES`. Límites del respaldo: es evidencia de **mantener lo ya ganado a corto plazo**, no de un volumen óptimo para una división que reduce un grupo de forma permanente; y solo se consultó el resumen (la página de PubMed no se pudo leer completa), así que `verifiedAgainstPrimarySource` sigue en `false`.
+- **Ojo con la confusión de referencias:** `knowledge.js` ya tiene una fuente `SPIERING_2021` que es **otro artículo** (Spiering et al., *Progressive overload…*, J Strength Cond Res 2021;35(10):2919-33). La referencia de mantenimiento no se agregó a `SOURCES` (la pestaña Fuentes afirma que solo cita revisiones sistemáticas, metaanálisis y posicionamientos): vive en la regla.
+
+### Resultado en los 10 perfiles de referencia de DEC-014 (sin aceptación)
+Antes = `main` con DEC-016. Minutos = duración derivada por sesión; **⚠ = más de 90 minutos**. Los valores por grupo son series fraccionadas semanales.
+
+| Perfil | Series por sesión | Minutos por sesión | Series agregadas | Mayores que cambian | Grupos "down" (series) | Mayores bajo su piso |
+| --- | --- | --- | --- | --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 (igual) | 72/72/55/53/70 (igual) | 0 | — | — | — |
+| novice_bulk_physique_4d | 25/9/24/6 (igual) | 70/29/59/24 (igual) | 0 | — | cuádriceps (7), isquios (5), glúteos (7.5) | — |
+| wellness_maintain_5d | 21/25/15/15/25 (igual) | 58/**92⚠**/36/35/**92⚠** (igual) | 0 | — | pecho (7), hombros (11) | — |
+| general_cut_3d | 25/24/26 (igual) | 76/80/88 (igual) | 0 | — | — | — |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25 (igual) | 69/65/**98⚠**/64/58/**96⚠** (igual) | 0 | — | — | — |
+| bikini_cut_lagging_4d | 25/19/25/17 (igual) | 67/70/60/49 (igual) | 0 | — | pecho (6), cuádriceps (10) | — |
+| emanuel_legs_cut_4d | 24/24/24/21 (igual) | 67/87/61/75 (igual) | 0 | — | — | — |
+| figure_maintain_novice_3d | 24/25/25 → 25/25/25 | 72/81/85 → 75/81/85 | 1 | pecho 9 → 10, hombros 17.5 → 18 | — | — |
+| physique_cut_adv_lag_5d | 25/12/24/25/12 (igual) | 82/40/57/61/47 (igual) | 0 | — | cuádriceps (12), isquios (8), glúteos (12) | — |
+| physique_w_bulk_6d | 20/22/23/20/20/23 (igual) | 58/55/81/49/46/85 (igual) | 0 | — | — | — |
+
+Lectura:
+- **Solo `figure_maintain_novice_3d` se completa** (pecho 9 → 10, +1 serie en la sesión que el recorte dejó en 24; 72 → 75 min): `figure_w` no reduce ningún grupo, así que rige el piso de 10. Con el piso de mantenimiento ya no se completan `novice_bulk_physique_4d`, `wellness_maintain_5d` ni `physique_cut_adv_lag_5d`, que con el piso de 10 sumaban 8, 3 y 2 series.
+- **`wellness_maintain_5d`:** el pecho **es "down"** en `wellness_w` (también hombros, bíceps y tríceps). Queda en **7**, sobre su piso de 5: no se completa y no avisa.
+- **`bikini_cut_lagging_4d`:** el pecho **es "down"** en `bikini_w` (también cuádriceps, bíceps y tríceps; los rezagados son glúteos e isquios y no lo cancelan). Queda en **6**, sobre su piso de 5: ya no hay déficit ni aviso. El problema de falta de espacio (sus dos torsos están en 25) sigue ahí, pero ya no importa para el pecho.
+- **`novice_bulk_physique_4d`:** cuádriceps 7, isquios 5 y glúteos 7,5 están sobre su piso de 5; las sesiones de 9 y 6 series quedan como estaban.
+- **`physique_cut_adv_lag_5d`:** el rezago es de hombros, no de piernas, así que cuádriceps, isquios y glúteos siguen "down" con piso 5; isquios en 8 queda sobre el piso.
+- **Sesiones de más de 90 minutos:** `wellness_maintain_5d` (92 y 92) y `bb_bulk_advanced_6d` (98 y 96). **Ya existían antes de esta regla** y no cambian: la regla no creó ninguna sesión de más de 90 minutos ni alargó ninguna de ellas. Es el costo conocido de DEC-014 (25 series no garantizan menos de 90 minutos).
+- Los otros perfiles no tenían grupos mayores bajo su piso y no cambian.
+
+### Pruebas
+- `engine.test.js`: los 10 perfiles antes y después con duración por sesión (`tests/fixtures/dec017-referencia.json`) y la comprobación de que ninguna sesión pasa de 25 por la regla y de que no aparece ninguna sesión nueva de más de 90 minutos; pisos por división (physique_m, bikini_w, wellness_w, una división sin "down", y el rezagado que anula el "down"); el factor y su etiqueta de convención; `novice_bulk_physique_4d`, `wellness_maintain_5d` y `bikini_cut_lagging_4d` con el piso de mantenimiento (y el contraste con piso 10, que sí completaría las piernas); un grupo "down" bajo 5 que sí avisa; el mismo piso en el freno de recortes y en el completado (unidad); `figure_maintain_novice_3d`; barrido de 648 planes contra el tope y contra R1; unitarias de prioridad, compatibilidad por día, series extra antes que ejercicio nuevo y lesión de rodilla.
+- Pruebas de mutación: el freno de recortes sin piso de mantenimiento falla 1 test; el completado sin él, 8; el aviso sin él, 4; que el rezagado no anule el "down", 1; factor 1, 9. De la regla de completado: permitir pasar del tope falla 4; sin prioridad por déficit, 3; por espacio, 6; sin compatibilidad por día, 5; sin filtro de lesiones, 1; ejercicio nuevo antes que series extra, 10; regla apagada, 9 (medidas antes del ajuste).
+- `regression.test.js` queda **idéntico al de `main`**: los volúmenes semanales originales de `bulk` y `maintain` se conservan. Se actualizaron a propósito las huellas de los 30 planes; `sw.js` pasa a la caché v10.
+
+### Fuera de alcance
+Intercambiar series entre grupos (quitar de un grupo chico para completar un mayor): no se implementó. Completar grupos chicos, y un límite de duración (la regla topa por series).
+
+**Estado: implementada.**
