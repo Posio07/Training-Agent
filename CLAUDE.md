@@ -44,6 +44,7 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 7. **Los tests deben fallar si se rompe la regla.** Verifícalo con una prueba de mutación; no actualices un baseline para "poner en verde" sin entender por qué cambió.
 8. **BACKLOG:** al abrir una tarea, ponla `en curso`; al entregarla, anota el PR y que queda pendiente de cierre. El agente agrega ítems solo como `propuesto`, y no reordena ni cierra ítems de Emanuel.
 9. **No toques** `docs/VISION.md` ni el estado de un DEC `Aceptado`; no edites a mano `js/exerciseMuscles.js`.
+10. **Al explicarle algo a Emanuel, usa lenguaje simple:** qué cambia, por qué importa y qué tiene que decidir. Los detalles técnicos (rutas, funciones, tablas, mutaciones, identificadores) van en el PR, no en el resumen. Lo que devuelven los subagentes es técnico: tradúcelo antes de contárselo.
 
 ## Fuentes e identificadores
 
