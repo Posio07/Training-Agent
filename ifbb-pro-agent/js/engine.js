@@ -245,7 +245,7 @@
     if (p.goal === 'bulk' && carbsG < 3 * p.weightKg) warnings.push({ level: 'info', text: 'Carbohidratos por debajo de 3 g/kg en volumen: el rendimiento en el entrenamiento puede resentirse.' });
 
     const fiberG = 14 * calories / 1000; // FIBER
-    const waterL = (p.sex === 'M' ? 2.5 : 2.0); // EFSA_WATER, más pérdidas por sudor
+    const waterL = (p.sex === 'M' ? 2.5 : 2.0); // EFSA_WATER (DEC-019): ingesta ADECUADA de agua TOTAL (bebidas + alimentos), clima moderado y PAL 1,6; no es solo bebida ni un mínimo, y EFSA no cuantifica ningún ajuste por sudor
     const meals = p.goal === 'cut' ? 4 : 4;
     const proteinPerMeal = proteinG / meals;
     const perMealPerKg = proteinPerMeal / p.weightKg;

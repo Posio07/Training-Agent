@@ -159,7 +159,7 @@
     EFSA_WATER: {
       id: 'EFSA_WATER',
       short: 'EFSA 2010: agua',
-      title: 'EFSA Panel on Dietetic Products. Scientific opinion on dietary reference values for water. EFSA Journal 2010;8(3):1459. Ingesta adecuada: 2,0 L/día mujeres, 2,5 L/día hombres, más las pérdidas por sudor.',
+      title: 'EFSA Panel on Dietetic Products, Nutrition and Allergies (NDA). Scientific Opinion on Dietary Reference Values for water. EFSA Journal 2010;8(3):1459. Ingesta adecuada de agua TOTAL (agua de beber, otras bebidas y humedad de los alimentos): 2,0 L/día mujeres (P95 3,1 L) y 2,5 L/día hombres (P95 4,0 L), solo para clima moderado y actividad moderada (PAL 1,6). EFSA supone que el 20-30 % del agua total viene de los alimentos; no da una ingesta adecuada solo de bebidas ni una cifra de ajuste por sudor o ejercicio (solo dice que las pérdidas extremas hay que reponerlas). Texto completo leído en una copia institucional.',
       url: 'https://doi.org/10.2903/j.efsa.2010.1459',
       type: 'Agencia regulatoria',
     },
