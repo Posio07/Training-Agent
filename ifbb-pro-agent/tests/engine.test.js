@@ -584,6 +584,9 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.input.longSessionAcceptedOn': 'DEC-014: aceptación explícita de sesiones más largas (vacía por defecto)',
     'plan.input.longSessionAcceptance': 'DEC-016: la aceptación acotada a la firma del plan y a un máximo de series (null por defecto)',
     'plan.training.sessionLimit': 'DEC-014: regla E4 (tope, recortes, sesiones por encima)',
+    // B-013: la fuente SPIERING_2021 (cita que no verifica) se reemplazó por SPIERING_MANT_2021; solo cambia el id en las listas de fuentes.
+    'plan.training.sources.#': 'B-013: id de la fuente de mantenimiento (SPIERING_MANT_2021)',
+    'plan.sourcesUsed.#': 'B-013: ídem, en la lista combinada de fuentes usadas',
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
@@ -2221,6 +2224,29 @@ test('DEC-017: la regla solo completa grupos mayores y también corre con la ace
   assert.ok(filledAccepted > 0, 'con la aceptación vigente la regla también completa');
 });
 
+
+/* ---------- B-013 · fuentes verificadas contra PubMed ---------- */
+
+test('B-013: las fuentes corregidas apuntan a los registros verificados y ninguna fuente usada falta en SOURCES', () => {
+  assert.equal(K.SOURCES.SPIERING_2021, undefined, 'la cita SPIERING_2021 no se pudo verificar y se reemplazó');
+  assert.equal(K.SOURCES.SPIERING_MANT_2021.url, 'https://pubmed.ncbi.nlm.nih.gov/33629972/');
+  assert.match(K.SOURCES.SPIERING_MANT_2021.title, /J Strength Cond Res 2021;35\(5\):1449-58/);
+  assert.match(K.SOURCES.SPIERING_MANT_2021.title, /solo se leyó el resumen/);
+  assert.equal(K.SOURCES.SILBERNAGEL_2007.url, 'https://pubmed.ncbi.nlm.nih.gov/17307888/');
+  assert.match(K.SOURCES.SILBERNAGEL_2007.title, /Am J Sports Med 2007;35\(6\):897-906/);
+  assert.match(K.SOURCES.SILBERNAGEL_2007.title, /de pago y no se leyó/);
+  const r = K.VALIDATOR_RULES.painFlagThreshold;
+  assert.equal(r.source.url, 'https://pubmed.ncbi.nlm.nih.gov/17307888/');
+  assert.equal(r.level, 'E4');
+  assert.equal(r.reviewRequired, true);
+  assert.match(r.note, /Sprague et al\. 2021/);
+  assert.match(r.note, /no implementa la condición de la mañana siguiente/);
+  // Todo id de fuente que el plan declara existe en SOURCES (con y sin lesiones ni objetivo de salud).
+  [{}, { healthGoal: true }, { healthGoal: true, injuryZones: ['shoulder', 'knee'] }].forEach(extra => {
+    const plan = E.buildPlan(Object.assign({}, male, extra, extra.injuryZones ? { health: cleared(cleared(E.normalizeProfile(Object.assign({}, male, extra)).health, 'shoulder', '2026-09-01'), 'knee', '2026-09-01') } : {}), TODAY);
+    plan.sourcesUsed.forEach(id => assert.ok(K.SOURCES[id], `fuente usada sin definir: ${id}`));
+  });
+});
 
 /* ---------- B-001 / DEC-018 · el import restaura workouts y sessions ---------- */
 
