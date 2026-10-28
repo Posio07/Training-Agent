@@ -580,3 +580,35 @@ La política del export; que el import crea un perfil nuevo; que la sesión en c
 - No cambia el plan generado (sin tabla de perfiles de referencia); `sw.js` pasa a la caché v11.
 
 **Estado: implementada.**
+
+## DEC-019 · La tarjeta de agua muestra agua total (bebidas + alimentos), no litros de bebida
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte.
+
+Contexto: B-020, prioridad pedida por Emanuel. La pestaña Dieta mostraba "≥ 2,5 L agua (hombres) / 2,0 L (mujeres) + lo perdido por sudor" con las cifras de EFSA. Esas cifras son agua **total**, así que quien las lee como litros de bebida se pasa de lo que EFSA propone.
+
+### Qué dice EFSA (leído en texto completo, copia institucional DTU Orbit; no se leyó la sección 4 ni las 2.3 a 2.7.1)
+EFSA Panel on Dietetic Products, Nutrition and Allergies (NDA), *Scientific Opinion on Dietary Reference Values for water*, EFSA Journal 2010;8(3):1459, DOI 10.2903/j.efsa.2010.1459.
+- **Es agua total:** "reference values for total water intake include water from drinking water, beverages of all kind, and from food moisture" (resumen). Ingesta adecuada: 2,0 L/día mujeres (P95 3,1 L) y 2,5 L/día hombres (P95 4,0 L).
+- **Alimentos:** "It is normally assumed that the contribution of food to total dietary water intake is 20 to 30%, while 70 to 80% are provided by beverages. This relationship is not fixed" (sección 6.1).
+- **No hay una ingesta adecuada separada para bebidas.** EFSA calcula los 2,0 y 2,5 L partiendo de volúmenes de orina de 1,6 y 2,0 L cubiertos "by beverages" y dividiendo por 0,8 (sección 6.6).
+- **Condiciones:** solo clima moderado y actividad moderada (PAL 1,6). Para pérdidas extremas por calor o ejercicio dice que "have to be replaced with appropriate amounts", **sin cifra** (resumen).
+- **Es una ingesta adecuada, no un mínimo**, basada en un objetivo de osmolaridad urinaria de ~500 mosm/L como margen de seguridad; no define un límite superior.
+- **El "más lo perdido por sudor" era una glosa de la app**, no una afirmación de EFSA.
+
+### Cambio (opción A, la que mejor respalda lo que EFSA dice)
+- **La cifra no cambia** (2,5 L hombres, 2,0 L mujeres). Cambia cómo se presenta: rótulo "agua total (bebidas + alimentos)", subtítulo "ingesta adecuada (EFSA); 20-30 % suele venir de la comida · más si sudas mucho". Se quitan el "≥" y el "+ lo perdido por sudor".
+- Comentario del motor y texto de la fuente `EFSA_WATER` (agua total, P95, condiciones, 20-30 %, sin ajuste numérico por sudor) corregidos.
+- **Nivel de evidencia:** la ingesta adecuada de agua total es E1 (opinión científica de una agencia regulatoria, poblacional). "Más si sudas mucho" es una convención de la app (E4) y **no lleva cifra**. No se agregó nada a `VALIDATOR_RULES`: el agua no es una regla del validador.
+
+### Opción B (NO implementada, decide Emanuel)
+Mostrar además una estimación de lo que se bebe: 70-80 % del total, es decir ≈ 2,0 L (hombres) y 1,6 L (mujeres) con el 80 % que usa EFSA en su cálculo (1,75-2,0 y 1,4-1,6 L con el rango 20-30 % de alimentos). Riesgos: parecería una recomendación de EFSA cuando EFSA no la formula, y la parte de alimentos "no es fija" (una dieta con mucha fruta y verdura aporta más). Si se hace, debe rotularse "estimación orientativa".
+
+### Lo que no cambia
+El plan generado y las huellas de los 30 planes (es solo texto); la cifra de agua. En la tarjeta de la mujer sigue viéndose "2 L" (formato numérico previo).
+
+### Pruebas
+- `engine.test.js`: la cifra sigue siendo 2,5 / 2,0 L; la fuente dice agua TOTAL, humedad de alimentos, 20-30 %, PAL 1,6 y P95, no afirma una ingesta solo de bebidas y ya no contiene "más las pérdidas por sudor"; el comentario del motor lo aclara.
+- `tests/e2e-agua.js` (navegador, 3 corridas sin fallos): la tarjeta de hombre y de mujer dice "agua total (bebidas + alimentos)", avisa del 20-30 % de alimentos y de que se necesita más si se suda mucho, y no usa "≥" ni "+ lo perdido por sudor".
+- Mutaciones: volver a la tarjeta anterior hace fallar 5 comprobaciones del E2E; volver al texto anterior de la fuente, 1 test; cambiar la cifra, 3 tests. `sw.js` pasa a la caché v12.
+
+**Estado: implementada, pendiente de aceptación.**

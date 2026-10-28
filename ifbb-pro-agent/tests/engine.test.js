@@ -2327,3 +2327,23 @@ test('B-001: archivos exportados antes (sin workouts ni sessions) o con otros ti
   // Sin newProfileId (llamada vieja) no rompe.
   assert.equal(E.prepareImportedProfile({ data: male, workouts: [{ sessionId: 's', profileId: 'x', exercise: 'e' }] }, TODAY).workouts[0].profileId, 'x');
 });
+
+
+/* ---------- DEC-019 · el agua que muestra la app es agua TOTAL (EFSA) ---------- */
+
+test('DEC-019: la cifra de agua no cambia (2,5 / 2,0 L) y la fuente dice que es agua total, sin afirmar lo que EFSA no dice', () => {
+  assert.equal(E.buildPlan(male, TODAY).nutrition.waterL, 2.5);
+  assert.equal(E.buildPlan(Object.assign({}, male, { sex: 'F', division: 'bikini_w' }), TODAY).nutrition.waterL, 2.0);
+  const title = K.SOURCES.EFSA_WATER.title;
+  assert.match(title, /agua TOTAL/);
+  assert.match(title, /humedad de los alimentos/);
+  assert.match(title, /20-30 %/);
+  assert.match(title, /PAL 1,6/);
+  assert.match(title, /P95 3,1 L/);
+  assert.match(title, /no da una ingesta adecuada solo de bebidas/);
+  assert.doesNotMatch(title, /más las pérdidas por sudor/, 'el "más sudor" es una glosa de la app, no de EFSA');
+  assert.equal(K.SOURCES.EFSA_WATER.url, 'https://doi.org/10.2903/j.efsa.2010.1459');
+  // El comentario del motor deja claro que no es solo bebida ni un mínimo.
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'engine.js'), 'utf8');
+  assert.match(src, /ingesta ADECUADA de agua TOTAL \(bebidas \+ alimentos\)/);
+});

@@ -583,7 +583,7 @@
           <div class="stat"><div class="v">${n.carbs} g</div><div class="l">carbohidratos · ${n.carbsPerKg} g/kg</div><div class="s">resto de calorías</div></div>
           <div class="stat"><div class="v">${n.fat} g</div><div class="l">grasas · ${n.fatPct} % kcal</div><div class="s">rango 15-30 %</div></div>
           <div class="stat"><div class="v">${n.fiber} g</div><div class="l">fibra</div><div class="s">14 g / 1.000 kcal</div></div>
-          <div class="stat"><div class="v">≥ ${n.waterL} L</div><div class="l">agua</div><div class="s">+ lo perdido por sudor</div></div>
+          <div class="stat"><div class="v">${n.waterL} L</div><div class="l">agua total (bebidas + alimentos)</div><div class="s">ingesta adecuada (EFSA); 20-30 % suele venir de la comida · más si sudas mucho</div></div>
         </div>
         <div class="macro-bar"><span class="p" style="width:${pct(n.protein * 4)}%"></span><span class="c" style="width:${pct(n.carbs * 4)}%"></span><span class="f" style="width:${pct(n.fat * 9)}%"></span></div>
         <div class="legend"><span><i style="background:var(--macro-proteina)"></i>Proteína ${pct(n.protein * 4)} %</span><span><i style="background:var(--macro-carbohidrato)"></i>Carbohidrato ${pct(n.carbs * 4)} %</span><span><i style="background:var(--macro-grasa)"></i>Grasa ${pct(n.fat * 9)} %</span></div>
