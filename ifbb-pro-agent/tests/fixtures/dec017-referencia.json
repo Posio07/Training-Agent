@@ -1,5 +1,5 @@
 {
- "nota": "DEC-017 · perfiles de referencia de DEC-014 (plan-identity-baseline.json), sin aceptación. antes = main con DEC-016 (5a40374); despues = con completar hasta el piso y piso de mantenimiento para grupos con énfasis reducido (DEC-017). minutos = duración derivada por sesión. pisos = piso semanal por grupo mayor (10 o 5). mayores = series fraccionadas semanales por grupo mayor. · despues_dec020 = tras DEC-020 (mínimo semanal por grupo; Propuesto): mismos campos más chicos (series reales y fraccionadas semanales de abdomen, pantorrillas, bíceps y tríceps) y minimoAgregadas.",
+ "nota": "DEC-017 · perfiles de referencia de DEC-014 (plan-identity-baseline.json), sin aceptación. antes = main con DEC-016 (5a40374); despues = con completar hasta el piso y piso de mantenimiento para grupos con énfasis reducido (DEC-017). minutos = duración derivada por sesión. pisos = piso semanal por grupo mayor (10 o 5). mayores = series fraccionadas semanales por grupo mayor. · despues_dec020 = tras DEC-020 (mínimo semanal por grupo; DEC-020): mismos campos más chicos (series reales y fraccionadas semanales de abdomen, pantorrillas, bíceps y tríceps) y minimoAgregadas.",
  "antes": {
   "oscar_cut_classic_5d": {
    "sesiones": [

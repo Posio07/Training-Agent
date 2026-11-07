@@ -648,7 +648,7 @@
         <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de ${x.floor}${x.floor < 10 ? ' (mantenimiento: énfasis reducido por la división)' : ''}${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
         <div class="btn-row">${canAccept ? acceptBtn : ''}${splitBtn}</div></div>`;
     }
-    // DEC-020 (Propuesto): mínimo semanal por grupo. Si no cabe dentro del tope, solo se cumple con la aceptación explícita.
+    // DEC-020: mínimo semanal por grupo. Si no cabe dentro del tope, solo se cumple con la aceptación explícita.
     const unmetMin = sl.minimum ? sl.minimum.groups.filter(g => !g.met && !g.excludedByInjury) : [];
     if (unmetMin.length) {
       out += `<div class="card"><h3>Mínimo semanal por grupo</h3>

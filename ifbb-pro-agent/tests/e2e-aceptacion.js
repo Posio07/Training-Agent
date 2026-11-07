@@ -25,7 +25,7 @@ const ok = (c, m) => { if (!c) { console.error('FALLA:', m); process.exitCode = 
   ok(await page.locator('text=hasta 35 series por sesión').count() === 1, 'dice el máximo aceptado');
   ok(await page.locator('[data-accept-long]').count() === 0, 'sin botón de aceptar mientras vale');
   ok(await page.locator('[data-change-split]').count() === 1, 'grupos chicos bajo el mínimo: ofrece cambiar de split (hay aviso)');
-  // DEC-020 (Propuesto): sin aceptación, en 3 días el mínimo semanal de los grupos chicos no cabe dentro de 25; la tarjeta lo dice y aceptar lo resuelve.
+  // DEC-020: sin aceptación, en 3 días el mínimo semanal de los grupos chicos no cabe dentro de 25; la tarjeta lo dice y aceptar lo resuelve.
   ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 0, 'con la aceptación vigente no hay tarjeta de mínimo que no cabe');
   await page.locator('[data-revoke-long]').first().click();
   d = await stored(); ok(d.longSessionAcceptance === null, 'revertir quita la aceptación (3 días)');

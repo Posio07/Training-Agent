@@ -28,7 +28,7 @@ Los valores, el nivel, la fuente y la fecha de revisión de cada regla viven en 
 
 ## Reglas del validador
 
-Son siete reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3), una derivada por cálculo (R4), un tope de series por sesión que es convención de la app (E4, Fase 2) y un mínimo semanal por grupo, también convención (DEC-020, Propuesto).
+Son siete reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3), una derivada por cálculo (R4), un tope de series por sesión que es convención de la app (E4, Fase 2) y un mínimo semanal por grupo, también convención (DEC-020, aceptado).
 
 ### R1 · Aviso de rendimiento decreciente por músculo por sesión (E3)
 
@@ -70,7 +70,7 @@ Son siete reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), 
 - **Costo conocido:** con el tope y el piso de los grupos mayores, los grupos chicos pueden quedar con pocas series o sin series directas en los splits de 3 y 4 días. El plan lo avisa y ofrece aceptar una sesión más larga.
 - **Duración:** sigue siendo derivada (R4). 25 series no equivalen a un tiempo fijo: en el modelo actual las sesiones de 25 series duran entre ~55 y ~98 min según los ejercicios (los unilaterales cuentan doble).
 
-### Mínimo semanal por grupo (E4, convención de la app; DEC-020, Propuesto)
+### Mínimo semanal por grupo (E4, convención de la app; DEC-020, aceptado)
 
 - **Regla:** cada grupo (también los chicos: abdomen, pantorrillas, bíceps y tríceps) llega a **5 series fraccionadas por semana**, contando el aporte indirecto de los compuestos. Es el mismo número del piso de mantenimiento de DEC-017 (10 × 0,5), no una cifra nueva. Nivel E4, convención de la app; respaldo parcial en Spiering et al. 2021 (revisión narrativa, solo resumen).
 - **Cómo:** dentro del tope de 25. Si una sesión compatible tiene espacio, se agregan series; si no, se sacan de aislamientos de la misma sesión, empezando por el grupo con más volumen fraccionado acumulado. Nunca se baja a un grupo de su propio mínimo o piso (los grupos mayores conservan además sus series reales y su frecuencia), y nunca se recorta un multiarticular.

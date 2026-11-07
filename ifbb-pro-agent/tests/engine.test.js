@@ -2349,7 +2349,7 @@ test('DEC-019: la cifra de agua no cambia (2,5 / 2,0 L) y la fuente dice que es 
   assert.match(src, /ingesta ADECUADA de agua TOTAL \(bebidas \+ alimentos\)/);
 });
 
-/* ---------- DEC-020 (Propuesto): mínimo semanal por grupo dentro del tope E4 ---------- */
+/* ---------- DEC-020: mínimo semanal por grupo dentro del tope E4 ---------- */
 
 const MIN020 = K.VALIDATOR_RULES.groupMinimumWeeklySets;
 const SMALL020 = ['abs', 'calves', 'biceps', 'triceps'];

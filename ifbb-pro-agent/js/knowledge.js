@@ -550,7 +550,7 @@
     sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
   };
 
-  // DEC-020 (Propuesto) · mínimo semanal por grupo. Es el MISMO número del piso de mantenimiento de DEC-017
+  // DEC-020 · mínimo semanal por grupo. Es el MISMO número del piso de mantenimiento de DEC-017
   // (minWeeklySetsPerMuscle × maintenanceFloorFactor = 5 series fraccionadas por semana, contando el aporte
   // indirecto de los compuestos), derivado de esas dos reglas para no inventar otro valor. A diferencia del
   // piso de 10 (que solo frena recortes y completa grupos mayores), este mínimo se exige también a los grupos

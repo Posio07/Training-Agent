@@ -621,7 +621,7 @@
     return log;
   }
 
-  // DEC-020 (Propuesto) · mínimo semanal por grupo, dentro del tope E4.
+  // DEC-020 · mínimo semanal por grupo, dentro del tope E4.
   // El mínimo es el de VALIDATOR_RULES.groupMinimumWeeklySets (5 series fraccionadas por semana, contando el
   // indirecto de los compuestos). Los grupos mayores ya llegan a su piso con completeToFloor (DEC-017); esto
   // cubre a los grupos chicos, que el tope E4 recorta primero. Para cada grupo chico bajo el mínimo (el de mayor
@@ -969,7 +969,7 @@
       });
     }
 
-    // DEC-020 (Propuesto) · mínimo semanal por grupo dentro del tope E4 (ver ensureGroupMinimum). Con una
+    // DEC-020 · mínimo semanal por grupo dentro del tope E4 (ver ensureGroupMinimum). Con una
     // aceptación vigente el techo es el máximo que el usuario aceptó; sin ella, el tope.
     const minLimit = accepted && acceptance ? Math.max(sessionLimit.cap, acceptance.maxSets) : sessionLimit.cap;
     const minResult = ensureGroupMinimum(sessions, split.days, injuryZones, minLimit, floors);

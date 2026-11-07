@@ -614,7 +614,7 @@ El plan generado y las huellas de los 30 planes (es solo texto); la cifra de agu
 **Estado: implementada, pendiente de aceptación.**
 
 ## DEC-020 · Mínimo semanal por grupo dentro del tope E4 (grupos chicos)
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte. Las decisiones de diseño de abajo las tomó Emanuel (2026-11-07); lo que falta es que acepte el DEC completo.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). Lo creó el agente como Propuesto; aceptado por Emanuel en el chat el 2026-11-07, después de ver el efecto de la restricción del último ejercicio directo (bíceps con 0 series directas a los 3 días: de 65 a 50 de 90 perfiles). Las decisiones de diseño de abajo también las tomó Emanuel.
 
 Contexto: con el tope E4 (DEC-014) y el piso de los grupos mayores, los grupos chicos (abdomen, pantorrillas, bíceps, tríceps) quedaban en 0 series directas en la mayoría de los perfiles de 3 y 4 días. DEC-016 solo los avisa y DEC-017 dejó fuera forzar un mínimo en ellos ("Fuera de alcance"). Esta decisión lo hace.
 
@@ -686,5 +686,5 @@ Grupos en 0 series reales: abdomen y pantorrillas, de 69 y 57 perfiles de 3 día
 ### Fuera de alcance
 Los pesos o niveles de las relaciones; relajar la garantía de series reales de los grupos mayores (alternativa de arriba); un mínimo directo (exigir al menos un ejercicio directo); tocar el tope de 25.
 
-**Estado: implementada, pendiente de aceptación.**
+**Estado: implementada.**
 
