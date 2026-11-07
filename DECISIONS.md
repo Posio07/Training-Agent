@@ -698,7 +698,7 @@ Contexto: `docs/specs/validador-fase3.md` (aprobada por Emanuel el 2026-11-07; P
   - `nivel`: `alta`, `media` o `baja`.
   - `evidencia`: **todas `a_verificar`** (decisión de la spec: las filas sin fuente quedan así). 10 celdas llevan una fuente candidata (propuesta del investigador, `docs/research/fase3-clasificacion.md`) pero siguen `a_verificar`: pasarlas a `probable` exige extender esa etiqueta a las articulaciones, decisión de Emanuel que todavía no se tomó. `verificado` no es alcanzable (exige medir hipertrofia) y el parser lo rechaza.
   - `origen`: `spec_inicial` (56 celdas, de la tabla de 18 ejercicios de la spec, transcrita tal cual) o `criterio_e4` (49 celdas, aplicando el criterio de modelado de la spec, E4).
-  - `ambiguo`: `si` en 26 celdas de 20 ejercicios, con el motivo en `notes`. Para esos, el valor del CSV es **provisional** y la regla es: **la primera variante que nombra el catálogo y, si el criterio no se pronuncia, su lectura literal**. Se listan abajo para que Emanuel decida.
+  - `ambiguo`: `si` en 27 celdas de 21 ejercicios, con el motivo en `notes`. Para esos, el valor del CSV es **provisional** y la regla es: **la primera variante que nombra el catálogo y, si el criterio no se pronuncia, su lectura literal**. Se listan abajo para que Emanuel decida.
 - **`scripts/build-perfil-articular.js`** valida el CSV contra el catálogo (`data/exercise-buckets.csv`) y genera **`ifbb-pro-agent/js/perfilArticular.js`** (se sube al repositorio; mismo mecanismo que DEC-012/013). Rechaza: articulación o nivel inválidos, `verificado`, `probable` sin fuente, origen inválido, ambiguo sin nota, filas repetidas, ejercicios que no existen y **cualquier ejercicio del catálogo al que le falte una articulación** ("todo el catálogo lleva perfil").
 - **`knowledge.js`** expone `JOINTS`, `JOINT_LEVELS`, `JOINT_PROFILE` y `missingJointProfile(id)`. `index.html` y `sw.js` cargan el módulo nuevo (caché v14).
 - **Aviso por ejercicio sin perfil:** si un ejercicio del plan no tiene alguna articulación, el plan lo avisa (`kind: 'sin_perfil_articular'`, E4, un solo aviso por plan). Hoy no se dispara porque el catálogo está completo; un test lo exige y otro simula el hueco.
@@ -730,6 +730,7 @@ Todos tienen valor provisional en el CSV. "Alternativa" = el otro nivel que ser�
 
 | Ejercicio | Articulación | Provisional | Alternativa | Motivo |
 | --- | --- | --- | --- | --- |
+| `back.row_barbell` | lumbar | alta (tabla de la spec) | media | La definición literal (carga en manos, tronco sin apoyo) da media; da alta solo si la bisagra sostenida cuenta como bisagra con carga. Hallazgo de B-026 (`docs/research/fase3-criterio-biomecanico.md`). |
 | `glutes.hip_thrust` | lumbar | media (spec) | baja | Dos líneas del criterio chocan: carga en la cadera (media) y tronco apoyado en el banco (baja). |
 | `shoulders.lateral_raise_db`, `shoulders.lateral_raise_cable` | lumbar | baja (spec) | media | La spec les da baja; el criterio literal (tronco sin apoyo con carga en manos) daría media. |
 | `biceps.curl_barbell`, `triceps.pushdown_cable`, `back.pullover_cable` | lumbar | media (criterio literal) | baja | Misma situación (de pie, carga ligera en manos) que las elevaciones laterales, pero aquí se aplicó el criterio literal: es **inconsistente a propósito** hasta que Emanuel decida si "carga ligera de pie" es media o baja. |

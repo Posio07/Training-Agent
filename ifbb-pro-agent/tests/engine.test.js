@@ -2700,13 +2700,14 @@ test('DEC-021: los ejercicios ambiguos están marcados con su motivo y son exact
   const amb = {};
   paRows().filter(r => r.ambiguo === 'si').forEach(r => { (amb[r.exerciseId] = amb[r.exerciseId] || []).push(r.articulacion); assert.ok(r.notes.length > 20, `${r.exerciseId}/${r.articulacion}: motivo`); });
   assert.deepEqual(Object.keys(amb).sort(), [
-    'abs.crunch_or_wheel', 'abs.hanging_leg_raise', 'back.pullover_cable', 'back.row_cable', 'biceps.curl_barbell', 'biceps.curl_incline', 'calves.calf_raise_standing',
+    'abs.crunch_or_wheel', 'abs.hanging_leg_raise', 'back.pullover_cable', 'back.row_barbell', 'back.row_cable', 'biceps.curl_barbell', 'biceps.curl_incline', 'calves.calf_raise_standing',
     'chest.fly_cable_pecdeck', 'functional.farmer_carry', 'functional.step_up', 'glutes.bulgarian_hip', 'glutes.hip_thrust', 'glutes.kickback_cable',
     'quads.squat_back_or_hack', 'shoulders.lateral_raise_cable', 'shoulders.lateral_raise_db', 'shoulders.press_landmine_neutral', 'shoulders.press_overhead',
     'shoulders.rear_delt_facepull', 'triceps.pushdown_cable',
   ]);
   assert.deepEqual(amb['shoulders.press_landmine_neutral'], ['hombro'], 'el sustituto del press ante lesión de hombro: alta o media');
   assert.deepEqual(amb['abs.crunch_or_wheel'].sort(), ['hombro', 'lumbar']);
+  assert.deepEqual(amb['back.row_barbell'], ['lumbar'], 'remo con barra: la spec dice alta, el criterio literal media');
 });
 
 test('DEC-021: el plan no cambia (el perfil no se expone ni lo usa ninguna regla todavía) y un ejercicio sin perfil advierte', () => {
