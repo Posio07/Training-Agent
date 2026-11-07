@@ -835,3 +835,31 @@ Antes de estos cambios saltaba en el 100 % de los planes (sin A1 ni A3) y, con A
 A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7; el reparto semanal que deja sesiones con más de 11 series de un músculo (B-037); la variedad de curl sentado y tumbado (B-035); el split de 3 días (no se tocó).
 
 **Estado: implementada. Aceptado por Emanuel el 2026-11-07.**
+
+## DEC-023 · Año de prueba: sin retrocompatibilidad de datos, exportación antes de cada reset y código muerto fuera en el mismo PR
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (arquitectura y alcance: lo decide solo Emanuel). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte.
+
+Contexto: la app la usan 2 personas y se prueba durante un año antes de una posible versión pública. Emanuel cambió de estrategia: se reconstruye el núcleo del generador con filosofía "clean core" (no se parchea el motor actual). Hoy el motor y el almacenamiento arrastran compatibilidad con formatos anteriores (por ejemplo `migrateLongSessionAcceptance`, el campo legado `longSessionAcceptedOn` y las filas de series anteriores a DEC-015 sin `setKey`) y parches que corrigen efectos de otros pasos. Esa compatibilidad no sirve a nadie mientras los datos del año de prueba se puedan borrar.
+
+### Decisión (propuesta)
+1. **Durante el año de prueba, la retrocompatibilidad de datos no es requisito.** El formato del almacenamiento y del plan puede cambiar sin migración. El año de prueba dura hasta que Emanuel lo cierre por escrito (DEC o `docs/VISION.md`).
+2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie.
+3. **El código que una decisión deja muerto se elimina en el mismo PR** que la implementa: migraciones, campos legados, caminos que ya nadie recorre, datos y tests que solo ejercitaban ese código. Un test de comportamiento se conserva; un test que solo fija un detalle interno del código eliminado se elimina con él. Quien revisa el PR comprueba que no queda nada muerto.
+
+### Qué no cambia
+- **DEC-009 (privacidad)**: los datos de salud y el dolor por serie siguen sin salir del dispositivo ni entrar a ningún export, tampoco al archivo de esta decisión.
+- **Los DEC aceptados siguen vigentes**: eliminar el código que una decisión deja muerto no cambia ni revierte un DEC aceptado (eso sigue siendo nivel 3). Su estado no se edita.
+- El registro de entrenamiento sigue funcionando sin conexión; el server no es una dependencia.
+- Las reglas de evidencia (E1 a E4, fuente y estado) y las pruebas de mutación siguen igual.
+
+### Alternativas
+- **A. Mantener la retrocompatibilidad (estado actual).** Costo: cada cambio de formato exige una migración y un test que la cubra; el código muerto se acumula (ya hay migraciones y campos legados sin uso real). Beneficio: ningún dato se pierde sin pedirlo.
+- **B. Recomendada: sin retrocompatibilidad durante el año de prueba, con exportación obligatoria antes de cada reset.** Costo: un reset obliga a perder el estado vivo de la app (el historial queda archivado fuera, no se reimporta salvo que se escriba un importador a propósito). Beneficio: el núcleo nuevo no carga con formatos viejos y el historial no se pierde.
+- **C. Sin retrocompatibilidad y sin exportación.** Descartada: el historial de entrenamiento es el único dato que no se puede regenerar.
+
+### Consecuencias
+- `CLAUDE.md` y la checklist del revisor (`.claude/agents/revisor.md`) reflejan estas reglas (en este mismo PR, a pedido de Emanuel, aunque la decisión siga Propuesta: quedan en vigor cuando la acepte).
+- Herramienta: `scripts/exportar-historial.js` (JSON y CSV; entradas: el volcado del almacenamiento de la app o la exportación de un perfil). Probada con datos sintéticos; no se ejecutó contra el almacenamiento real de nadie.
+- No se elimina ningún código en este PR: la limpieza llega con la spec del núcleo nuevo (inventario en `docs/research/inventario-generador.md`).
+
+**Estado: Propuesto.**
