@@ -1031,6 +1031,15 @@
     // no recorta nada. Mismo conteo fraccionado que Pelland et al. 2026.
     diminishingReturnsWarnings(sessions).forEach(w => trainingWarnings.push(w));
 
+    // DEC-021 (Fase 3, Paso 1) · un ejercicio sin perfil articular completo se avisa, nunca pasa en silencio. Hoy todo
+    // el catálogo lo tiene (un test lo exige); el aviso cubre un ejercicio nuevo al que se le olvide.
+    const noProfile = [];
+    sessions.forEach(s => s.exercises.forEach(e => { const miss = K.missingJointProfile(e.exerciseId); if (miss.length && !noProfile.some(x => x.exerciseId === e.exerciseId)) noProfile.push({ exerciseId: e.exerciseId, name: e.name, missing: miss }); }));
+    if (noProfile.length) {
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'A', kind: 'sin_perfil_articular', exercises: noProfile,
+        text: `Sin perfil articular completo: ${noProfile.map(x => `${x.name} (${x.missing.join(', ')})`).join('; ')}. Las reglas articulares (Fase 3) no pueden evaluar estos ejercicios. (Criterio de modelado E4.)` });
+    }
+
     // DEC-002 / DEC-008: en definición, el primer ejercicio ELEGIBLE del día
     // lleva un top set pesado (no suma series nuevas: la primera de sus
     // series pasa a ser el top set y el resto queda como back-off al -10%

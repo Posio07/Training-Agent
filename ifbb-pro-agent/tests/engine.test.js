@@ -2598,3 +2598,165 @@ test('DEC-020: los avisos del mínimo llevan nivel E4 y la regla; las series agr
   const all = t.sessions.flatMap(s => s.exercises);
   Object.keys(t.weeklySets).forEach(mu => assert.equal(all.filter(e => e.bucket === mu).reduce((a, e) => a + e.sets, 0), t.weeklySets[mu], mu));
 });
+
+/* ---------- DEC-021 (Fase 3, Paso 1): tabla perfil_articular de todo el catálogo ---------- */
+
+const PA = require('../../scripts/build-perfil-articular.js');
+const paCsv = () => fsMuscles.readFileSync(PA.CSV_PATH, 'utf8');
+const paCatalog = () => PA.catalogIdsFromBuckets(fsMuscles.readFileSync(PA.BUCKETS_PATH, 'utf8'));
+const paRows = () => { const p = PA.parsePerfilArticular(paCsv(), paCatalog()); assert.deepEqual(p.errors, [], 'el CSV de perfil articular tiene errores'); return p.rows; };
+const paCell = (id, j) => paRows().find(r => r.exerciseId === id && r.articulacion === j);
+
+test('DEC-021: todo el catálogo tiene las tres articulaciones, con niveles válidos y sin filas de más', () => {
+  const ids = catalogIds();
+  assert.deepEqual(paCatalog().slice().sort(), ids.slice().sort(), 'el CSV de buckets y el catálogo listan los mismos ejercicios');
+  assert.equal(paRows().length, ids.length * 3);
+  ids.forEach(id => {
+    assert.deepEqual(K.missingJointProfile(id), [], `${id}: perfil completo`);
+    K.JOINTS.forEach(j => assert.ok(K.JOINT_LEVELS.includes(K.JOINT_PROFILE[id][j].nivel), `${id}/${j}: nivel`));
+  });
+  assert.deepEqual(K.JOINTS, ['lumbar', 'hombro', 'rodilla']);
+  assert.deepEqual(K.JOINT_LEVELS, ['alta', 'media', 'baja']);
+  assert.deepEqual(Object.keys(K.JOINT_PROFILE).sort(), ids.slice().sort());
+  // El paseo del granjero y los sustitutos por lesión también llevan perfil.
+  assert.deepEqual(K.missingJointProfile('functional.farmer_carry'), []);
+  assert.deepEqual(K.missingJointProfile('shoulders.press_landmine_neutral'), []);
+  assert.deepEqual(K.missingJointProfile('ejercicio.inexistente'), ['lumbar', 'hombro', 'rodilla']);
+});
+
+test('DEC-021: el parser rechaza datos inválidos con la fila y el motivo, y exige perfil completo', () => {
+  const head = PA.COLUMNS.join(',') + '\n';
+  const ok = 'chest.bench_press_barbell,lumbar,baja,a_verificar,spec_inicial,no,,nota,2026-11-07\n';
+  const ids = ['chest.bench_press_barbell'];
+  const errs = (line, c) => PA.parsePerfilArticular(head + line + '\n', c || null).errors.join(' | ');
+  assert.deepEqual(PA.parsePerfilArticular(head + ok, null).errors, []);
+  assert.match(errs('chest.bench_press_barbell,cuello,baja,a_verificar,spec_inicial,no,,n,2026-11-07'), /articulacion inválida "cuello"/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,altísima,a_verificar,spec_inicial,no,,n,2026-11-07'), /nivel inválido/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,verificado,spec_inicial,no,x,n,2026-11-07'), /evidencia inválida "verificado"/, 'una demanda articular nunca es verificado');
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,probable,spec_inicial,no,,n,2026-11-07'), /probable sin fuente/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,a_verificar,otro,no,,n,2026-11-07'), /origen inválido/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,a_verificar,spec_inicial,quizá,,n,2026-11-07'), /ambiguo inválido/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,a_verificar,criterio_e4,si,,,2026-11-07'), /ambigua necesita una nota/);
+  assert.match(errs('chest.bench_press_barbell,lumbar,baja,a_verificar,spec_inicial,no,,n,07/11/2026'), /review_date/);
+  assert.match(PA.parsePerfilArticular(head + ok + ok, null).errors.join(' | '), /fila repetida/);
+  assert.match(errs('nada.nada,lumbar,baja,a_verificar,spec_inicial,no,,n,2026-11-07', ids), /no existe en el catálogo/);
+  // Un ejercicio del catálogo sin alguna articulación no pasa en silencio.
+  const missing = PA.parsePerfilArticular(head + ok, ids).errors.join(' | ');
+  assert.match(missing, /chest\.bench_press_barbell: falta el perfil de hombro/);
+  assert.match(missing, /chest\.bench_press_barbell: falta el perfil de rodilla/);
+  assert.match(PA.parsePerfilArticular('exerciseId,articulacion\nx,y\n', null).errors.join(' | '), /Faltan columnas/);
+  assert.match(PA.parsePerfilArticular(PA.COLUMNS.join(',') + ',peso\n', null).errors.join(' | '), /Columnas desconocidas: peso/);
+  assert.throws(() => PA.buildFromCsvText(head + ok, ids), /inválido/);
+});
+
+test('DEC-021: ifbb-pro-agent/js/perfilArticular.js coincide con el CSV y llega al conocimiento', () => {
+  assert.equal(fsMuscles.readFileSync(PA.MODULE_PATH, 'utf8'), PA.buildFromCsvText(paCsv(), paCatalog()), 'módulo desactualizado: correr `node scripts/build-perfil-articular.js`');
+  const mod = require('../js/perfilArticular.js');
+  assert.deepEqual(mod.rows, paRows());
+  const c = paCell('hamstrings.rdl', 'lumbar');
+  assert.deepEqual(K.JOINT_PROFILE['hamstrings.rdl'].lumbar, { nivel: c.nivel, evidencia: c.evidencia, origen: c.origen, ambiguo: c.ambiguo === 'si', fuente: c.fuente, notes: c.notes, reviewDate: c.review_date });
+});
+
+test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálogo; las variantes que la spec separa y el catálogo une se clasifican por la más exigente (regla 1)', () => {
+  const spec = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../../docs/specs/validador-fase3.md'), 'utf8');
+  const body = spec.split('| Ejercicio | Lumbar | Hombro | Rodilla |')[1].split('\n\n')[0];
+  const specRows = Object.fromEntries(body.split('\n').filter(l => l.startsWith('| ') && !l.startsWith('| ---')).map(l => { const c = l.split('|').map(x => x.trim()); return [c[1], [c[2], c[3], c[4]]]; }));
+  assert.equal(Object.keys(specRows).length, 18, 'la spec tiene 18 ejercicios iniciales');
+  const equal = {
+    'Sentadilla trasera': ['quads.squat_back_or_hack'], 'Peso muerto rumano': ['hamstrings.rdl'], 'Remo con barra inclinado': ['back.row_barbell'],
+    'Sentadilla búlgara con mancuernas': ['functional.bulgarian_db', 'quads.lunge_or_bulgarian', 'glutes.bulgarian_hip'], 'Hip thrust con barra': ['glutes.hip_thrust'],
+    'Press militar de pie': ['shoulders.press_overhead'], 'Prensa de piernas': ['quads.leg_press'], 'Extensión de cuádriceps': ['quads.leg_extension'],
+    'Curl femoral tumbado o sentado': ['hamstrings.leg_curl'], 'Press de banca': ['chest.bench_press_barbell'], 'Press inclinado': ['chest.incline_press_db'],
+    'Fondos en paralelas': ['chest.dip_or_machine_press', 'triceps.close_grip_or_dips'], 'Jalón al pecho': ['back.vertical_pull'], 'Dominadas': ['back.vertical_pull'],
+    'Elevaciones laterales': ['shoulders.lateral_raise_db', 'shoulders.lateral_raise_cable'],
+  };
+  Object.entries(equal).forEach(([name, ids]) => ids.forEach(id => {
+    K.JOINTS.forEach((j, k) => { assert.equal(K.JOINT_PROFILE[id][j].nivel, specRows[name][k], `${name} → ${id} / ${j}`); assert.equal(K.JOINT_PROFILE[id][j].origen, 'spec_inicial', `${id}/${j}: origen`); });
+  }));
+  // Hack squat, press militar sentado y remo con apoyo de pecho son variantes dentro de una entrada del catálogo: gana la más exigente (regla 1 de desempate).
+  const cell = (id, j) => K.JOINT_PROFILE[id][j];
+  assert.deepEqual(specRows['Hack squat (máquina)'], ['media', 'baja', 'alta']);
+  assert.equal(cell('quads.squat_back_or_hack', 'lumbar').nivel, 'alta'); assert.match(cell('quads.squat_back_or_hack', 'lumbar').notes, /regla 1.*hack/i);
+  assert.deepEqual(specRows['Press militar sentado con respaldo'], ['baja', 'alta', 'baja']);
+  assert.equal(cell('shoulders.press_overhead', 'lumbar').nivel, 'media'); assert.match(cell('shoulders.press_overhead', 'lumbar').notes, /regla 1.*sentado/i);
+  assert.deepEqual(specRows['Remo con apoyo de pecho'], ['baja', 'media', 'baja']);
+  assert.equal(cell('back.row_cable', 'lumbar').nivel, 'media'); assert.match(cell('back.row_cable', 'lumbar').notes, /regla 1/i);
+  assert.equal(cell('back.row_cable', 'hombro').nivel, 'media'); assert.equal(cell('back.row_cable', 'rodilla').nivel, 'baja');
+});
+
+test('DEC-021: probable en las articulaciones (decidido por Emanuel): solo con fuente y exactamente en las 5 celdas sin desempate; verificado no existe', () => {
+  const rows = paRows();
+  assert.ok(rows.every(r => ['probable', 'a_verificar'].includes(r.evidencia)), 'solo probable o a_verificar');
+  assert.ok(rows.every(r => r.nivel && PA.LEVELS.includes(r.nivel)));
+  const probables = rows.filter(r => r.evidencia === 'probable').map(r => `${r.exerciseId}/${r.articulacion}`).sort();
+  assert.deepEqual(probables, ['back.vertical_pull/hombro', 'chest.bench_press_barbell/hombro', 'hamstrings.rdl/lumbar', 'quads.leg_extension/rodilla', 'quads.squat_back_or_hack/rodilla']);
+  rows.filter(r => r.evidencia === 'probable').forEach(r => { assert.match(r.fuente, /PMID \d+/); assert.ok(!/Desempate/.test(r.notes), `${r.exerciseId}/${r.articulacion}: un nivel de desempate no es probable`); });
+  // Las celdas con fuente cuyo nivel salió de un desempate, o que la fuente solo confirma de forma indirecta, siguen a_verificar.
+  const withSource = rows.filter(r => r.fuente);
+  assert.equal(withSource.length, 10);
+  withSource.filter(r => r.evidencia === 'a_verificar').forEach(r => assert.match(r.notes, /sigue a_verificar/));
+  // Las dos fuentes de "corrección" no se aplican: la tabla inicial manda.
+  assert.equal(paCell('functional.bulgarian_db', 'rodilla').nivel, 'alta');
+  assert.equal(paCell('functional.bulgarian_db', 'rodilla').evidencia, 'a_verificar');
+  // Mismo límite en el parser: probable sin fuente y verificado se rechazan.
+  const bad = (ev, f) => PA.parsePerfilArticular(paCsv().split('\n').map((l, k) => (k === 1 ? l.replace(/,(a_verificar|probable),/, `,${ev},`).replace(/,"?[^,]*PMID[^,]*"?,/, ',' + f + ',') : l)).join('\n'), paCatalog());
+  assert.ok(PA.parsePerfilArticular(paCsv().replace(/^(chest\.bench_press_barbell,hombro,alta,)probable(,[^\n]*)$/m, '$1verificado$2'), paCatalog()).errors.length > 0, 'verificado se rechaza');
+});
+
+test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambiguas quedaron resueltas con lo que decidió Emanuel', () => {
+  const rows = paRows();
+  assert.equal(rows.filter(r => r.ambiguo === 'si').length, 0, 'ninguna celda queda ambigua');
+  const spec = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../../docs/specs/validador-fase3.md'), 'utf8');
+  assert.match(spec, /Reglas de desempate/);
+  ['variante más exigente', 'torso inclinado más de 45° con carga externa', 'conflictos reales entre reglas', 'gana sobre la lectura literal', 'carga axial sin bisagra', 'Lumbar media exige carga relevante', 'Nunca se clasifica un ejercicio para conservar su función de sustituto', 'torso inclinado más de 45° con carga externa', 'conflictos reales', 'gana sobre la lectura literal'].forEach(t => assert.ok(spec.includes(t), `la spec dice: ${t}`));
+  // Lo decidido, celda por celda (lumbar, hombro, rodilla).
+  const decided = {
+    'back.row_barbell': ['alta', 'media', 'baja'], 'calves.calf_raise_standing': ['media', 'baja', 'baja'], 'functional.farmer_carry': ['media', 'baja', 'baja'],
+    'shoulders.lateral_raise_db': ['baja', 'media', 'baja'], 'shoulders.lateral_raise_cable': ['baja', 'media', 'baja'], 'biceps.curl_barbell': ['baja', 'baja', 'baja'],
+    'triceps.pushdown_cable': ['baja', 'baja', 'baja'], 'back.pullover_cable': ['baja', 'media', 'baja'], 'chest.fly_cable_pecdeck': ['baja', 'media', 'baja'],
+    'biceps.curl_incline': ['baja', 'media', 'baja'], 'shoulders.press_landmine_neutral': ['media', 'media', 'baja'], 'glutes.hip_thrust': ['media', 'baja', 'baja'],
+    'functional.step_up': ['media', 'baja', 'alta'], 'glutes.kickback_cable': ['baja', 'baja', 'baja'], 'abs.hanging_leg_raise': ['media', 'media', 'baja'],
+    'quads.squat_back_or_hack': ['alta', 'media', 'alta'], 'shoulders.press_overhead': ['media', 'alta', 'baja'], 'back.row_cable': ['media', 'media', 'baja'],
+    'glutes.bulgarian_hip': ['media', 'baja', 'alta'], 'abs.crunch_or_wheel': ['media', 'media', 'baja'], 'shoulders.rear_delt_facepull': ['baja', 'media', 'baja'],
+  };
+  assert.equal(Object.keys(decided).length, 21);
+  Object.entries(decided).forEach(([id, lv]) => K.JOINTS.forEach((j, k) => assert.equal(K.JOINT_PROFILE[id][j].nivel, lv[k], `${id}/${j}`)));
+  // Cada celda resuelta cita su regla; el press landmine no se clasifica por ser sustituto (regla 4).
+  const resolved = rows.filter(r => /Emanuel, 2026-11-07|Decidido por Emanuel \(2026-11-07\)/.test(r.notes));
+  assert.ok(resolved.length >= 27, `celdas con regla anotada: ${resolved.length}`);
+  assert.match(paCell('shoulders.press_landmine_neutral', 'hombro').notes, /No se clasifica por su función de sustituto/);
+  assert.ok(!/sustituto del press/i.test(paCell('shoulders.press_landmine_neutral', 'hombro').notes.replace('No se clasifica por su función de sustituto', '')));
+});
+
+test('DEC-021: el plan no cambia (el perfil no se expone ni lo usa ninguna regla todavía) y un ejercicio sin perfil advierte', () => {
+  const engineSrc = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../js/engine.js'), 'utf8');
+  assert.doesNotMatch(engineSrc, /JOINT_PROFILE|\.nivel\b/, 'engine.js solo usa missingJointProfile');
+  const plan = E.buildPlan(fullBody3, TODAY);
+  assert.ok(!plan.warnings.some(w => w.kind === 'sin_perfil_articular'), 'catálogo completo: sin aviso');
+  assert.ok(!/"lumbar"|"hombro":\{/.test(JSON.stringify(plan.training.sessions)), 'las sesiones no exponen el perfil');
+  // Un ejercicio al que le falte una articulación (o todas) se avisa por su nombre.
+  const saved = K.JOINT_PROFILE['chest.bench_press_barbell'];
+  const savedRdl = K.JOINT_PROFILE['hamstrings.rdl'];
+  try {
+    K.JOINT_PROFILE['chest.bench_press_barbell'] = { lumbar: saved.lumbar, rodilla: saved.rodilla }; // sin hombro
+    delete K.JOINT_PROFILE['hamstrings.rdl']; // sin nada
+    const p2 = E.buildPlan(Object.assign({}, fullBody3, { daysPerWeek: 4 }), TODAY);
+    const w = p2.warnings.find(x => x.kind === 'sin_perfil_articular');
+    assert.ok(w, 'falta el aviso de ejercicio sin perfil');
+    assert.deepEqual([w.level, w.evidence, w.rule], ['warn', 'E4', 'A']);
+    assert.ok(w.exercises.some(x => x.exerciseId === 'chest.bench_press_barbell' && x.missing.join() === 'hombro'));
+    assert.ok(w.exercises.some(x => x.exerciseId === 'hamstrings.rdl' && x.missing.length === 3));
+    assert.match(w.text, /Press banca con barra \(hombro\)/);
+    assert.equal(p2.warnings.filter(x => x.kind === 'sin_perfil_articular').length, 1, 'un solo aviso por plan, sin repetir ejercicios');
+  } finally { K.JOINT_PROFILE['chest.bench_press_barbell'] = saved; K.JOINT_PROFILE['hamstrings.rdl'] = savedRdl; }
+});
+
+test('DEC-021: el módulo perfilArticular.js se carga en index.html (antes de knowledge.js) y está en la caché del service worker (offline)', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const iPerfil = html.indexOf('js/perfilArticular.js'), iKnow = html.indexOf('js/knowledge.js');
+  assert.ok(iPerfil >= 0 && iKnow >= 0 && iPerfil < iKnow, 'index.html carga perfilArticular.js antes que knowledge.js');
+  assert.ok(sw.includes("'./js/perfilArticular.js'"), 'sw.js lo precachea');
+});

@@ -1,0 +1,106 @@
+exerciseId,articulacion,nivel,evidencia,origen,ambiguo,fuente,notes,review_date
+chest.bench_press_barbell,lumbar,baja,a_verificar,spec_inicial,no,,Spec: press de banca. Tronco apoyado en banco.,2026-11-07
+chest.bench_press_barbell,hombro,alta,probable,spec_inicial,no,"Noteboom L et al. Front Physiol 2024;15:1393235, PMID 38974522 · Motlagh JG, Lipps DB. J Sports Sci 2026;44(11):1453-63, PMID 41804856 (resúmenes)",Probable: extensión decidida por Emanuel (2026-11-07); fuente leída solo en resumen. Empuje con carga.,2026-11-07
+chest.bench_press_barbell,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+chest.incline_press_db,lumbar,baja,a_verificar,spec_inicial,no,,Spec: press inclinado. Tronco apoyado.,2026-11-07
+chest.incline_press_db,hombro,alta,a_verificar,spec_inicial,no,,Spec: press inclinado. Sin fuente específica.,2026-11-07
+chest.incline_press_db,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+chest.dip_or_machine_press,lumbar,baja,a_verificar,spec_inicial,no,,Spec: fondos en paralelas (la variante de máquina da el mismo nivel).,2026-11-07
+chest.dip_or_machine_press,hombro,alta,a_verificar,spec_inicial,no,,"Fondos y press en máquina: empuje con carga. Fondos: solo contexto cinemático (McKenzie 2022, PMID 36293792).",2026-11-07
+chest.dip_or_machine_press,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+chest.fly_cable_pecdeck,lumbar,baja,a_verificar,criterio_e4,no,,"Regla 3 (Emanuel, 2026-11-07): la variante más exigente (aperturas en polea de pie) es un aislamiento ligero, así que la regla 3 también da lumbar baja; no hay tensión con la regla 1.",2026-11-07
+chest.fly_cable_pecdeck,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4 (Emanuel, 2026-11-07): aislamiento en el final del rango.",2026-11-07
+chest.fly_cable_pecdeck,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+back.vertical_pull,lumbar,baja,a_verificar,spec_inicial,no,,"Spec: jalón al pecho y dominadas, mismos niveles.",2026-11-07
+back.vertical_pull,hombro,media,probable,spec_inicial,no,"Prinold JA, Bull AMJ. J Sci Med Sport 2016;19(8):629-35. PMID 26383875 (resumen)","Probable: extensión decidida por Emanuel (2026-11-07); fuente leída solo en resumen. Dominada frontal; ancha o supina, más riesgo de pinzamiento (Prinold 2016).",2026-11-07
+back.vertical_pull,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+back.row_barbell,lumbar,alta,a_verificar,spec_inicial,no,"Fenwick CM, Brown SH, McGill SM. J Strength Cond Res 2009;23(2):350-8. PMID 19197209 (resumen)","Fuente candidata; sigue a_verificar (el nivel salió de una regla de desempate). Desempate, regla 2 (Emanuel, 2026-11-07): mantener el torso inclinado sin apoyo con carga cuenta como bisagra con carga.",2026-11-07
+back.row_barbell,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-07
+back.row_barbell,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+back.row_cable,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 1 (Emanuel, 2026-11-07): polea baja sentada sin apoyo de pecho (la máquina con apoyo sería baja).",2026-11-07
+back.row_cable,hombro,media,a_verificar,spec_inicial,no,,"Spec: remo con apoyo de pecho, hombro media.",2026-11-07
+back.row_cable,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+back.pullover_cable,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3 (Emanuel, 2026-11-07): aislamiento ligero de pie.",2026-11-07
+back.pullover_cable,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4 (Emanuel, 2026-11-07): aislamiento en el final del rango.",2026-11-07
+back.pullover_cable,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+shoulders.press_overhead,lumbar,media,a_verificar,spec_inicial,no,,"Desempate, regla 1 (Emanuel, 2026-11-07): de pie (sentado con respaldo sería baja).",2026-11-07
+shoulders.press_overhead,hombro,alta,a_verificar,spec_inicial,no,"Kolber MJ et al. J Strength Cond Res 2010;24(6):1696-704, PMID 20508476 · Gundersen AH et al. Sports Biomech 2026;25(6):841-54, PMID 41335596 (resúmenes)",Fuente candidata; sigue a_verificar (la fuente solo confirma de forma indirecta o sugiere otro nivel). Confirmación indirecta (ninguna fuente es press de pie con barra).,2026-11-07
+shoulders.press_overhead,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+shoulders.lateral_raise_db,lumbar,baja,a_verificar,spec_inicial,no,,"Desempate, regla 3 (Emanuel, 2026-11-07): aislamiento ligero de pie.",2026-11-07
+shoulders.lateral_raise_db,hombro,media,a_verificar,spec_inicial,no,,Spec: elevaciones con carga.,2026-11-07
+shoulders.lateral_raise_db,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+shoulders.lateral_raise_cable,lumbar,baja,a_verificar,spec_inicial,no,,"Desempate, regla 3 (Emanuel, 2026-11-07): aislamiento ligero de pie.",2026-11-07
+shoulders.lateral_raise_cable,hombro,media,a_verificar,spec_inicial,no,,Spec: elevaciones con carga.,2026-11-07
+shoulders.lateral_raise_cable,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+shoulders.rear_delt_facepull,lumbar,baja,a_verificar,criterio_e4,no,,"Regla 3 (Emanuel, 2026-11-07): aislamiento ligero. La regla 3, que es específica, gana sobre la lectura literal del criterio y sobre los pájaros inclinados; la regla 5 no aplica porque no hay un conflicto real entre reglas.",2026-11-07
+shoulders.rear_delt_facepull,hombro,media,a_verificar,criterio_e4,no,,Tracción con carga.,2026-11-07
+shoulders.rear_delt_facepull,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+shoulders.press_landmine_neutral,lumbar,media,a_verificar,criterio_e4,no,,"De pie, carga en manos (ejercicio solo por lesión de hombro, DEC-011).",2026-11-07
+shoulders.press_landmine_neutral,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4 (Emanuel, 2026-11-07): por su mecánica: empuja en arco sin llegar al final del rango. No se clasifica por su función de sustituto.",2026-11-07
+shoulders.press_landmine_neutral,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+quads.squat_back_or_hack,lumbar,alta,a_verificar,spec_inicial,no,"Hamlyn N, Behm DG, Young WB. J Strength Cond Res 2007;21(4):1108-12. PMID 18076231 (resumen)","Fuente candidata; sigue a_verificar (el nivel salió de una regla de desempate). Desempate, regla 1 (Emanuel, 2026-11-07): trasera (el hack sería media).",2026-11-07
+quads.squat_back_or_hack,hombro,media,a_verificar,spec_inicial,no,,"Desempate, regla 1 (Emanuel, 2026-11-07): trasera (el hack sería baja).",2026-11-07
+quads.squat_back_or_hack,rodilla,alta,probable,spec_inicial,no,"Wilk KE et al. Am J Sports Med 1996;24(4):518-27, PMID 8827313 · Escamilla RF et al. Med Sci Sports Exerc 2001;33(9):1552-66, PMID 11528346 (resúmenes)",Probable: extensión decidida por Emanuel (2026-11-07); fuente leída solo en resumen. Trasera y hack: alta en la spec.,2026-11-07
+quads.leg_press,lumbar,baja,a_verificar,spec_inicial,no,,Spec: prensa. Tronco apoyado.,2026-11-07
+quads.leg_press,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+quads.leg_press,rodilla,alta,a_verificar,spec_inicial,no,"Escamilla RF et al. Med Sci Sports Exerc 2001;33(9):1552-66, PMID 11528346 · Escamilla RF et al. 1998;30(4):556-69, PMID 9565938 (resúmenes)",Fuente candidata; sigue a_verificar (la fuente solo confirma de forma indirecta o sugiere otro nivel). Fuerzas menores que en la sentadilla (Escamilla 2001): con la misma etiqueta se pierde la diferencia.,2026-11-07
+quads.lunge_or_bulgarian,lumbar,media,a_verificar,spec_inicial,no,,"Spec: sentadilla búlgara con mancuernas. Zancadas: mismo nivel por el criterio (carga en manos, tronco sin apoyo).",2026-11-07
+quads.lunge_or_bulgarian,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+quads.lunge_or_bulgarian,rodilla,alta,a_verificar,spec_inicial,no,,Spec: alta. Ver la candidata a media en functional.bulgarian_db (un solo estudio).,2026-11-07
+quads.leg_extension,lumbar,baja,a_verificar,spec_inicial,no,,Spec: extensión de cuádriceps.,2026-11-07
+quads.leg_extension,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+quads.leg_extension,rodilla,media,probable,spec_inicial,no,"Wilk KE et al. Am J Sports Med 1996;24(4):518-27, PMID 8827313 · Escamilla RF et al. Med Sci Sports Exerc 1998;30(4):556-69, PMID 9565938 (resúmenes)",Probable: extensión decidida por Emanuel (2026-11-07); fuente leída solo en resumen. Carga con el pie libre (cizalla del cruzado anterior cerca de la extensión).,2026-11-07
+hamstrings.rdl,lumbar,alta,probable,spec_inicial,no,"McAllister MJ et al. J Strength Cond Res 2014;28(6):1573-80, PMID 24149748 · Dicus JR et al. Int J Exerc Sci 2023;16(4):12-22, PMID 37113509 (resúmenes)",Probable: extensión decidida por Emanuel (2026-11-07); fuente leída solo en resumen. Bisagra con carga externa. No hay estudio que lo compare con la sentadilla.,2026-11-07
+hamstrings.rdl,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+hamstrings.rdl,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+hamstrings.leg_curl,lumbar,baja,a_verificar,spec_inicial,no,,Spec: curl femoral tumbado o sentado. Tronco apoyado.,2026-11-07
+hamstrings.leg_curl,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+hamstrings.leg_curl,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+glutes.hip_thrust,lumbar,media,a_verificar,spec_inicial,no,,"Regla 5 (Emanuel, 2026-11-07), conflicto real: carga en la cadera (media) frente a tronco apoyado en el banco (baja); gana la más alta. Puede ir en cualquier día de pierna, al final.",2026-11-07
+glutes.hip_thrust,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+glutes.hip_thrust,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+glutes.bulgarian_hip,lumbar,media,a_verificar,spec_inicial,no,,"Regla 2 (Emanuel, 2026-11-07): no llega a bisagra sostenida (torso inclinado más de 45° con carga externa); media por mecánica, como la tabla de la spec para la búlgara.",2026-11-07
+glutes.bulgarian_hip,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+glutes.bulgarian_hip,rodilla,alta,a_verificar,spec_inicial,no,,Spec: alta. Candidata a media en functional.bulgarian_db (un solo estudio).,2026-11-07
+glutes.hip_abduction_machine,lumbar,baja,a_verificar,criterio_e4,no,,"Sentado en máquina, tronco apoyado.",2026-11-07
+glutes.hip_abduction_machine,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+glutes.hip_abduction_machine,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+glutes.kickback_cable,lumbar,baja,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: baja en las tres articulaciones.",2026-11-07
+glutes.kickback_cable,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+glutes.kickback_cable,rodilla,baja,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: baja en las tres articulaciones.",2026-11-07
+calves.calf_raise_standing,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 2 (Emanuel, 2026-11-07): carga axial sin bisagra ni flexión profunda.",2026-11-07
+calves.calf_raise_standing,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+calves.calf_raise_standing,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+calves.calf_raise_seated,lumbar,baja,a_verificar,criterio_e4,no,,"Sentado, tronco vertical y apoyado.",2026-11-07
+calves.calf_raise_seated,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+calves.calf_raise_seated,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+biceps.curl_barbell,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3 (Emanuel, 2026-11-07): aislamiento ligero de pie.",2026-11-07
+biceps.curl_barbell,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-07
+biceps.curl_barbell,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+biceps.curl_incline,lumbar,baja,a_verificar,criterio_e4,no,,"Sentado en banco inclinado, tronco apoyado.",2026-11-07
+biceps.curl_incline,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4 (Emanuel, 2026-11-07): aislamiento en el final del rango (brazo detrás del cuerpo).",2026-11-07
+biceps.curl_incline,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+triceps.close_grip_or_dips,lumbar,baja,a_verificar,spec_inicial,no,,"Press cerrado en banco o fondos (spec: fondos, lumbar baja).",2026-11-07
+triceps.close_grip_or_dips,hombro,alta,a_verificar,spec_inicial,no,,"Empuje con carga (spec: fondos, hombro alta).",2026-11-07
+triceps.close_grip_or_dips,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+triceps.pushdown_cable,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3 (Emanuel, 2026-11-07): aislamiento ligero de pie.",2026-11-07
+triceps.pushdown_cable,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-07
+triceps.pushdown_cable,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+abs.crunch_or_wheel,lumbar,media,a_verificar,criterio_e4,no,,"Regla 1 (Emanuel, 2026-11-07): variante más exigente, la rueda abdominal; peso corporal con palanca larga, sin carga externa. Queda en media; cómo clasificar el peso corporal con palanca larga es la tarea B-033 para el investigador.",2026-11-07
+abs.crunch_or_wheel,hombro,media,a_verificar,criterio_e4,no,,"Regla 4 (Emanuel, 2026-11-07): variante más exigente, la rueda, carga el hombro en el final del rango sin carga pesada. Queda en media; ver B-033.",2026-11-07
+abs.crunch_or_wheel,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+abs.hanging_leg_raise,lumbar,media,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: peso corporal, sin carga externa.",2026-11-07
+abs.hanging_leg_raise,hombro,media,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: peso corporal, sin carga externa.",2026-11-07
+abs.hanging_leg_raise,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+abs.vacuum,lumbar,baja,a_verificar,criterio_e4,no,,Sin carga.,2026-11-07
+abs.vacuum,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+abs.vacuum,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
+functional.bulgarian_db,lumbar,media,a_verificar,spec_inicial,no,,Spec: sentadilla búlgara con mancuernas.,2026-11-07
+functional.bulgarian_db,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
+functional.bulgarian_db,rodilla,alta,a_verificar,spec_inicial,no,"Mackey ER, Riemann BL. Int J Exerc Sci 2021;14(1):533-43. PMID 34055144 (texto abierto sin figuras)","Fuente candidata; sigue a_verificar (la fuente solo confirma de forma indirecta o sugiere otro nivel). CORRIGE: Mackey y Riemann (un estudio, barra y con otra carga relativa) sugieren media. No se aplica: la spec manda para esta tabla inicial.",2026-11-07
+functional.step_up,lumbar,media,a_verificar,criterio_e4,no,,"Carga en manos, tronco sin apoyo.",2026-11-07
+functional.step_up,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
+functional.step_up,rodilla,alta,a_verificar,criterio_e4,no,,"Regla 1 (Emanuel, 2026-11-07): variante más exigente (cajón alto) = rodilla alta.",2026-11-07
+functional.farmer_carry,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 2 (Emanuel, 2026-11-07): carga axial sin bisagra ni flexión profunda.",2026-11-07
+functional.farmer_carry,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-07
+functional.farmer_carry,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07

@@ -61,3 +61,22 @@ node --test ifbb-pro-agent/tests/engine.test.js
 ```
 
 Un test de `engine.test.js` falla si el módulo no coincide con el CSV, y ese archivo es la puerta del despliegue a Pages. Si se edita el CSV directamente en GitHub sin regenerar el módulo, el despliegue se frena hasta regenerarlo.
+
+## `perfil-articular.csv` · demanda de cada ejercicio en lumbar, hombro y rodilla (Fase 3, DEC-021)
+
+Una fila por ejercicio y articulación; **todo el catálogo lleva perfil** (35 ejercicios × 3 articulaciones). Por ahora la app solo carga estos datos: ninguna regla articular los usa todavía (`docs/specs/validador-fase3.md`).
+
+| Columna | Qué lleva |
+| --- | --- |
+| `exerciseId` | Id del ejercicio del catálogo (los mismos de `exercise-muscles.csv`). |
+| `articulacion` | `lumbar`, `hombro` o `rodilla`. |
+| `nivel` | `alta`, `media` o `baja`: demanda ordinal, **sin pesos**. El criterio que la define está en la spec (criterio de modelado E4). |
+| `evidencia` | `a_verificar` (sin fuente leída; es lo que dice la spec) o `probable` (con `fuente`). `verificado` no existe aquí: exige medir hipertrofia. Hoy 5 celdas son `probable` (extensión decidida por Emanuel el 2026-11-07: fuente leída que respalda el nivel y nivel que no salió de un desempate) y el resto `a_verificar`. |
+| `origen` | `spec_inicial` (la tabla de 18 ejercicios de la spec) o `criterio_e4` (el criterio de modelado aplicado al resto). |
+| `ambiguo` | `si` cuando el criterio no resuelve el caso; la nota dice por qué y el nivel es provisional hasta que Emanuel decida. Hoy ninguna celda queda en `si`: las 27 que lo estaban se resolvieron con las reglas de desempate de la spec y la nota cita la regla. |
+| `fuente` | Autor, año, revista y PMID de una fuente candidata, si la hay. |
+| `notes` | Motivo del nivel y de la ambigüedad. |
+| `review_date` | `AAAA-MM-DD`. |
+
+Después de cambiar el CSV: `node scripts/build-perfil-articular.js` (regenera el módulo, que se sube al repositorio) y `--check` para comprobarlo. Un ejercicio del catálogo sin alguna de las tres articulaciones hace fallar el script y los tests.
+
