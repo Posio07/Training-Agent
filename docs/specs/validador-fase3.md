@@ -1,0 +1,104 @@
+# Fase 3 · Perfil articular y orden de ejercicios
+
+Nov 5, 2026 · Emanuel Miranda
+
+Cada ejercicio recibe un perfil de demanda en tres articulaciones (lumbar, hombro, rodilla) y el validador lo usa para ordenar la sesión, limitar la fatiga acumulada y filtrar ejercicios ante lesiones declaradas.
+
+## Problema
+
+El validador cuenta series por músculo, pero no ve la fatiga de los estabilizadores que no son músculo objetivo. La sesión de pierna del 5 nov 2026 tenía 17 series, dentro del tope de 25, y aun así terminó con dolor lumbar en la segunda serie de peso muerto rumano.
+
+- Antes del RDL hubo tres series pesadas de sentadilla, prensa y búlgara: todas cargan los erectores sin contarlos.
+- Los back-offs de sentadilla pesaron lo mismo que el top set (100 kg), así que fueron tres series pesadas, no una más descargas.
+- El RDL cayó de 8 a 6 repeticiones con la misma carga justo antes del dolor.
+
+La evidencia epidemiológica ubica al hombro y a la rodilla junto a la espalda baja entre las zonas más lesionadas en entrenamiento con pesas, por eso el modelo cubre tres articulaciones y no solo la lumbar.
+
+## Modelo de datos
+
+Una tabla nueva `perfil_articular` en formato largo, igual que la de músculos por ejercicio (DEC-013): una fila por ejercicio y articulación, con el campo `nivel` en alta, media o baja. El formato largo permite sumar codo o muñeca más adelante sin cambiar el esquema.
+
+Cada articulación se usa para algo distinto, porque el mecanismo de lesión es distinto:
+
+- **Lumbar:** acumulación oculta en estabilizadores. Alimenta orden y tope por sesión (A1, A2, A3).
+- **Hombro:** acumulación más posiciones de riesgo. Alimenta orden, tope por sesión y exclusión por lesión (A1, A4, A7).
+- **Rodilla:** la carga ya la capta el conteo de cuádriceps. Solo se usa como filtro ante lesión declarada (A7), para no contar dos veces.
+
+Clasificación inicial propuesta. Todas las filas entran como `a_verificar` hasta que el subagente investigador les asigne fuente.
+
+| Ejercicio | Lumbar | Hombro | Rodilla |
+| --- | --- | --- | --- |
+| Sentadilla trasera | alta | media | alta |
+| Peso muerto rumano | alta | baja | baja |
+| Remo con barra inclinado | alta | media | baja |
+| Hack squat (máquina) | media | baja | alta |
+| Sentadilla búlgara con mancuernas | media | baja | alta |
+| Hip thrust con barra | media | baja | baja |
+| Press militar de pie | media | alta | baja |
+| Prensa de piernas | baja | baja | alta |
+| Extensión de cuádriceps | baja | baja | media |
+| Curl femoral tumbado o sentado | baja | baja | baja |
+| Press de banca | baja | alta | baja |
+| Press inclinado | baja | alta | baja |
+| Press militar sentado con respaldo | baja | alta | baja |
+| Fondos en paralelas | baja | alta | baja |
+| Remo con apoyo de pecho | baja | media | baja |
+| Jalón al pecho | baja | media | baja |
+| Dominadas | baja | media | baja |
+| Elevaciones laterales | baja | media | baja |
+
+## Reglas
+
+Siete reglas con prefijo A (articular) para no chocar con la numeración de fases anteriores. Solo A1 tiene respaldo de meta-análisis, y únicamente en la parte de que el orden no cuesta hipertrofia; el resto es E4 o queda pendiente de fuente.
+
+| Regla | Qué hace | Nivel | Comportamiento |
+| --- | --- | --- | --- |
+| A1 · Orden por demanda | Ordena la sesión: demanda lumbar alta primero, luego multiarticulares, al final aislados | E2 para el costo cero en hipertrofia; E4 para el motivo de seguridad | Orden por defecto al generar; advertencia si el usuario ubica un ejercicio de lumbar alta después de dos o más de lumbar media o alta |
+| A2 · Tope lumbar | Máximo un ejercicio de demanda lumbar alta por sesión | E4 | Advertencia; el usuario decide |
+| A3 · Separación semanal | Con dos o más días de pierna, sentadilla pesada y bisagra pesada van en días distintos, con 48 h o más entre ellos | E4 | Distribución por defecto al generar; advertencia si se rompe |
+| A4 · Tope de hombro | Máximo dos ejercicios de demanda alta de hombro por sesión | E4 | Advertencia; el usuario decide |
+| A5 · Back-off válido | Un back-off pesa 90% o menos del top set de esa sesión | Definición, no evidencia | En modo sesión: aviso al registrar; si pesa igual o más, se guarda como serie de trabajo y no como back-off |
+| A6 · Bandera de dolor | Registro opcional de dolor por serie: zona (lumbar, hombro, rodilla) y escala 0–10 | E4 | Si la sesión cierra con dolor sobre el umbral en una zona, la siguiente sesión que la use propone cambiar ejercicios de demanda alta por baja y pide confirmación |
+| A7 · Exclusión por lesión | Con lesión declarada (DEC-010), excluye ejercicios de demanda alta en esa articulación y las posiciones de riesgo marcadas | Pendiente de fuente certificada | Hasta tener fuente: solo advertencia, sin exclusión automática |
+
+A5 y A6 viven en `js/sessionStore.js`, no en el generador, porque dependen de lo que se registra durante la sesión. A6 cubre la métrica de recuperación que estaba pendiente.
+
+## Caso de prueba: sesión del 5 nov 2026
+
+La sesión real del Día 2 tiene que disparar tres advertencias; la versión reordenada tiene que pasar limpia con el mismo volumen.
+
+| Versión | Secuencia | Resultado esperado |
+| --- | --- | --- |
+| Original | Sentadilla (top 100×6, back-offs 80×8, 100×7, 100×6) → prensa → búlgara → RDL → curl femoral → hip thrust | A2: sentadilla y RDL son ambos lumbar alta. A1: RDL después de tres ejercicios de lumbar media o alta. A5: back-offs de 100 kg iguales al top set |
+| Reordenada | Día 2: sentadilla (back-offs al 80–90%) → prensa → búlgara → extensión → curl femoral. Día 5: RDL primero → hip thrust → curl femoral | Sin advertencias |
+
+Esta sesión también sirve para probar A6: ya tiene dolor lumbar registrado, así que el próximo día de pierna debería proponer sustituir sentadilla y RDL.
+
+## Criterios de aceptación
+
+La fase está cerrada cuando se cumple todo esto:
+
+- [ ] Tabla `perfil_articular` en formato largo con todo el catálogo clasificado; las filas sin fuente quedan marcadas `a_verificar`
+- [ ] La sesión original del 5 nov dispara A1, A2 y A5
+- [ ] La versión reordenada pasa sin advertencias
+- [ ] El generador aplica A1 y A3 por defecto en planes nuevos
+- [ ] A6 registra dolor por serie en `js/sessionStore.js` y modifica la propuesta de la sesión siguiente
+- [ ] Cada advertencia muestra el nivel de evidencia de su regla
+- [ ] Decisión registrada como DEC nueva
+
+**Preguntas abiertas**
+
+- Umbral de dolor para A6: propuesta 4 de 10, a confirmar con datos propios.
+- Fuente para las listas de exclusión de A7: tarea para el subagente investigador. Sin fuente, A7 no excluye.
+- Clasificación inicial: el subagente investigador valida o corrige cada fila antes del merge.
+- Codo y muñeca quedan fuera de esta versión; se reconsideran tras tres meses de registros de dolor.
+
+## Fuentes
+
+| Fuente | Qué respalda | Nivel |
+| --- | --- | --- |
+| [Nunes et al. (2021), Eur J Sport Sci](https://pubmed.ncbi.nlm.nih.gov/32077380/) | La fuerza mejora más en los ejercicios hechos al inicio; la hipertrofia es similar en cualquier orden (A1) | E2 |
+| [Keogh y Winwood (2017), Sports Med](https://core.ac.uk/works/41316486) | Hombro, espalda baja, rodilla, codo y muñeca como zonas más lesionadas en deportes de pesas; mayoría de estudios retrospectivos | E2, con calidad baja |
+| [Berglund et al. (2024), BMJ Open Sport Exerc Med](https://pubmed.ncbi.nlm.nih.gov/39650568/) | En powerlifting, las zonas más lesionadas son espalda baja y pelvis, hombro y codo | E2, con calidad baja |
+
+Ninguna de estas fuentes prueba que estas reglas prevengan lesiones: dicen dónde ocurren, no cómo evitarlas. Por eso A2, A3, A4 y A6 son E4.

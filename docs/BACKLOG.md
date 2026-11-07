@@ -1,6 +1,6 @@
 # Backlog
 
-Lista viva de pendientes. Última revisión: 2026-10-25.
+Lista viva de pendientes. Última revisión: 2026-11-07.
 
 ## Reglas de este archivo
 
@@ -38,6 +38,7 @@ Lista viva de pendientes. Última revisión: 2026-10-25.
 | B-022 | Import: avisar si el guardado falla y poner límites al archivo | propuesto | Emanuel | DEC-018 · `app.js` (`save()`, `importJson`), `engine.js` (`importedTraining`) | 2026-10-25 | Hallazgos del revisor sobre el arreglo del import. (1) Si `localStorage` se llena, `save()` avisa "No se pudo guardar" pero el aviso "perfil(es) importado(s)" lo pisa: el usuario cree que importó y al recargar no está (el perfil original no se pierde). `save()` debería devolver si tuvo éxito. (2) Las filas importadas pasan sin lista blanca de campos: solo se quita `pain`; un campo de dolor con otro nombre en un archivo hecho a mano entraría. (3) No hay tope de tamaño ni de filas ni validación de tipos de `weight`/`reps`. Endurecer el import es nivel 2; anotar el límite en DEC-018 requiere a Emanuel (DEC aceptado). |
 | B-023 | Actualizar la nota de DEC-017 sobre `SPIERING_2021` cuando se mergee B-013 | propuesto | Emanuel | DEC-017 · Posio07/Training-Agent#24 | 2026-10-25 | La nota de DEC-017 dice que `SPIERING_2021` "no se pudo verificar" y que la referencia de mantenimiento "no se agregó a `SOURCES`"; tras B-013 la entrada fue reemplazada por `SPIERING_MANT_2021`. Es texto de un DEC aceptado: lo actualiza el agente solo si Emanuel lo aprueba. |
 | B-024 | Correr los E2E en el CI | propuesto | Emanuel | `.github/workflows/pages.yml` | 2026-10-25 | El CI solo corre `engine.test.js`; los E2E de navegador (`e2e.js`, `e2e-aceptacion.js`, `e2e-import.js`, `e2e-agua.js`) se corren a mano. Requiere Chromium en el workflow. Arquitectura / CI: nivel 3. |
+| B-025 | Fase 3 del validador: perfil articular y orden de ejercicios | propuesto | Emanuel | `docs/specs/validador-fase3.md` · `docs/research/fase3-clasificacion.md` | 2026-11-07 | Spec guardada tal como la escribió Emanuel (5 nov 2026). **Bloqueada: no se implementa nada hasta que Emanuel la apruebe.** La clasificación inicial y las listas de exclusión de A7 las valida el investigador (resultado en `docs/research/fase3-clasificacion.md`, propuesta de nivel 2). Entregado en el PR de la rama `spec-fase3`, pendiente de cierre por Emanuel. |
 
 ## Cerrados
 
