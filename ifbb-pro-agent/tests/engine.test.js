@@ -2918,6 +2918,9 @@ test('DEC-022 · el tope del curl usa el umbral de R1 (sin número nuevo): con R
     });
   } finally { r.value = prev; }
   assert.ok(topados >= 100 && movidos >= 5, `topados ${topados}, con excedente movido ${movidos}`);
-  // Con el umbral real (11) el tope no se activa: ningún curl pasa de 10 y el reparto es el de siempre.
-  SIM022.profiles.forEach(p => [3, 4, 5, 6].forEach(d => { const pl = E.buildPlan(Object.assign({}, p, { daysPerWeek: d }), TODAY); assert.ok(Math.max(...curlSets(pl)) <= 10); }));
+  // Con el umbral real (11) el tope sí actúa sobre el reparto inicial (sin recorte del tope de 25, gracias a la aceptación): el curl nunca pasa de 11,
+  // y en el barrido hay planes donde lo bajó (12 → 11). Sin el tope (mutación) el máximo sería 12.
+  let maxInicial = 0;
+  casos.forEach((c, i) => { maxInicial = Math.max(maxInicial, ...curlSets(normal[i])); });
+  assert.equal(maxInicial, 11, 'el curl inicial no pasa del umbral real');
 });
