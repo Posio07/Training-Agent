@@ -70,26 +70,18 @@ La primera observación (R1 en series y no en series fraccionadas) ya se corrigi
 - "Cuerpo completo: un patrón de pierna, un empuje y un tirón" deja sin decir cómo se cubre sentadilla y bisagra a lo largo de la semana en el split de 3 días (A3 pide días distintos).
 - La rutina corta "de 3 a 4 ejercicios" y "los patrones obligatorios del tipo" pueden no coincidir: el tipo cuerpo completo ya exige 3 patrones y el de pierna 2.
 
-## 7. Valores por defecto propuestos para los pasos parciales
-Son **propuestas que esperan tu visto bueno**: ninguna se aplica por silencio. **Mecánico** = deriva de un DEC aceptado o de una regla ya escrita en el motor. **Nivel 2** = es un cambio de comportamiento que necesita tu OK explícito.
+## 7. Valores por defecto y decisiones de diseño (resueltas el 2026-11-07)
 
-| Paso | Valor por defecto propuesto | Tipo |
-| --- | --- | --- |
-| T1 · Tipo de día por split | 3 días: cuerpo completo ×3. 4 días: torso, pierna con sentadilla, torso, pierna con bisagra. 5 días: torso, pierna con sentadilla, empuje, tirón, pierna con bisagra. 6 días: empuje, tirón, pierna con sentadilla, empuje, tirón, pierna con bisagra. Es la estructura de los splits actuales con A3 aplicada | Mecánico (el caso de 3 días: ver la decisión 2) |
-| T4 · Exclusiones por lesión | Siguen vigentes las de DEC-009 (capa 3) y DEC-011 (7 zonas y sustituto del press ante lesión de hombro, E4) mientras A7 no tenga fuente; A7 solo agrega cuando la tenga | Mecánico (DEC aceptados) |
-| T5 · Patrones repetidos y prensa | Se conserva DEC-006: no se repite el mismo patrón fino (el campo `pattern` de la variante) en una sesión. La regla de la prensa como segundo de cuádriceps desaparece con la rotación: elige la cobertura marginal | **Nivel 2:** DEC-006 se conserva (mecánico), pero eliminar la regla de la prensa como segundo de cuádriceps es un cambio (ver decisión 5) |
-| T5b · 48 h sin calendario | Se garantiza el orden, no el reloj: los dos días de pierna no son consecutivos en el split (4 días: 2 y 4; 5 días: 2 y 5; 6 días: 3 y 6; 3 días: sentadilla el día 1 y bisagra el día 3). No se agrega un campo de días de la semana al perfil | Mecánico |
-| T6 · Grupos chicos | Se conserva la compatibilidad actual: bíceps con tirón, torso o cuerpo completo; tríceps con empuje, torso o cuerpo completo; abdomen y pantorrillas en cualquier día, de preferencia fuera de pierna; máximo 2 días por semana por grupo chico | Mecánico (DEC-003 v2) |
-| T11 · Piso de 10 informado | El aviso único menciona cualquier grupo bajo su piso de 10 series fraccionadas, también los que el piso no fuerza; para los chicos la demanda es el mínimo de 5 | Mecánico (DEC-016) |
-| T14 · Aviso de perfil articular | Se elimina el aviso del plan; la completitud del catálogo pasa a ser un test de datos | **Nivel 2** (ver decisión 5) |
-| T16 · Top set | Solo en definición (DEC-002 y DEC-008), en el patrón principal del tipo, con los números actuales (4–6 repeticiones, RIR 1–2, back-offs al −10 %) en el registro como criterio de diseño. Torso: el primer torso de la semana lleva el top set en empuje horizontal y el segundo en tirón vertical. Cuerpo completo: en el patrón de pierna principal de ese día | Mecánico en lo derivado de DEC-002 y DEC-008; **nivel 2** en la alternancia empuje/tirón del torso (ver decisión 4) |
-| T17 · Unilaterales | El tiempo por serie de una variante unilateral ya cuenta ambos lados (DEC-007) | Mecánico |
-| Modificadores de la necesidad no decididos | El ×0,5 de énfasis reducido, el ×0,6 de los grupos chicos, el tope de 20 series para rezagados y el mínimo de 4 pasan tal cual al registro como criterio de diseño | Mecánico |
+**Aprobados por Emanuel** (valores por defecto): T1 (tipo de día por split), T4 (exclusiones por lesión siguen vigentes), T5b (48 h: se garantiza el orden, sin campo de calendario), T6 (compatibilidad de grupos chicos y máximo de 2 días), T11 (piso de 10 informado para todos los grupos), T17 (unilaterales cuentan ambos lados) y los modificadores ×0,5, ×0,6, tope de 20 y mínimo de 4 (pasan tal cual al registro como criterio de diseño). Ya están en la spec.
 
-### Decisiones de diseño y de nivel 2 que te escalo
-1. **Plan persistido y qué lo regenera.** "Se guarda en el plan" y "caduca al regenerar el plan" suponen que el plan generado se **guarda** con un identificador y se regenera solo cuando algo lo dispare. Hoy el plan se calcula cada vez que se muestra y no se guarda. Propuesta: guardar el plan al generarlo y regenerarlo solo con un botón "Regenerar" o al editar el tiempo, los días, el objetivo, el nivel, la división o los rezagados. Es un cambio de modelo de datos.
-2. **Tres días: cómo se reparte la pierna.** A3 pide una sesión con sentadilla y otra con bisagra, pero en cuerpo completo ×3 hay tres apariciones de pierna. Propuesta: día 1 con sentadilla, día 3 con bisagra y día 2 con pierna sin lumbar alta (prensa, zancada o flexión de rodilla). La alternativa es repetir una sentadilla ligera el día 2.
-3. **La aceptación toca DEC-016.** La aceptación por sesión de un plan (en lugar de la firma del plan y el máximo de series) reemplaza una cláusula de DEC-016 (aceptado), que no está en DEC-024. Hay que decidir si se agrega a DEC-024 o va en un DEC aparte.
-4. **Top set en el torso (nivel 2).** La alternancia "el primer torso de la semana en empuje horizontal y el segundo en tirón vertical" no está en ningún DEC ni en el motor: es una propuesta para concretar "según la rotación semanal" de la spec.
-5. **Dos eliminaciones (nivel 2).** Eliminar el aviso de perfil articular del plan (pasa a test de datos) y eliminar la regla de la prensa como segundo ejercicio de cuádriceps (la cobertura marginal elige).
-6. **Precedencia entre R1 y las demandas mínimas.** Cuando el límite de 11 series fraccionadas choca con una demanda mínima (el piso de DEC-017 o la garantía de series reales de DEC-014), ¿cuál gana? Propuesta: las demandas mínimas ganan; si no caben bajo R1 ni en la capacidad, el aviso único lo explica. DEC-025 lo deja anotado para que lo decidas al aceptarlo.
+**Decisiones de Emanuel sobre las seis cuestiones escaladas:**
+1. **Plan guardado: sí.** Se regenera con el botón "Regenerar" y al cambiar tiempo, días, objetivo, nivel, división, rezagados, ejercicios prioritarios, lesiones declaradas o la casilla del remo con barra. Una versión nueva del motor no regenera el plan sola: la app avisa y el usuario decide.
+2. **Tres días:** sentadilla el día 1, bisagra el día 3 y pierna sin lumbar alta el día 2.
+3. **La aceptación por sesión y la cláusula de DEC-016 que reemplaza van dentro de DEC-024.**
+4. **Top set en el torso:** alternancia empuje horizontal / tirón vertical, registrada como E4.
+5. **Eliminaciones aprobadas:** el aviso de perfil articular del plan (T14) y la regla de la prensa como segundo ejercicio de cuádriceps (T5).
+6. **R1 contra demandas mínimas:** ganan las demandas mínimas (DEC-025, punto 4).
+
+**Renombres:** `NECESIDAD_SEMANAL_POR_NIVEL` (18/14/10), `FACTOR_NECESIDAD_DEFINICION` (0,85) y `FACTOR_NECESIDAD_ENFASIS` (1,25), con el campo de fuente "rango general consistente con la literatura; valores puntuales sin respaldo, criterio de diseño E4". Los identificadores `SCHOENFELD_VOL` y `HELMS_TRAIN` dejan de usarse como etiqueta de esos números.
+
+**Queda por confirmar:** T16 (top set) fuera del torso: que el top set exista solo en definición (DEC-002 y DEC-008), con los números actuales (4–6 repeticiones, RIR 1–2, back-offs al −10 %) en el registro como criterio de diseño, y que en cuerpo completo vaya al patrón de pierna principal de ese día. La alternancia del torso ya está decidida.

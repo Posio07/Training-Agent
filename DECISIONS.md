@@ -873,7 +873,8 @@ Contexto: DEC-014 fijó un tope de 25 series por sesión (E4, convención de la 
 1. **La capacidad de una sesión son los minutos disponibles**: el valor general del perfil, o el del día si el usuario lo cambió, **menos el cardio programado ese día**.
 2. **La duración de una serie** es el tiempo de trabajo más el descanso de su variante, con los valores fijos del registro de reglas (los unilaterales cuentan ambos lados). Piso de descanso de 60 a 90 s respaldado (E2 con salvedad); los valores por tipo de ejercicio son criterio de diseño (E4); usar el descanso real registrado queda para después. Ver `docs/research/nucleo-v2-evidencia.md`, punto A.
 3. **Ninguna sesión supera su capacidad en minutos sin la aceptación explícita del usuario** (aceptación por sesión de un plan concreto; guardada en el plan; caduca al regenerarlo o al cambiar tiempo, días u objetivo).
-4. **Se reemplaza solo la cláusula del tope de 25 series de DEC-014** (y la regla `sessionSetCap` del registro). **No cambia la garantía de series reales de los grupos mayores** de DEC-014 ni el piso de DEC-017 ni el mínimo de DEC-020: siguen como demandas del reparto.
+4. **Aceptación por sesión, dentro de esta decisión.** Se acepta **una sesión concreta de un plan concreto**; la aceptación se guarda **en el plan** (no en el perfil) y caduca al regenerarlo o al cambiar el tiempo, los días o el objetivo. **Reemplaza la cláusula de aceptación acotada de DEC-016** (aceptación ligada a la firma del plan —días, división, objetivo, rezagados y nivel— y a un máximo de series). Requiere el **plan guardado** de la spec (se guarda al generarlo y solo se regenera con el botón "Regenerar" o al cambiar tiempo, días, objetivo, nivel, división, rezagados, ejercicios prioritarios, lesiones declaradas o la casilla del remo con barra; una versión nueva del motor no regenera el plan: la app avisa y el usuario decide).
+5. **Se reemplaza la cláusula del tope de 25 series de DEC-014** (y la regla `sessionSetCap` del registro). **No cambia la garantía de series reales de los grupos mayores** de DEC-014 ni el piso de DEC-017 ni el mínimo de DEC-020: siguen como demandas del reparto.
 
 ### Qué no cambia
 DEC-009 (privacidad), el conteo fraccionado, R1 (lo trata DEC-025) y el resto de DEC-014.
@@ -886,8 +887,8 @@ DEC-009 (privacidad), el conteo fraccionado, R1 (lo trata DEC-025) y el resto de
 ### Evidencia
 Convención de la app (E4): el tope por tiempo es una decisión de diseño, no un hallazgo. Fuente del piso de descanso: Singer et al. 2024 (*Front Sports Act Living* 6:1429789, PMID 39205815) y otras, leídas en resumen.
 
-### Qué toca de otros DEC aceptados (a decidir al aceptar)
-La aceptación por sesión (en lugar de la firma del plan y el máximo de series) **reemplaza una cláusula de DEC-016** que esta decisión no nombra. Emanuel decide si se agrega aquí o va en un DEC aparte.
+### Qué toca de otros DEC aceptados
+Dos cláusulas, ambas **desde el corte al núcleo nuevo**: el tope de 25 series de DEC-014 y la aceptación acotada de DEC-016 (decisión de Emanuel del 2026-11-07: la aceptación va dentro de esta decisión).
 
 **Estado: Propuesto.**
 
@@ -900,7 +901,8 @@ Contexto: DEC-014 definió R1 como un **aviso** de rendimiento decreciente (E3: 
 1. **R1 pasa a restricción del reparto:** ningún músculo supera **11 series fraccionadas por sesión** (directa 1, indirecta 0,5).
 2. **Si la necesidad semanal de un músculo no cabe sin superar ese límite, queda sin cubrir** y lo explica el aviso único del reparto (la misma pantalla de DEC-024).
 3. Se reemplaza solo la cláusula de DEC-014 que define R1 como "aviso, no un tope". El nivel de evidencia del umbral sigue siendo E3.
-4. **Pendiente de decidir al aceptar: precedencia.** Cuando el límite de R1 choca con una demanda mínima (el piso de DEC-017 o la garantía de series reales de los grupos mayores de DEC-014), ¿cuál gana? Propuesta del agente: **ganan las demandas mínimas**; si no caben bajo R1 ni en la capacidad, el aviso único lo explica.
+4. **Precedencia (decidida por Emanuel, 2026-11-07).** Cuando el límite de R1 choca con una demanda mínima (el piso de DEC-017 o la garantía de series reales de los grupos mayores de DEC-014), **ganan las demandas mínimas**, porque R1 como restricción ya es más estricta que su fuente. Si las demandas mínimas no caben en la capacidad, el aviso único lo explica.
+5. **Métrica de seguimiento:** el porcentaje de planes (del barrido de 360) en que R1 deja necesidad semanal sin cubrir se reporta en la primera simulación del núcleo nuevo (criterio de aceptación de la spec).
 
 ### Riesgo de evidencia (a tener presente)
 Los propios autores del preprint dicen que 11 **no es un límite superior** ("not upper limits") y que el punto se fijó de forma arbitraria; los datos casi no llegan a volúmenes altos y la mayoría de los estudios entrenaban un solo músculo (`docs/research/fraccionado-pelland-remmert.md`). Convertirlo en restricción dura es **más firme que la fuente**: lo asume Emanuel como decisión de diseño.

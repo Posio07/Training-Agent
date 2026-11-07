@@ -28,7 +28,7 @@ DEC-023 permite resetear los datos durante el año de prueba, así que el núcle
 **Catálogo en dos niveles**
 
 - **Patrón:** el movimiento (empuje vertical, empuje horizontal, tirón vertical, tirón horizontal, sentadilla, bisagra, flexión de rodilla, aislamientos por músculo). El generador planifica por patrón.
-- **Variante:** el ejercicio concreto, con id propio (press militar con barra, press militar con mancuernas). Cada variante tiene su aporte por músculo (formato largo, DEC-013), su perfil articular (Fase 3) y su tiempo por serie. Desaparecen los ejercicios con "o" en el nombre.
+- **Variante:** el ejercicio concreto, con id propio (press militar con barra, press militar con mancuernas). Cada variante tiene su aporte por músculo (formato largo, DEC-013), su perfil articular (Fase 3) y su tiempo por serie. La completitud del perfil articular del catálogo es un **test de datos**, no un aviso del plan. Desaparecen los ejercicios con "o" en el nombre.
 - El usuario elige la variante en la sesión; por defecto, la última que usó. El progreso se registra por variante.
 
 **Perfil del usuario: campos nuevos**
@@ -43,6 +43,13 @@ Un ejercicio prioritario no convierte la rutina en calistenia: solo garantiza su
 
 **Rutina corta:** deja de ser un recorte de la interfaz. Es la misma sesión generada con menos tiempo disponible, que el usuario fija al empezarla ("hoy tengo 45 minutos").
 
+**Plan guardado.** El plan generado se **guarda** (con un identificador, la fecha y la versión del motor que lo generó). Hoy se recalcula cada vez que se muestra; en el núcleo nuevo solo se regenera cuando:
+
+- el usuario aprieta el botón **"Regenerar"**, o
+- cambia el tiempo disponible, los días, el objetivo, el nivel, la división, los rezagados, los ejercicios prioritarios, las lesiones declaradas o la casilla del remo con barra.
+
+Una **versión nueva del motor no regenera el plan sola**: la app avisa que hay una versión nueva y el usuario decide cuándo aplicarla. La aceptación de una sesión (paso 7) se guarda en este plan y caduca al regenerarlo.
+
 ## Tipos de sesión
 
 Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y dónde va el top set. Esto reemplaza la rotación por el catálogo, que es la causa común del día de tirón con press militar y de la rutina corta de un ejercicio.
@@ -53,11 +60,13 @@ Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y 
 | Tirón | Tirón vertical y tirón horizontal | Tirón (vertical u horizontal, según el perfil) |
 | Pierna con sentadilla | Sentadilla y flexión de rodilla | Sentadilla |
 | Pierna con bisagra | Bisagra y flexión de rodilla | Bisagra |
-| Torso | Un empuje y un tirón | Según la rotación semanal |
+| Torso | Un empuje y un tirón | Alternancia semanal (criterio de diseño, E4): el primer torso de la semana, empuje horizontal; el segundo, tirón vertical |
 | Cuerpo completo | Un patrón de pierna, un empuje y un tirón | Según la rotación semanal; nunca dos de lumbar alta en la misma sesión |
 
 - El top set va siempre al patrón principal del tipo, nunca al primer ejercicio de la lista.
-- A3 queda expresada aquí: en splits con dos días de pierna, uno es con sentadilla y otro con bisagra, separados por 48 h o más.
+- A3 queda expresada aquí: en splits con dos días de pierna, uno es con sentadilla y otro con bisagra, separados por 48 h o más. Sin calendario, se garantiza el **orden de las sesiones** (los dos días de pierna no son consecutivos en el split) y no el reloj; no se agrega un campo de días de la semana.
+- **Tres días (cuerpo completo ×3):** sentadilla el día 1, bisagra el día 3 y pierna sin lumbar alta (prensa, zancada o flexión de rodilla) el día 2.
+- **Splits por defecto:** 4 días, torso, pierna con sentadilla, torso, pierna con bisagra; 5 días, torso, pierna con sentadilla, empuje, tirón, pierna con bisagra; 6 días, empuje, tirón, pierna con sentadilla, empuje, tirón, pierna con bisagra.
 - La rutina corta se arma con los patrones obligatorios del tipo, de 3 a 4 ejercicios.
 
 Los patrones obligatorios son un criterio de diseño (E4). El investigador debe buscar respaldo para la cobertura mínima por tipo de sesión.
@@ -70,7 +79,7 @@ Un solo paso, en este orden. Ningún paso posterior corrige a uno anterior.
 2. **Restricciones de seguridad.** Se aplican las lesiones declaradas (A7, cuando tenga fuente), las banderas de dolor activas (A6) y las variantes habilitadas por el perfil.
 3. **Estructura.** Se ubican los patrones obligatorios de cada tipo de sesión y los ejercicios prioritarios del usuario.
 4. **Necesidad semanal y demandas mínimas.** La **necesidad semanal por grupo** sale del registro: 18, 14 o 10 series semanales según el nivel (avanzado, intermedio, novato; criterio de diseño E4), y los modificadores 0,85 (definición) y 1,25 (grupos rezagados y énfasis de la división) **se aplican una sola vez, sobre la necesidad**, nunca como pesos dentro de la cobertura marginal. Los demás números del cálculo actual (×0,5 de énfasis reducido, ×0,6 de grupos chicos, tope de 20 y mínimo de 4 para rezagados) pasan al registro como criterio de diseño (propuesta en la sección 7 de la trazabilidad). La garantía de series reales de los grupos mayores (DEC-014), el piso de mantenimiento (DEC-017) y el mínimo de grupos chicos (DEC-020) entran como demandas que el reparto debe cubrir, no como correcciones posteriores.
-5. **Relleno por cobertura marginal.** Mientras quede capacidad, entra la serie candidata con más necesidad no cubierta por minuto. La necesidad se mide en series fraccionadas, así que un ejercicio redundante aporta poco: si el press de banca ya cubrió deltoide anterior y tríceps, el press militar suma menos que las elevaciones laterales, que cubren el deltoide lateral con pocos músculos adicionales. Ningún músculo supera el umbral de R1: **11 series fraccionadas por músculo y sesión** (DEC-025). Si la necesidad semanal de un músculo no cabe sin superarlo, queda sin cubrir y el aviso único lo explica.
+5. **Relleno por cobertura marginal.** Mientras quede capacidad, entra la serie candidata con más necesidad no cubierta por minuto. La necesidad se mide en series fraccionadas, así que un ejercicio redundante aporta poco: si el press de banca ya cubrió deltoide anterior y tríceps, el press militar suma menos que las elevaciones laterales, que cubren el deltoide lateral con pocos músculos adicionales. Ningún músculo supera el umbral de R1: **11 series fraccionadas por músculo y sesión** (DEC-025). Si la necesidad semanal de un músculo no cabe sin superarlo, queda sin cubrir y el aviso único lo explica. **Cuando R1 choca con una demanda mínima (el piso de DEC-017 o la garantía de series reales de DEC-014), ganan las demandas mínimas**, porque R1 como restricción ya es más estricta que su fuente.
 6. **Orden y top set.** Se aplica A1 (lumbar alta primero, luego multiarticulares, al final aislamientos) y el top set va al patrón principal del tipo de sesión.
 7. **Si no alcanza.** Si las demandas mínimas no entran en la capacidad (o la necesidad de un músculo no cabe bajo R1), la app muestra un solo aviso con tres salidas: más tiempo ese día, más días o aceptar la sesión con esas demandas sin cubrir.
 
@@ -96,7 +105,7 @@ Ningún número puede quedar escrito dentro del código. El inventario encontró
 - **Conteo fraccionado** (directa 1, indirecta 0,5, ninguna 0): que el fraccionado prediga mejor que contar todo o solo lo directo es **E2 con salvedad** (Pelland et al. 2026, *Sports Med* 56(2):481-505, doi 10.1007/s40279-025-02344-w, revisado por pares; leído solo en resumen). El valor 0,5 es **criterio de diseño** (convención de los autores).
 - **Descansos:** fijos, tomados del registro. Hay un piso de 60 a 90 s respaldado (E2 con salvedad); los valores por tipo de ejercicio son criterio de diseño (E4). Usar el descanso real registrado en las sesiones queda para después.
 - **Cobertura mínima por tipo de sesión:** sin evidencia directa; sigue siendo criterio de diseño (E4).
-- **18/14/10, 0,85 y 1,25:** ningún estudio los respalda; se mantienen en el registro como criterio de diseño (E4). Los identificadores de fuente `SCHOENFELD_VOL` y `HELMS_TRAIN` se renombran (primer paso de la construcción) para que no sugieran un respaldo que no existe: `SCHOENFELD_2017_DOSIS_RESPUESTA` (respalda la forma de la curva de volumen, no los números) y `HELMS_2015_PREPARACION_CULTURISMO` (revisión narrativa de preparación de competencia). Los números 18/14/10, 0,85 y 1,25 se citan como "criterio de diseño", sin esas etiquetas.
+- **18/14/10, 0,85 y 1,25:** ningún estudio respalda los valores puntuales. Entran al registro con nombres que dicen lo que son: `NECESIDAD_SEMANAL_POR_NIVEL` (18, 14 y 10), `FACTOR_NECESIDAD_DEFINICION` (0,85) y `FACTOR_NECESIDAD_ENFASIS` (1,25). Campo de fuente de las tres entradas: **"rango general consistente con la literatura; valores puntuales sin respaldo, criterio de diseño E4"**. Los identificadores de fuente `SCHOENFELD_VOL` y `HELMS_TRAIN` dejan de usarse como etiqueta de estos números.
 
 ## Fuera del núcleo v2
 
@@ -135,6 +144,7 @@ El núcleo está listo para el corte cuando, en el barrido de 360 planes:
 - [ ] La rutina corta tiene de 3 a 4 ejercicios y cabe en el tiempo fijado.
 - [ ] Ninguna sesión por defecto tiene dos ejercicios de lumbar alta.
 - [ ] Ningún músculo supera 11 series fraccionadas por sesión (DEC-025), o queda sin cubrir con el aviso único.
+- [ ] Se reporta el **porcentaje de planes** (de los 360) en que R1 deja necesidad semanal sin cubrir, por músculo y por número de días; Emanuel lo revisa en la primera simulación del núcleo nuevo.
 - [ ] La aceptación de una sesión se guarda en el plan y caduca al regenerarlo o al cambiar tiempo, días u objetivo del perfil.
 - [ ] La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único.
 - [ ] Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada.
