@@ -2657,14 +2657,14 @@ test('DEC-021: ifbb-pro-agent/js/perfilArticular.js coincide con el CSV y llega 
   assert.deepEqual(K.JOINT_PROFILE['hamstrings.rdl'].lumbar, { nivel: c.nivel, evidencia: c.evidencia, origen: c.origen, ambiguo: c.ambiguo === 'si', fuente: c.fuente, notes: c.notes, reviewDate: c.review_date });
 });
 
-test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálogo; los tres ejercicios que la spec separa y el catálogo une quedan marcados ambiguos', () => {
+test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálogo; las variantes que la spec separa y el catálogo une se clasifican por la más exigente (regla 1)', () => {
   const spec = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../../docs/specs/validador-fase3.md'), 'utf8');
   const body = spec.split('| Ejercicio | Lumbar | Hombro | Rodilla |')[1].split('\n\n')[0];
   const specRows = Object.fromEntries(body.split('\n').filter(l => l.startsWith('| ') && !l.startsWith('| ---')).map(l => { const c = l.split('|').map(x => x.trim()); return [c[1], [c[2], c[3], c[4]]]; }));
   assert.equal(Object.keys(specRows).length, 18, 'la spec tiene 18 ejercicios iniciales');
   const equal = {
     'Sentadilla trasera': ['quads.squat_back_or_hack'], 'Peso muerto rumano': ['hamstrings.rdl'], 'Remo con barra inclinado': ['back.row_barbell'],
-    'Sentadilla búlgara con mancuernas': ['functional.bulgarian_db', 'quads.lunge_or_bulgarian', 'glutes.bulgarian_hip'], 'Hip thrust con barra': ['glutes.hip_thrust'],
+    'Sentadilla búlgara con mancuernas': ['functional.bulgarian_db', 'quads.lunge_or_bulgarian'], 'Hip thrust con barra': ['glutes.hip_thrust'],
     'Press militar de pie': ['shoulders.press_overhead'], 'Prensa de piernas': ['quads.leg_press'], 'Extensión de cuádriceps': ['quads.leg_extension'],
     'Curl femoral tumbado o sentado': ['hamstrings.leg_curl'], 'Press de banca': ['chest.bench_press_barbell'], 'Press inclinado': ['chest.incline_press_db'],
     'Fondos en paralelas': ['chest.dip_or_machine_press', 'triceps.close_grip_or_dips'], 'Jalón al pecho': ['back.vertical_pull'], 'Dominadas': ['back.vertical_pull'],
@@ -2673,41 +2673,63 @@ test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálog
   Object.entries(equal).forEach(([name, ids]) => ids.forEach(id => {
     K.JOINTS.forEach((j, k) => { assert.equal(K.JOINT_PROFILE[id][j].nivel, specRows[name][k], `${name} → ${id} / ${j}`); assert.equal(K.JOINT_PROFILE[id][j].origen, 'spec_inicial', `${id}/${j}: origen`); });
   }));
-  // Hack squat, press militar sentado y remo con apoyo de pecho son variantes dentro de una entrada del catálogo: ambiguas.
-  const amb = (id, j) => K.JOINT_PROFILE[id][j];
+  // La búlgara con énfasis en cadera se aparta de la tabla de la spec a propósito (reglas 1, 2 y 5): lumbar alta, y su origen ya no es la tabla inicial.
+  assert.equal(specRows['Sentadilla búlgara con mancuernas'][0], 'media');
+  assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].lumbar.nivel, 'alta'); assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].lumbar.origen, 'criterio_e4');
+  assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].hombro.nivel, specRows['Sentadilla búlgara con mancuernas'][1]); assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].rodilla.nivel, specRows['Sentadilla búlgara con mancuernas'][2]);
+  // Hack squat, press militar sentado y remo con apoyo de pecho son variantes dentro de una entrada del catálogo: gana la más exigente (regla 1 de desempate).
+  const cell = (id, j) => K.JOINT_PROFILE[id][j];
   assert.deepEqual(specRows['Hack squat (máquina)'], ['media', 'baja', 'alta']);
-  assert.equal(amb('quads.squat_back_or_hack', 'lumbar').ambiguo, true); assert.match(amb('quads.squat_back_or_hack', 'lumbar').notes, /hack/i);
+  assert.equal(cell('quads.squat_back_or_hack', 'lumbar').nivel, 'alta'); assert.match(cell('quads.squat_back_or_hack', 'lumbar').notes, /regla 1.*hack/i);
   assert.deepEqual(specRows['Press militar sentado con respaldo'], ['baja', 'alta', 'baja']);
-  assert.equal(amb('shoulders.press_overhead', 'lumbar').ambiguo, true); assert.match(amb('shoulders.press_overhead', 'lumbar').notes, /sentado/i);
+  assert.equal(cell('shoulders.press_overhead', 'lumbar').nivel, 'media'); assert.match(cell('shoulders.press_overhead', 'lumbar').notes, /regla 1.*sentado/i);
   assert.deepEqual(specRows['Remo con apoyo de pecho'], ['baja', 'media', 'baja']);
-  assert.equal(amb('back.row_cable', 'lumbar').ambiguo, true); assert.equal(amb('back.row_cable', 'lumbar').nivel, 'media');
-  assert.equal(amb('back.row_cable', 'hombro').nivel, 'media'); assert.equal(amb('back.row_cable', 'rodilla').nivel, 'baja');
+  assert.equal(cell('back.row_cable', 'lumbar').nivel, 'media'); assert.match(cell('back.row_cable', 'lumbar').notes, /regla 1/i);
+  assert.equal(cell('back.row_cable', 'hombro').nivel, 'media'); assert.equal(cell('back.row_cable', 'rodilla').nivel, 'baja');
 });
 
-test('DEC-021: las filas sin fuente leída quedan a_verificar y ninguna es probable hasta que Emanuel decida extender esa etiqueta a las articulaciones', () => {
+test('DEC-021: probable en las articulaciones (decidido por Emanuel): solo con fuente y exactamente en las 5 celdas sin desempate; verificado no existe', () => {
   const rows = paRows();
-  assert.ok(rows.every(r => r.evidencia === 'a_verificar'), 'todas a_verificar');
+  assert.ok(rows.every(r => ['probable', 'a_verificar'].includes(r.evidencia)), 'solo probable o a_verificar');
   assert.ok(rows.every(r => r.nivel && PA.LEVELS.includes(r.nivel)));
-  // Las celdas con una fuente candidata (propuesta del investigador) la citan, con su PMID, y lo dicen en la nota.
+  const probables = rows.filter(r => r.evidencia === 'probable').map(r => `${r.exerciseId}/${r.articulacion}`).sort();
+  assert.deepEqual(probables, ['back.vertical_pull/hombro', 'chest.bench_press_barbell/hombro', 'hamstrings.rdl/lumbar', 'quads.leg_extension/rodilla', 'quads.squat_back_or_hack/rodilla']);
+  rows.filter(r => r.evidencia === 'probable').forEach(r => { assert.match(r.fuente, /PMID \d+/); assert.ok(!/Desempate/.test(r.notes), `${r.exerciseId}/${r.articulacion}: un nivel de desempate no es probable`); });
+  // Las celdas con fuente cuyo nivel salió de un desempate, o que la fuente solo confirma de forma indirecta, siguen a_verificar.
   const withSource = rows.filter(r => r.fuente);
-  assert.ok(withSource.length >= 10 && withSource.length <= 12, `celdas con fuente candidata: ${withSource.length}`);
-  withSource.forEach(r => { assert.match(r.fuente, /PMID \d+/); assert.match(r.notes, /Candidata a probable|Ver Saeterbakken/); });
+  assert.equal(withSource.length, 10);
+  withSource.filter(r => r.evidencia === 'a_verificar').forEach(r => assert.match(r.notes, /sigue a_verificar/));
   // Las dos fuentes de "corrección" no se aplican: la tabla inicial manda.
   assert.equal(paCell('functional.bulgarian_db', 'rodilla').nivel, 'alta');
+  assert.equal(paCell('functional.bulgarian_db', 'rodilla').evidencia, 'a_verificar');
+  // Mismo límite en el parser: probable sin fuente y verificado se rechazan.
+  const bad = (ev, f) => PA.parsePerfilArticular(paCsv().split('\n').map((l, k) => (k === 1 ? l.replace(/,(a_verificar|probable),/, `,${ev},`).replace(/,"?[^,]*PMID[^,]*"?,/, ',' + f + ',') : l)).join('\n'), paCatalog());
+  assert.ok(PA.parsePerfilArticular(paCsv().replace(/^(chest\.bench_press_barbell,hombro,alta,)probable(,[^\n]*)$/m, '$1verificado$2'), paCatalog()).errors.length > 0, 'verificado se rechaza');
 });
 
-test('DEC-021: los ejercicios ambiguos están marcados con su motivo y son exactamente los de la lista del DEC', () => {
-  const amb = {};
-  paRows().filter(r => r.ambiguo === 'si').forEach(r => { (amb[r.exerciseId] = amb[r.exerciseId] || []).push(r.articulacion); assert.ok(r.notes.length > 20, `${r.exerciseId}/${r.articulacion}: motivo`); });
-  assert.deepEqual(Object.keys(amb).sort(), [
-    'abs.crunch_or_wheel', 'abs.hanging_leg_raise', 'back.pullover_cable', 'back.row_barbell', 'back.row_cable', 'biceps.curl_barbell', 'biceps.curl_incline', 'calves.calf_raise_standing',
-    'chest.fly_cable_pecdeck', 'functional.farmer_carry', 'functional.step_up', 'glutes.bulgarian_hip', 'glutes.hip_thrust', 'glutes.kickback_cable',
-    'quads.squat_back_or_hack', 'shoulders.lateral_raise_cable', 'shoulders.lateral_raise_db', 'shoulders.press_landmine_neutral', 'shoulders.press_overhead',
-    'shoulders.rear_delt_facepull', 'triceps.pushdown_cable',
-  ]);
-  assert.deepEqual(amb['shoulders.press_landmine_neutral'], ['hombro'], 'el sustituto del press ante lesión de hombro: alta o media');
-  assert.deepEqual(amb['abs.crunch_or_wheel'].sort(), ['hombro', 'lumbar']);
-  assert.deepEqual(amb['back.row_barbell'], ['lumbar'], 'remo con barra: la spec dice alta, el criterio literal media');
+test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambiguas quedaron resueltas con lo que decidió Emanuel', () => {
+  const rows = paRows();
+  assert.equal(rows.filter(r => r.ambiguo === 'si').length, 0, 'ninguna celda queda ambigua');
+  const spec = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../../docs/specs/validador-fase3.md'), 'utf8');
+  assert.match(spec, /Reglas de desempate/);
+  ['variante más exigente', 'torso inclinado sin apoyo', 'carga axial sin bisagra', 'Lumbar media exige carga relevante', 'Nunca se clasifica un ejercicio para conservar su función de sustituto', 'gana el nivel más alto'].forEach(t => assert.ok(spec.includes(t), `la spec dice: ${t}`));
+  // Lo decidido, celda por celda (lumbar, hombro, rodilla).
+  const decided = {
+    'back.row_barbell': ['alta', 'media', 'baja'], 'calves.calf_raise_standing': ['media', 'baja', 'baja'], 'functional.farmer_carry': ['media', 'baja', 'baja'],
+    'shoulders.lateral_raise_db': ['baja', 'media', 'baja'], 'shoulders.lateral_raise_cable': ['baja', 'media', 'baja'], 'biceps.curl_barbell': ['baja', 'baja', 'baja'],
+    'triceps.pushdown_cable': ['baja', 'baja', 'baja'], 'back.pullover_cable': ['baja', 'media', 'baja'], 'chest.fly_cable_pecdeck': ['baja', 'media', 'baja'],
+    'biceps.curl_incline': ['baja', 'media', 'baja'], 'shoulders.press_landmine_neutral': ['media', 'media', 'baja'], 'glutes.hip_thrust': ['media', 'baja', 'baja'],
+    'functional.step_up': ['media', 'baja', 'alta'], 'glutes.kickback_cable': ['baja', 'baja', 'baja'], 'abs.hanging_leg_raise': ['media', 'media', 'baja'],
+    'quads.squat_back_or_hack': ['alta', 'media', 'alta'], 'shoulders.press_overhead': ['media', 'alta', 'baja'], 'back.row_cable': ['media', 'media', 'baja'],
+    'glutes.bulgarian_hip': ['alta', 'baja', 'alta'], 'abs.crunch_or_wheel': ['media', 'media', 'baja'], 'shoulders.rear_delt_facepull': ['media', 'media', 'baja'],
+  };
+  assert.equal(Object.keys(decided).length, 21);
+  Object.entries(decided).forEach(([id, lv]) => K.JOINTS.forEach((j, k) => assert.equal(K.JOINT_PROFILE[id][j].nivel, lv[k], `${id}/${j}`)));
+  // Cada celda resuelta cita su regla; el press landmine no se clasifica por ser sustituto (regla 4).
+  const resolved = rows.filter(r => /^(Desempate|Decidido por Emanuel)/.test(r.notes) || /Desempate, regla/.test(r.notes));
+  assert.ok(resolved.length >= 27, `celdas con regla anotada: ${resolved.length}`);
+  assert.match(paCell('shoulders.press_landmine_neutral', 'hombro').notes, /No se clasifica por su función de sustituto/);
+  assert.ok(!/sustituto del press/i.test(paCell('shoulders.press_landmine_neutral', 'hombro').notes.replace('No se clasifica por su función de sustituto', '')));
 });
 
 test('DEC-021: el plan no cambia (el perfil no se expone ni lo usa ninguna regla todavía) y un ejercicio sin perfil advierte', () => {

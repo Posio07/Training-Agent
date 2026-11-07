@@ -30,6 +30,16 @@ Es un criterio de modelado de la app (nivel E4: criterio propio, sin fuente que 
 - **Hombro.** Alta: empuje con carga cerca del final del rango (press horizontal o vertical, fondos). Media: tracción o elevaciones con carga. Baja: el hombro no mueve carga.
 - **Rodilla.** Alta: flexión profunda con carga (sentadillas, prensa, búlgara). Media: carga con el pie libre (extensión de cuádriceps). Baja: sin carga relevante en la rodilla.
 
+#### Reglas de desempate (E4, decididas por Emanuel el 2026-11-07)
+
+Son parte del criterio de modelado: sin fuente, y revisables cuando B-026 lo ancle. Se aplican en este orden de lectura:
+
+1. **Variantes mezcladas.** Si una entrada del catálogo une variantes con niveles distintos, se clasifica por la **variante más exigente**. Separar las variantes que cambian el nivel lumbar (sentadilla trasera/hack, press de pie/sentado, remo en polea/máquina con apoyo) queda en el backlog (B-031).
+2. **Bisagra con carga** incluye mantener el torso inclinado sin apoyo con carga (remo con barra = lumbar alta). La **carga axial sin bisagra ni flexión profunda** (elevación de talones de pie, paseo del granjero) = lumbar media.
+3. **Lumbar media exige carga relevante.** Los aislamientos ligeros de pie (elevaciones laterales, curl con barra, tríceps en polea, pullover) = lumbar baja.
+4. **Hombro por mecanismo.** Alta: multiarticular pesado cerca del final del rango. Media: aislamiento en el final del rango, tracción o elevación. Baja: el hombro no mueve carga. Aperturas, pullover y curl inclinado = media; el press landmine = media por su mecánica (empuja en arco, sin llegar al final del rango). **Nunca se clasifica un ejercicio para conservar su función de sustituto.**
+5. **Si dos reglas chocan, gana el nivel más alto.**
+
 Anclar este criterio con datos biomecánicos es una tarea abierta (ver Preguntas abiertas).
 
 Cada articulación se usa para algo distinto, porque el mecanismo de lesión es distinto:
@@ -38,7 +48,7 @@ Cada articulación se usa para algo distinto, porque el mecanismo de lesión es 
 - **Hombro:** acumulación más posiciones de riesgo. Alimenta orden, tope por sesión y exclusión por lesión (A1, A4, A7).
 - **Rodilla:** la carga ya la capta el conteo de cuádriceps. Solo se usa como filtro ante lesión declarada (A7), para no contar dos veces.
 
-Clasificación inicial propuesta. Todas las filas entran como `a_verificar` hasta que el subagente investigador les asigne fuente.
+Clasificación inicial propuesta. Todas las filas entran como `a_verificar` hasta que el subagente investigador les asigne fuente. La etiqueta `probable` **se extiende a las articulaciones** (decisión de Emanuel, 2026-11-07): una celda pasa a `probable` cuando tiene fuente leída (aunque sea solo el resumen) que respalda su nivel y el nivel no salió de una regla de desempate. `verificado` no se usa: exige medir hipertrofia.
 
 | Ejercicio | Lumbar | Hombro | Rodilla |
 | --- | --- | --- | --- |
@@ -108,6 +118,7 @@ La fase está cerrada cuando se cumple todo esto:
 - Fuente para las listas de exclusión de A7: tarea para el subagente investigador. Sin fuente, A7 no excluye.
 - Clasificación inicial: el subagente investigador valida o corrige cada fila antes del merge, y clasifica con el criterio de modelado el resto del catálogo.
 - **Tarea abierta:** que el investigador busque datos biomecánicos de carga sobre la columna y el hombro para anclar el criterio de modelado (hoy es E4, sin fuente).
+- **Umbrales de A1, A2 y A4 (abierta, la simulación los desborda):** con la tabla vigente y sin aplicar las reglas, en el barrido de 360 planes A1 se dispararía en el 94 % de los planes, A2 en el 100 % y A4 en el 71 % (`node scripts/simular-reglas-articulares.js`). Ninguna se implementa hasta que Emanuel revise los umbrales (ver DEC-021).
 - Codo y muñeca quedan fuera de esta versión; se reconsideran tras tres meses de registros de dolor.
 
 ## Fuentes
