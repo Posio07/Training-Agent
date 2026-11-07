@@ -107,7 +107,7 @@ Leyenda: **✔ confirma** (pasa a `probable`) · **✎ corrige** (candidata, `pr
 
 ## Observaciones sobre la spec (no se editó: queda tal cual para que Emanuel decida)
 
-Surgieron de la revisión del PR; la spec se guardó sin cambios.
+Surgieron de la revisión del PR. **Emanuel las resolvió el 2026-11-07 y se aplicaron en la spec:** el conteo del caso de prueba (ahora "dos, sentadilla y búlgara"), el umbral de A6 (ahora 5/10, el de `painFlagThreshold`), el alcance (todo el catálogo lleva perfil; un ejercicio sin perfil advierte) con un criterio de modelado E4, y las citas (Tung, y el enlace de Keogh y Winwood a PubMed). Queda como tarea abierta anclar ese criterio con datos biomecánicos de carga sobre columna y hombro.
 
 1. **Fila "Original" del caso de prueba:** dice que el RDL viene "después de tres ejercicios de lumbar media o alta", pero la secuencia es sentadilla (alta), prensa (baja) y búlgara (media): son dos. A1 pide "dos o más", así que igual dispara.
 2. **Umbral de dolor de A6:** la pregunta abierta propone 4 de 10; hoy `painFlagThreshold` es 5 de 10 (`VALIDATOR_RULES`, E4, `reviewRequired`, DEC-009/DEC-011).
