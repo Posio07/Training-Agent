@@ -2853,7 +2853,7 @@ test('DEC-022 · A3 solo separa lo de lumbar alta: un hinge de demanda lumbar me
   } finally { prof.lumbar.nivel = saved; }
 });
 
-/* ---------- DEC-022 (ajustes): remo por defecto con apoyo de pecho, remo con barra opcional, A2 como aviso y tope del curl con el umbral de R1 ---------- */
+/* ---------- DEC-022 (ajustes): remo por defecto con apoyo de pecho, remo con barra opcional, A2 como aviso y curl sin tope (el máximo es 10, bajo el umbral de R1) ---------- */
 
 const plansBar022 = () => { const out = []; [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => out.push(E.buildPlan(Object.assign({}, p, { barbellRow: true, daysPerWeek: d }), TODAY)))); return out; };
 const lumbarAlta022 = s => s.exercises.filter(e => K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta');
