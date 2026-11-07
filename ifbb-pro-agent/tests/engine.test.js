@@ -2504,6 +2504,21 @@ test('DEC-020: nunca se le quita a un grupo por debajo de su propio mínimo para
   assert.equal(r2.log.reduce((a, x) => a + x.donated.length, 0), 0, 'con espacio no se saca nada de otro grupo');
 });
 
+test('DEC-020: un grupo mayor no desaparece de una sesión para cubrir a otro (frecuencia semanal, R2)', () => {
+  // En la sesión A hombros solo tiene una elevación lateral de 3 series; sacarle todo la dejaría sin hombros ese día.
+  const sessions = [
+    sess020('A', [['shoulders.lateral_raise_db', 3], ['chest.bench_press_barbell', 4], ['back.row_barbell', 4], ['quads.squat_back_or_hack', 14]]),
+    sess020('B', [['shoulders.press_overhead', 10], ['chest.bench_press_barbell', 4], ['back.row_barbell', 4], ['quads.squat_back_or_hack', 7]]),
+  ];
+  assert.deepEqual(sessions.map(s => s.totalSets), [25, 25]);
+  const before = E.fractionalByMuscle(sessions.flatMap(s => s.exercises));
+  assert.ok(before.shoulders > floors020.shoulders + 3, 'hombros tiene de sobra sobre su piso: solo la frecuencia impide sacarle series');
+  const snap = JSON.stringify(sessions.map(s => s.exercises.map(e => [e.exerciseId, e.sets])));
+  E.ensureGroupMinimum(sessions, days020, [], 25, floors020);
+  assert.equal(JSON.stringify(sessions.map(s => s.exercises.map(e => [e.exerciseId, e.sets]))), snap, 'la elevación lateral no se toca: hombros sigue en las dos sesiones');
+  assert.ok(sessions.every(s => s.exercises.some(e => e.bucket === 'shoulders')));
+});
+
 const clearedZone020 = (zone, extra) => { const base = E.normalizeProfile(Object.assign({}, fullBody3, { injuryZones: [zone] }, extra || {})); return Object.assign({}, base, { health: cleared(base.health, zone, '2026-10-01') }); };
 
 test('DEC-020 · DEC-011: un grupo sin ningún ejercicio posible tras las exclusiones por lesión no recibe mínimo; los demás sí', () => {
