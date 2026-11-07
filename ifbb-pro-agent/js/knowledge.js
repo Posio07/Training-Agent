@@ -3,9 +3,9 @@
  * Las claves de SOURCES se citan desde engine.js y desde la interfaz.
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./exerciseMuscles.js'));
-  else root.KNOWLEDGE = factory(root.EXERCISE_MUSCLES);
-})(typeof self !== 'undefined' ? self : this, function (EXERCISE_MUSCLES) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./exerciseMuscles.js'), require('./perfilArticular.js'));
+  else root.KNOWLEDGE = factory(root.EXERCISE_MUSCLES, root.PERFIL_ARTICULAR);
+})(typeof self !== 'undefined' ? self : this, function (EXERCISE_MUSCLES, PERFIL_ARTICULAR) {
   'use strict';
 
   const SOURCES = {
@@ -550,6 +550,24 @@
     sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
   };
 
+  /* DEC-021 (Fase 3, Paso 1) · perfil articular: demanda de cada ejercicio en tres articulaciones (lumbar, hombro,
+   * rodilla), nivel alta, media o baja. Los datos viven en data/perfil-articular.csv (módulo generado
+   * js/perfilArticular.js), una fila por ejercicio y articulación. Todo el catálogo lleva perfil; un ejercicio sin
+   * perfil completo lo avisa el plan, nunca pasa en silencio. `evidencia` es `a_verificar` salvo que una fila tenga
+   * fuente leída; `origen` dice si el nivel viene de la tabla inicial de la spec o del criterio de modelado E4, y
+   * `ambiguo: 'si'` marca los que el criterio no resuelve (la nota dice por qué). Todavía ninguna regla de la Fase 3
+   * (A1 a A7) los usa: este paso solo prepara los datos, así que el plan no cambia. */
+  const JOINTS = ['lumbar', 'hombro', 'rodilla'];
+  const JOINT_LEVELS = ['alta', 'media', 'baja'];
+  const JOINT_PROFILE = {};
+  PERFIL_ARTICULAR.rows.forEach(r => {
+    (JOINT_PROFILE[r.exerciseId] = JOINT_PROFILE[r.exerciseId] || {})[r.articulacion] = {
+      nivel: r.nivel, evidencia: r.evidencia, origen: r.origen, ambiguo: r.ambiguo === 'si', fuente: r.fuente, notes: r.notes, reviewDate: r.review_date,
+    };
+  });
+  // Articulaciones que le faltan a un ejercicio (todas si no tiene perfil).
+  const missingJointProfile = id => JOINTS.filter(j => !(JOINT_PROFILE[id] && JOINT_PROFILE[id][j]));
+
   // DEC-020 · mínimo semanal por grupo. Es el MISMO número del piso de mantenimiento de DEC-017
   // (minWeeklySetsPerMuscle × maintenanceFloorFactor = 5 series fraccionadas por semana, contando el aporte
   // indirecto de los compuestos), derivado de esas dos reglas para no inventar otro valor. A diferencia del
@@ -586,5 +604,5 @@
     if (c.bucket && !NO_MUSCLE_CONTRIBUTION.includes(id)) c.setWeights[c.bucket] = VALIDATOR_RULES.directSetWeight.value;
   });
 
-  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, MAJOR_GROUPS, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
+  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, MAJOR_GROUPS, JOINTS, JOINT_LEVELS, JOINT_PROFILE, missingJointProfile, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
 });

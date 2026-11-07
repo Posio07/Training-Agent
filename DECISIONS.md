@@ -688,3 +688,69 @@ Los pesos o niveles de las relaciones; relajar la garantía de series reales de 
 
 **Estado: implementada.**
 
+## DEC-021 · Fase 3, Paso 1: tabla `perfil_articular` de todo el catálogo
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte. Los ejercicios ambiguos de abajo los decide Emanuel.
+
+Contexto: `docs/specs/validador-fase3.md` (aprobada por Emanuel el 2026-11-07; Paso 1 desbloqueado al mergear DEC-020). Este paso **solo crea la capa de datos**, igual que DEC-013 hizo con los músculos: el plan que ve el usuario **no cambia** y ninguna regla articular (A1 a A7) se implementa todavía.
+
+### Qué se agregó
+- **`data/perfil-articular.csv`** (formato largo, una fila por ejercicio y articulación): 35 ejercicios del catálogo × lumbar, hombro y rodilla = **105 filas**. Columnas: `exerciseId, articulacion, nivel, evidencia, origen, ambiguo, fuente, notes, review_date`.
+  - `nivel`: `alta`, `media` o `baja`.
+  - `evidencia`: **todas `a_verificar`** (decisión de la spec: las filas sin fuente quedan así). 10 celdas llevan una fuente candidata (propuesta del investigador, `docs/research/fase3-clasificacion.md`) pero siguen `a_verificar`: pasarlas a `probable` exige extender esa etiqueta a las articulaciones, decisión de Emanuel que todavía no se tomó. `verificado` no es alcanzable (exige medir hipertrofia) y el parser lo rechaza.
+  - `origen`: `spec_inicial` (56 celdas, de la tabla de 18 ejercicios de la spec, transcrita tal cual) o `criterio_e4` (49 celdas, aplicando el criterio de modelado de la spec, E4).
+  - `ambiguo`: `si` en 26 celdas de 20 ejercicios, con el motivo en `notes`. Para esos, el valor del CSV es **provisional** y la regla es: **la primera variante que nombra el catálogo y, si el criterio no se pronuncia, su lectura literal**. Se listan abajo para que Emanuel decida.
+- **`scripts/build-perfil-articular.js`** valida el CSV contra el catálogo (`data/exercise-buckets.csv`) y genera **`ifbb-pro-agent/js/perfilArticular.js`** (se sube al repositorio; mismo mecanismo que DEC-012/013). Rechaza: articulación o nivel inválidos, `verificado`, `probable` sin fuente, origen inválido, ambiguo sin nota, filas repetidas, ejercicios que no existen y **cualquier ejercicio del catálogo al que le falte una articulación** ("todo el catálogo lleva perfil").
+- **`knowledge.js`** expone `JOINTS`, `JOINT_LEVELS`, `JOINT_PROFILE` y `missingJointProfile(id)`. `index.html` y `sw.js` cargan el módulo nuevo (caché v14).
+- **Aviso por ejercicio sin perfil:** si un ejercicio del plan no tiene alguna articulación, el plan lo avisa (`kind: 'sin_perfil_articular'`, E4, un solo aviso por plan). Hoy no se dispara porque el catálogo está completo; un test lo exige y otro simula el hueco.
+- No hay ninguna regla numérica nueva ni peso por ejercicio: los niveles son ordinales (alta, media, baja).
+
+### Cómo se clasificó
+1. Los 18 ejercicios de la tabla inicial de la spec se transcriben tal cual a los ejercicios del catálogo que les corresponden (un test lee la tabla de la spec y lo comprueba).
+2. El resto del catálogo se clasificó con el criterio de modelado E4 de la spec (lumbar: bisagra con carga o carga pesada sobre la espalda sin apoyo = alta, tronco sin apoyo con carga en manos o cadera = media, tronco apoyado = baja; hombro: empuje con carga cerca del final del rango = alta, tracción o elevaciones con carga = media, el hombro no mueve carga = baja; rodilla: flexión profunda con carga = alta, carga con el pie libre = media, sin carga relevante = baja).
+3. Resultado: lumbar alta en 3 ejercicios (sentadilla trasera, peso muerto rumano, remo con barra); hombro alta en 5; rodilla alta en 6.
+
+### Ejercicios ambiguos (decide Emanuel)
+Todos tienen valor provisional en el CSV. "Alternativa" = el otro nivel que sería razonable.
+
+**A. El catálogo une dos variantes que la spec o el criterio tratan distinto**
+
+| Ejercicio | Articulación | Provisional | Alternativa | Motivo |
+| --- | --- | --- | --- | --- |
+| `quads.squat_back_or_hack` (sentadilla trasera o hack) | lumbar | alta | media (hack, según la spec) | La spec tiene filas separadas para la sentadilla trasera (lumbar alta) y el hack (media; el criterio, con el tronco apoyado, daría baja). El catálogo es una sola entrada. |
+| `quads.squat_back_or_hack` | hombro | media | baja | La spec da media a la trasera (barra sobre el hombro); el criterio literal ("el hombro no mueve carga") daría baja. El hack es baja. |
+| `shoulders.press_overhead` (press militar con barra o mancuernas) | lumbar | media (de pie) | baja (sentado con respaldo) | La spec separa de pie (media) y sentado con respaldo (baja); el catálogo no dice la postura. |
+| `back.row_cable` (remo en polea baja o máquina) | lumbar | media (polea baja, sentado sin apoyo de pecho) | baja (máquina con apoyo de pecho, fila de la spec) | Dos variantes con apoyo distinto. |
+| `chest.fly_cable_pecdeck` (aperturas en polea o pec-deck) | lumbar | media (polea de pie) | baja (pec-deck sentado) | Idem. |
+| `shoulders.rear_delt_facepull` (face pull o pájaros) | lumbar | media (face pull de pie) | alta (pájaros con el tronco inclinado: bisagra con carga ligera) | Idem. |
+| `abs.crunch_or_wheel` (crunch en polea o rueda abdominal) | lumbar | media (crunch) | alta (rueda) | El criterio no cubre la flexión de columna con carga ni la rueda. |
+| `abs.crunch_or_wheel` | hombro | baja (crunch) | alta (rueda: el hombro soporta carga en rango final) | Idem. |
+| `glutes.bulgarian_hip` (búlgara con énfasis en cadera) | lumbar | media (fila de la búlgara de la spec) | alta | Con énfasis en cadera el tronco se inclina hacia delante, cerca de una bisagra con carga. |
+
+**B. El criterio no cubre el caso, o dos de sus líneas chocan**
+
+| Ejercicio | Articulación | Provisional | Alternativa | Motivo |
+| --- | --- | --- | --- | --- |
+| `glutes.hip_thrust` | lumbar | media (spec) | baja | Dos líneas del criterio chocan: carga en la cadera (media) y tronco apoyado en el banco (baja). |
+| `shoulders.lateral_raise_db`, `shoulders.lateral_raise_cable` | lumbar | baja (spec) | media | La spec les da baja; el criterio literal (tronco sin apoyo con carga en manos) daría media. |
+| `biceps.curl_barbell`, `triceps.pushdown_cable`, `back.pullover_cable` | lumbar | media (criterio literal) | baja | Misma situación (de pie, carga ligera en manos) que las elevaciones laterales, pero aquí se aplicó el criterio literal: es **inconsistente a propósito** hasta que Emanuel decida si "carga ligera de pie" es media o baja. |
+| `chest.fly_cable_pecdeck`, `back.pullover_cable` | hombro | media | alta | No son empuje, tracción ni elevación: cargan el hombro en rango final. |
+| `shoulders.press_landmine_neutral` | hombro | media | alta | Es empuje con carga (alta literal), pero no llega al final del rango y es el **sustituto del press de hombro ante lesión** (DEC-011): con "alta", la exclusión de A7 lo sacaría también a él. |
+| `functional.step_up` | rodilla | alta | media | Depende de la altura del cajón. |
+| `glutes.kickback_cable` | lumbar | media | baja | No está claro si cuenta como tronco apoyado (manos apoyadas, carga en el tobillo). |
+| `glutes.kickback_cable` | rodilla | media (literal: carga con el pie libre) | baja | La rodilla casi no se mueve. |
+| `calves.calf_raise_standing` | lumbar | media | alta | Con carga sobre los hombros el criterio dice "carga pesada sobre la espalda sin apoyo" (alta), pero el recorrido es corto y sin flexión de columna. |
+| `abs.hanging_leg_raise` | lumbar, hombro | media, media | baja, baja | Peso corporal, sin carga externa: el criterio no lo cubre. |
+| `biceps.curl_incline` | hombro | baja | media | El brazo queda por detrás del cuerpo con carga (estiramiento); "el hombro no mueve carga" no es del todo cierto. |
+| `functional.farmer_carry` | lumbar | media (carga en manos) | alta | Con cargas muy pesadas, la demanda isométrica de los erectores sube. |
+
+### Pruebas
+- Unitarias en `engine.test.js`: catálogo completo (35 × 3) con niveles válidos; el parser rechaza datos inválidos y exige perfil completo; módulo igual al CSV; la tabla de la spec se transcribe tal cual (un test lee la spec) y las tres variantes unidas quedan ambiguas; todo `a_verificar` y ninguno `probable`; la lista de ambiguos coincide con la de este DEC; el plan no cambia y un ejercicio sin perfil avisa.
+- **Prueba de que el plan no cambia:** 30 planes de referencia y 360 planes del barrido (90 perfiles × 4 splits), comparados en vivo contra el motor de `main`: **0 distintos**. Las huellas (`plan-hashes.json`) no cambian.
+- Mutaciones: aceptar `verificado` falla 1 test; quitar el aviso de ejercicio sin perfil, 1; quitar una fila del CSV, 4 (el módulo desactualizado también); cambiar un nivel de la spec, 1.
+- E2E (`e2e.js`, `e2e-aceptacion.js`) pasan.
+
+### Fuera de alcance
+Las reglas A1 a A7, el orden de ejercicios del generador, el dolor por serie (A6), mostrar el perfil en la interfaz, y la extensión de `probable` a las articulaciones. Anclar el criterio con datos biomecánicos es B-026 (PR aparte).
+
+**Estado: implementada (capa de datos), pendiente de aceptación.**
+
