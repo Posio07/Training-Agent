@@ -1878,7 +1878,7 @@ test('DEC-016 (3): aviso visible de grupos bajo el mínimo, con opciones y cuán
   assert.equal(w.rule, 'R2');
   assert.equal(w.evidence, 'E1');
   assert.deepEqual(w.options, ['aceptar_sesiones_largas', 'cambiar_split']);
-  assert.match(w.text, /Pantorrillas 3 \(el tope E4 quitó 5\)/); // DEC-020: el mínimo le devolvió 1 serie (2 → 3)
+  assert.match(w.text, /Pantorrillas 2 \(el tope E4 quitó 5\)/); // DEC-020: sin quitarle el último ejercicio directo a otro grupo, el mínimo no puede devolverle nada en este perfil
   assert.match(w.text, /objetivo de hipertrofia del ACSM 2026/);
   assert.match(w.text, /aceptar sesiones más largas/);
   assert.match(w.text, /cambiar de split/);
@@ -2517,6 +2517,42 @@ test('DEC-020: un grupo mayor no desaparece de una sesión para cubrir a otro (f
   E.ensureGroupMinimum(sessions, days020, [], 25, floors020);
   assert.equal(JSON.stringify(sessions.map(s => s.exercises.map(e => [e.exerciseId, e.sets]))), snap, 'la elevación lateral no se toca: hombros sigue en las dos sesiones');
   assert.ok(sessions.every(s => s.exercises.some(e => e.bucket === 'shoulders')));
+});
+
+test('DEC-020: al sacar series para cumplir mínimos, nunca se quita el último ejercicio directo de un grupo (puede ceder series, pero el ejercicio queda)', () => {
+  // El bíceps tiene un solo curl (2 series) y mucho aporte indirecto de los remos: sobre su mínimo podría ceder el curl entero.
+  const mkSessions = curl => [
+    sess020('A', [['biceps.curl_barbell', curl], ['back.row_barbell', 8], ['chest.bench_press_barbell', 4], ['quads.squat_back_or_hack', 13 - curl]]),
+    sess020('B', [['back.row_barbell', 4], ['chest.bench_press_barbell', 4], ['quads.squat_back_or_hack', 17]]),
+  ];
+  const sessions = mkSessions(2);
+  assert.deepEqual(sessions.map(s => s.totalSets), [25, 25]);
+  const before = E.fractionalByMuscle(sessions.flatMap(s => s.exercises));
+  assert.ok(before.biceps - 2 >= MIN020.value, 'quitar el curl entero no bajaría al bíceps de su mínimo: solo la restricción lo impide');
+  const r = E.ensureGroupMinimum(sessions, days020, [], 25, floors020);
+  assert.ok(sessions[0].exercises.some(e => e.exerciseId === 'biceps.curl_barbell' && e.sets === 2), 'el curl queda con sus 2 series');
+  assert.deepEqual(r.log, [], 'sin otro donante posible, abdomen y pantorrillas quedan sin cubrir');
+  // Con más series puede ceder hasta quedar con 2, pero el ejercicio nunca desaparece.
+  const s2 = mkSessions(4);
+  E.ensureGroupMinimum(s2, days020, [], 25, floors020);
+  const curl = s2[0].exercises.find(e => e.exerciseId === 'biceps.curl_barbell');
+  assert.ok(curl && curl.sets >= 2, 'el curl sigue en el plan');
+  assert.ok(E.fractionalByMuscle(s2.flatMap(s => s.exercises)).biceps >= MIN020.value);
+  // Si el grupo tiene otro ejercicio directo, un ejercicio de 2 series sí puede salir.
+  const s3 = [
+    sess020('A', [['biceps.curl_barbell', 2], ['back.row_barbell', 8], ['chest.bench_press_barbell', 4], ['quads.squat_back_or_hack', 11]]),
+    sess020('B', [['biceps.curl_incline', 3], ['back.row_barbell', 4], ['chest.bench_press_barbell', 4], ['quads.squat_back_or_hack', 14]]),
+  ];
+  assert.deepEqual(s3.map(s => s.totalSets), [25, 25]);
+  E.ensureGroupMinimum(s3, days020, [], 25, floors020);
+  assert.ok(s3.flatMap(s => s.exercises).some(e => e.bucket === 'biceps' && (e.setWeights.biceps || 0) >= 1), 'queda al menos un ejercicio directo de bíceps');
+});
+
+test('DEC-020: bíceps sin series directas a los 3 días baja de 65 a 50 de 90 perfiles con la restricción (los 50 vienen del recorte del tope E4, que ya existía)', () => {
+  const count = days => sweep020().filter(p => !(E.buildPlan(Object.assign({}, p, { daysPerWeek: days }), TODAY).training.weeklySets.biceps > 0)).length;
+  assert.equal(count(3), 50);
+  assert.equal(count(4), 34);
+  assert.equal(count(5), 0);
 });
 
 const clearedZone020 = (zone, extra) => { const base = E.normalizeProfile(Object.assign({}, fullBody3, { injuryZones: [zone] }, extra || {})); return Object.assign({}, base, { health: cleared(base.health, zone, '2026-10-01') }); };

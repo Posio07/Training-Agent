@@ -631,7 +631,8 @@
   //     series del catálogo ya filtrado por lesiones);
   //  2) si ninguna sesión tiene espacio, las series se sacan de aislamientos de la MISMA sesión, empezando por
   //     el grupo con más volumen fraccionado acumulado, sin bajar a ningún grupo de su propio mínimo o piso
-  //     (nunca se descubre un grupo para cubrir a otro) y nunca de un multiarticular;
+  //     (nunca se descubre un grupo para cubrir a otro), nunca de un multiarticular y nunca el último
+  //     ejercicio directo de un grupo (puede ceder series, pero el ejercicio queda);
   //  3) si tampoco se puede, el grupo queda como está y se informa (la sesión solo puede pasarse del tope con
   //     la aceptación explícita del usuario: `limit` ya la incluye).
   // DEC-011: un grupo sin ningún ejercicio posible tras las exclusiones por lesión no recibe mínimo.
@@ -679,6 +680,11 @@
             if (plain[e.bucket] - (tentPlain[e.bucket] || 0) - step < plainProtect[e.bucket]) return false;
             const left = sessions[i].exercises.filter(x => x.bucket === e.bucket).reduce((a, x) => a + x.sets - (taken.get(x) || 0), 0);
             if (left - step < 1) return false;
+          }
+          // Nunca se quita el último ejercicio directo de un grupo en la semana: puede ceder series, pero el ejercicio queda.
+          if (step >= rem(e) && (e.setWeights[e.bucket] || 0) >= direct) {
+            const otherDirect = sessions.some(s => s.exercises.some(x => x !== e && x.bucket === e.bucket && (x.setWeights[x.bucket] || 0) >= direct && x.sets - (taken.get(x) || 0) > 0));
+            if (!otherDirect) return false;
           }
           return true;
         };

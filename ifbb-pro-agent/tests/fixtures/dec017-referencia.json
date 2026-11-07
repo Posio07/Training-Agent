@@ -899,23 +899,23 @@
    "agregadas": 0,
    "chicos": {
     "abs": {
-     "real": 3,
-     "fracc": 3
+     "real": 2,
+     "fracc": 2
     },
     "calves": {
-     "real": 3,
-     "fracc": 3
+     "real": 2,
+     "fracc": 2
     },
     "biceps": {
-     "real": 0,
-     "fracc": 6
+     "real": 2,
+     "fracc": 8
     },
     "triceps": {
      "real": 4,
      "fracc": 11.5
     }
    },
-   "minimoAgregadas": 4
+   "minimoAgregadas": 2
   },
   "bb_bulk_advanced_6d": {
    "sesiones": [
@@ -1111,23 +1111,23 @@
    "agregadas": 1,
    "chicos": {
     "abs": {
-     "real": 5,
-     "fracc": 5
+     "real": 4,
+     "fracc": 4
     },
     "calves": {
-     "real": 3,
-     "fracc": 3
+     "real": 2,
+     "fracc": 2
     },
     "biceps": {
-     "real": 0,
-     "fracc": 6
+     "real": 2,
+     "fracc": 8
     },
     "triceps": {
      "real": 3,
      "fracc": 10
     }
    },
-   "minimoAgregadas": 6
+   "minimoAgregadas": 4
   },
   "physique_cut_adv_lag_5d": {
    "sesiones": [
