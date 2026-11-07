@@ -589,6 +589,8 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.sourcesUsed.#': 'B-013: ídem, en la lista combinada de fuentes usadas',
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
+    'plan.training.sessions.#.exercises.#.cue': 'DEC-022: indicación del catálogo (preferir el curl femoral sentado, E4)',
+    'plan.input.barbellRow': 'DEC-022: el remo con barra solo entra si el usuario lo elige (false por defecto; la línea base se compara con true)',
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
     'plan.training.warnings.length': 'DEC-014 / DEC-016: avisos nuevos (E4, R1, grupos bajo el mínimo)',
     'plan.warnings.length': 'DEC-014 / DEC-016: ídem, en la lista combinada',
@@ -599,7 +601,13 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     assert.ok(!c.profile.healthGoal && !c.profile.injuryZones, `${key}: el fixture solo cubre perfiles sin healthGoal ni lesiones`);
     // DEC-014: con la aceptación explícita no se recorta nada, así que el resto del plan (series,
     // duraciones, orden de ejercicios, top sets) tiene que seguir idéntico al de la línea base.
-    const plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24' }), fx.today);
+    // DEC-022: A1 (orden) y A3 (separar sentadilla y bisagra) cambian a propósito el orden, los ejercicios de isquios y la duración;
+    // aquí se apagan para que esta línea base siga comprobando que nada más cambió.
+    const rules = K.VALIDATOR_RULES, prev = [rules.sessionOrderByDemand.value, rules.hingeSquatSeparation.value];
+    rules.sessionOrderByDemand.value = false; rules.hingeSquatSeparation.value = false;
+    let plan;
+    try { plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24', barbellRow: true }), fx.today); }
+    finally { rules.sessionOrderByDemand.value = prev[0]; rules.hingeSquatSeparation.value = prev[1]; }
     diffPaths(plan, c.plan, 'plan', seen);
     // Las claves permitidas valen "sin efecto" en estos perfiles: nunca pausan ni tocan nada.
     assert.equal(plan.health.injuryBlockReason, null, `${key}`);
@@ -1098,7 +1106,7 @@ test('DEC-012: todo exerciseId del CSV existe en el catálogo y viceversa (salvo
     else assert.ok(inCsv.has(id), `el ejercicio del catálogo no tiene filas en el CSV: ${id}`);
   });
   assert.deepEqual(K.NO_MUSCLE_CONTRIBUTION, ['functional.farmer_carry'], 'el paseo del granjero es el único sin aporte');
-  assert.ok(inCatalog.size === 35 && inCsv.size === 34);
+  assert.ok(inCatalog.size === 36 && inCsv.size === 35);
 });
 
 test('DEC-013: cada ejercicio tiene al menos una relación directa, salvo el paseo del granjero (ninguna fila)', () => {
@@ -1171,7 +1179,7 @@ test('DEC-012: el parser lee igual un CSV con coma y uno con punto y coma (Excel
   assert.deepEqual(semi.rows, comma.rows, 'coma y punto y coma tienen que dar las mismas filas');
   const crlf = MB.parseExerciseMuscles(table.map(r => r.map(c => quote(c, ',')).join(',')).join('\r\n'));
   assert.deepEqual(crlf.rows, comma.rows);
-  assert.equal(comma.rows.length, 61);
+  assert.equal(comma.rows.length, 64);
   // Lo mismo con el CSV de buckets.
   const bt = MB.parseCsv(bucketsText(), ',');
   const bSemi = MB.parseBuckets('﻿' + bt.map(r => r.join(';')).join('\r\n') + '\r\n');
@@ -1807,7 +1815,7 @@ test('DEC-016 (1): el músculo del bucket cuenta siempre como directo (1), sea c
     });
   });
   // Los 7 ejercicios cuyo bucket estaba a_verificar son justo los que cambian.
-  assert.deepEqual(aVerificarBucket.sort(), ['abs.vacuum', 'back.pullover_cable', 'chest.dip_or_machine_press', 'chest.incline_press_db', 'functional.step_up', 'shoulders.press_landmine_neutral', 'shoulders.rear_delt_facepull']);
+  assert.deepEqual(aVerificarBucket.sort(), ['abs.vacuum', 'back.pullover_cable', 'back.row_chest_supported', 'chest.dip_or_machine_press', 'chest.incline_press_db', 'functional.step_up', 'shoulders.press_landmine_neutral', 'shoulders.rear_delt_facepull']);
   // La evidencia de la fila NO se toca: sigue siendo a_verificar.
   assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.chest.evidencia, 'a_verificar');
   // Los datos son coherentes con la regla: todo bucket es una fila directa (salvo el paseo del granjero, sin filas).
@@ -2002,16 +2010,22 @@ test('DEC-016: cada regla de VALIDATOR_RULES lleva un estado, y R3 y la frecuenc
 /* ---------- DEC-017 · completar hasta el piso dentro del tope ---------- */
 
 const REF017 = require('./fixtures/dec017-referencia.json');
+// DEC-022: corre `fn` con A1 (orden) y A3 (separar sentadilla y bisagra) apagadas, para comparar contra la salida de antes del Paso 2.
+const sinDec022 = fn => {
+  const r = K.VALIDATOR_RULES, prev = [r.sessionOrderByDemand.value, r.hingeSquatSeparation.value];
+  r.sessionOrderByDemand.value = false; r.hingeSquatSeparation.value = false;
+  try { return fn(); } finally { r.sessionOrderByDemand.value = prev[0]; r.hingeSquatSeparation.value = prev[1]; }
+};
 const SPLIT_DAYS_4 = E.SPLITS[4].days; // Torso A, Pierna A, Torso B, Pierna B
 const mk = (id, sets) => { const ix = K.EXERCISE_INDEX[id]; return Object.assign(E.exerciseFields(ix.entry, ix.bucket), { name: ix.entry.name, type: ix.entry.type, pattern: ix.entry.pattern, unilateral: !!ix.entry.unilateral, sets }); };
 const sess = (name, ...ex) => ({ name, exercises: ex, totalSets: ex.reduce((a, e) => a + e.sets, 0) });
 const fracOf = sessions => sessions.reduce((acc, s) => { Object.entries(E.fractionalByMuscle(s.exercises)).forEach(([m, n]) => { acc[m] = (acc[m] || 0) + n; }); return acc; }, {});
 
 test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptación), con duración por sesión', () => {
-  assert.equal(Object.keys(REF017.despues_dec020).length, 10); // DEC-020: valores vigentes; `despues` es el histórico de DEC-017
+  assert.equal(Object.keys(REF017.despues_dec022).length, 10); // DEC-020: valores vigentes; `despues` es el histórico de DEC-017
   Object.entries(BASELINE016.cases).forEach(([key, c]) => {
     const plan = E.buildPlan(c.profile, BASELINE016.today);
-    const f = fracWeek(plan), t = plan.training, d = REF017.despues_dec020[key], a = REF017.antes[key];
+    const f = fracWeek(plan), t = plan.training, d = REF017.despues_dec022[key], a = REF017.antes[key];
     const floors = t.sessionLimit.floors;
     assert.deepEqual(t.sessions.map(s => s.totalSets), d.sesiones, `${key}: series por sesión`);
     assert.deepEqual(t.sessions.map(s => s.durationMin), d.minutos, `${key}: duración derivada por sesión`);
@@ -2024,15 +2038,17 @@ test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptaci�
     t.sessions.forEach((s, i) => {
       assert.ok(s.totalSets <= Math.max(a.sesiones[i], t.sessionLimit.cap), `${key} ${s.name}: ${s.totalSets} pasa del tope`);
     });
-    assert.deepEqual(d.sobreTope, a.sobreTope, `${key}: mismas sesiones sobre el tope que antes`);
+    // DEC-022: el curl (aislamiento) reemplaza a la bisagra el día de sentadilla, así que el tope puede recortar una sesión que antes no podía; nunca aparece una sesión nueva sobre el tope.
+    d.sobreTope.forEach(x => assert.ok(a.sobreTope.includes(x), `${key}: sesión sobre el tope que antes no estaba`));
     // Ningún grupo mayor queda por debajo del menor entre lo que tenía y su piso (R2 prevalece; DEC-020 también lo respeta).
     K.MAJOR_GROUPS.forEach(mu => assert.ok(d.mayores[mu] >= Math.min(a.mayores[mu], d.pisos[mu]), `${key}: ${mu} no baja de su piso`));
   });
   // Sesiones de más de 90 minutos: ya existían antes y esta regla no las crea ni las alarga.
-  const over90 = k => REF017.despues_dec020[k].minutos.filter(m => m > 90);
-  assert.deepEqual(over90('wellness_maintain_5d'), [92, 92]);
-  assert.deepEqual(over90('bb_bulk_advanced_6d'), [98, 96]);
-  Object.keys(REF017.despues_dec020).forEach(k => assert.deepEqual(over90(k), REF017.antes[k].minutos.filter(m => m > 90), `${k}: sin sesiones nuevas de más de 90 min`));
+  const over90 = k => REF017.despues_dec022[k].minutos.filter(m => m > 90);
+  // DEC-022: el curl (más corto que el peso muerto rumano) baja el día de sentadilla de 92 a 86 y de 98 a 89 minutos.
+  assert.deepEqual(over90('wellness_maintain_5d'), [92]);
+  assert.deepEqual(over90('bb_bulk_advanced_6d'), [96]);
+  Object.keys(REF017.despues_dec022).forEach(k => over90(k).forEach(m => assert.ok(REF017.antes[k].minutos.filter(x => x > 90).includes(m), `${k}: sesión nueva de más de 90 min (${m})`)));
 });
 
 test('DEC-017: piso de mantenimiento: los grupos "down" de la división usan 5, los rezagados y los demás 10', () => {
@@ -2092,7 +2108,7 @@ test('DEC-017: wellness_maintain_5d y bikini_cut_lagging_4d tienen el pecho "dow
     const f = fracWeek(plan), t = plan.training;
     assert.equal(t.sessionLimit.floors.chest, 5, `${key}: el pecho es "down" en ${c.profile.division}`);
     assert.ok(f.chest >= 5 && f.chest < 10, `${key}: pecho ${f.chest}`);
-    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.despues_dec020[key].sesiones, `${key}: sin series agregadas por el completado (DEC-020 puede mover series de los grupos chicos)`);
+    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.despues_dec022[key].sesiones, `${key}: sin series agregadas por el completado (DEC-020 puede mover series de los grupos chicos)`);
     assert.deepEqual(t.sessionLimit.filled, []);
     assert.ok(!t.sessionLimit.belowMinimum.some(x => x.muscle === 'chest'), `${key}: el pecho ya no está en el aviso`);
   });
@@ -2143,7 +2159,7 @@ test('DEC-017: figure_maintain_novice_3d (figure_w, sin "down") completa el pech
   assert.ok(fracWeek(plan).chest >= 10);
   assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 25, 25]);
   assert.equal(t.sessionLimit.filled.reduce((a, x) => a + x.sets, 0), 1);
-  assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.despues_dec020[key].minutos);
+  assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.despues_dec022[key].minutos);
 });
 
 test('DEC-017: nunca pasa de 25 por esta regla (barrido de divisiones, días, objetivos, niveles y rezagados)', () => {
@@ -2203,9 +2219,13 @@ test('DEC-017 (unidad): primero series extra de ejercicios del plan; ejercicio n
   const patterns = S2.exercises.map(e => e.pattern);
   assert.equal(new Set(patterns).size, patterns.length, 'sin patrones repetidos en el día (DEC-006)');
   // Sin lesión, la sentadilla (excluida por rodilla) sí está disponible.
-  const S3 = sess('P', mk('hamstrings.rdl', 3));
+  const S3 = sess('P', mk('hamstrings.leg_curl', 3));
   E.completeToFloor([S3], [{ muscles: ['quads', 'hamstrings'] }], [], 25, new Set());
   assert.ok(S3.exercises.some(e => e.pattern === 'squat_bilateral'), 'control: sin lesión entra la sentadilla');
+  // DEC-022 (A3): con la bisagra pesada en la sesión, la sentadilla pesada no se agrega como relleno.
+  const S3b = sess('P', mk('hamstrings.rdl', 3));
+  E.completeToFloor([S3b], [{ muscles: ['quads', 'hamstrings'] }], [], 25, new Set());
+  assert.ok(!S3b.exercises.some(e => e.pattern === 'squat_bilateral'), 'A3: la sentadilla pesada no entra donde ya hay bisagra pesada');
   // Sin espacio no se agrega nada y el grupo queda como estaba.
   const full = sess('F', mk('chest.bench_press_barbell', 12), mk('shoulders.press_overhead', 13));
   assert.deepEqual(E.completeToFloor([full], [{ muscles: ['chest', 'shoulders'] }], [], 25, new Set()), []);
@@ -2454,7 +2474,7 @@ test('DEC-020 · caso donde el mínimo no cabe: advanced / bulk / wellness_w de 
 
 test('DEC-020: los planes que ya cumplen el mínimo no cambian (oscar 5d, bb 6d, physique_w 6d, wellness 5d, physique_cut_adv_lag 5d)', () => {
   ['oscar_cut_classic_5d', 'bb_bulk_advanced_6d', 'physique_w_bulk_6d', 'wellness_maintain_5d', 'physique_cut_adv_lag_5d'].forEach(key => {
-    const t = E.buildPlan(BASELINE016.cases[key].profile, BASELINE016.today).training;
+    const t = sinDec022(() => E.buildPlan(BASELINE016.cases[key].profile, BASELINE016.today)).training;
     assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.antes[key].sesiones, `${key}: series por sesión`);
     assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.antes[key].minutos, `${key}: minutos por sesión`);
     assert.deepEqual(t.sessionLimit.minimum.filled, [], `${key}: no hubo que agregar nada`);
@@ -2669,6 +2689,7 @@ test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálog
     'Curl femoral tumbado o sentado': ['hamstrings.leg_curl'], 'Press de banca': ['chest.bench_press_barbell'], 'Press inclinado': ['chest.incline_press_db'],
     'Fondos en paralelas': ['chest.dip_or_machine_press', 'triceps.close_grip_or_dips'], 'Jalón al pecho': ['back.vertical_pull'], 'Dominadas': ['back.vertical_pull'],
     'Elevaciones laterales': ['shoulders.lateral_raise_db', 'shoulders.lateral_raise_cable'],
+    'Remo con apoyo de pecho': ['back.row_chest_supported'],
   };
   Object.entries(equal).forEach(([name, ids]) => ids.forEach(id => {
     K.JOINTS.forEach((j, k) => { assert.equal(K.JOINT_PROFILE[id][j].nivel, specRows[name][k], `${name} → ${id} / ${j}`); assert.equal(K.JOINT_PROFILE[id][j].origen, 'spec_inicial', `${id}/${j}: origen`); });
@@ -2728,9 +2749,9 @@ test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambigua
   assert.ok(!/sustituto del press/i.test(paCell('shoulders.press_landmine_neutral', 'hombro').notes.replace('No se clasifica por su función de sustituto', '')));
 });
 
-test('DEC-021: el plan no cambia (el perfil no se expone ni lo usa ninguna regla todavía) y un ejercicio sin perfil advierte', () => {
+test('DEC-021: el perfil no se expone en el plan, solo lo leen A1 y A3 (DEC-022), y un ejercicio sin perfil advierte', () => {
   const engineSrc = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../js/engine.js'), 'utf8');
-  assert.doesNotMatch(engineSrc, /JOINT_PROFILE|\.nivel\b/, 'engine.js solo usa missingJointProfile');
+  assert.equal((engineSrc.match(/JOINT_PROFILE/g) || []).length, 4, 'engine.js solo lee el perfil en heavyKind (A3), orderByDemand (A1) y el aviso A2');
   const plan = E.buildPlan(fullBody3, TODAY);
   assert.ok(!plan.warnings.some(w => w.kind === 'sin_perfil_articular'), 'catálogo completo: sin aviso');
   assert.ok(!/"lumbar"|"hombro":\{/.test(JSON.stringify(plan.training.sessions)), 'las sesiones no exponen el perfil');
@@ -2759,4 +2780,133 @@ test('DEC-021: el módulo perfilArticular.js se carga en index.html (antes de kn
   const iPerfil = html.indexOf('js/perfilArticular.js'), iKnow = html.indexOf('js/knowledge.js');
   assert.ok(iPerfil >= 0 && iKnow >= 0 && iPerfil < iKnow, 'index.html carga perfilArticular.js antes que knowledge.js');
   assert.ok(sw.includes("'./js/perfilArticular.js'"), 'sw.js lo precachea');
+});
+
+/* ---------- DEC-022 (Fase 3, Paso 2): A1 (orden por demanda) y A3 (sentadilla y bisagra pesadas en días distintos) ---------- */
+
+const SIM022 = require('../../scripts/simular-reglas-articulares.js');
+const plans022 = () => { const out = []; [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => out.push(E.buildPlan(Object.assign({}, p, { daysPerWeek: d }), TODAY)))); return out; };
+const heavy022 = e => (K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta' ? (e.pattern === 'squat_bilateral' ? 'squat' : e.pattern === 'hinge' ? 'hinge' : null) : null);
+const hamDays = plan => plan.training.sessions.filter(s => s.exercises.some(e => e.bucket === 'hamstrings')).length;
+
+test('DEC-022 · A3: en los 360 planes del barrido la sentadilla pesada y la bisagra pesada nunca comparten sesión; los isquios no pierden ningún día', () => {
+  const on = plans022();
+  const off = sinDec022(plans022);
+  assert.equal(on.length, 360);
+  let swapped = 0;
+  on.forEach((plan, i) => {
+    plan.training.sessions.forEach(s => {
+      const kinds = new Set(s.exercises.map(heavy022).filter(Boolean));
+      assert.ok(!(kinds.has('squat') && kinds.has('hinge')), `plan ${i} ${s.name}: sentadilla y bisagra pesadas juntas`);
+    });
+    // Frecuencia semanal de isquios (días con ejercicios de isquios) y de glúteos: no baja respecto de la salida sin A3.
+    assert.ok(hamDays(plan) >= hamDays(off[i]), `plan ${i}: frecuencia de isquios ${hamDays(plan)} < ${hamDays(off[i])}`);
+    const gluDays = pl => pl.training.sessions.filter(s => s.exercises.some(e => e.bucket === 'glutes')).length;
+    assert.ok(gluDays(plan) >= gluDays(off[i]), `plan ${i}: frecuencia de glúteos`);
+    // La bisagra pesada sigue en la semana (solo cambia de día) y el día de sentadilla cubre los isquios con curl femoral.
+    const hinges = pl => pl.training.sessions.reduce((a, s) => a + s.exercises.filter(e => heavy022(e) === 'hinge').length, 0);
+    assert.ok(hinges(plan) >= 1 && hinges(off[i]) >= 1, `plan ${i}: sigue habiendo bisagra pesada`);
+    const sq = plan.training.sessions.find(s => s.exercises.some(e => heavy022(e) === 'squat'));
+    if (sq && off[i].training.sessions.some(s => s.exercises.some(e => heavy022(e) === 'squat') && s.exercises.some(e => heavy022(e) === 'hinge'))) {
+      swapped++;
+      assert.ok(sq.exercises.some(e => e.exerciseId === 'hamstrings.leg_curl'), `plan ${i}: el día de sentadilla cubre los isquios con curl femoral`);
+    }
+  });
+  assert.ok(swapped >= 200, `planes donde se separó: ${swapped}`);
+  // El curl femoral lleva la indicación de preferir el sentado (Maeo 2021, E4).
+  const curl = on[0].training.sessions.flatMap(s => s.exercises).find(e => e.exerciseId === 'hamstrings.leg_curl');
+  assert.ok(curl && curl.cue && curl.cue.evidence === 'E4' && /sentado/.test(curl.cue.text) && /Maeo/.test(curl.cue.text));
+});
+
+test('DEC-022 · A1: en cada sesión va primero lo de lumbar alta, luego los multiarticulares (el hip thrust al final de ellos) y al final los aislamientos', () => {
+  const grp = e => (K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta' ? 0 : e.type === 'isolation' ? 3 : e.pattern === 'hip_thrust' ? 2 : 1);
+  plans022().forEach((plan, i) => plan.training.sessions.forEach(s => {
+    const g = s.exercises.map(grp);
+    assert.deepEqual(g, g.slice().sort((a, b) => a - b), `plan ${i} ${s.name}: orden por demanda`);
+    // A1 como advertencia (spec): ningún ejercicio de lumbar alta queda después de dos o más de lumbar media o alta.
+    const lum = s.exercises.map(e => K.JOINT_PROFILE[e.exerciseId].lumbar.nivel);
+    lum.forEach((x, k) => { if (x === 'alta') assert.ok(lum.slice(0, k).filter(y => y !== 'baja').length < 2, `plan ${i} ${s.name}: A1`); });
+  }));
+  // Apagada la regla, el orden vuelve al del generador (la prueba falla si A1 no hace nada).
+  const sinA1 = (() => { const r = K.VALIDATOR_RULES; r.sessionOrderByDemand.value = false; try { return plans022(); } finally { r.sessionOrderByDemand.value = true; } })();
+  assert.ok(sinA1.some(pl => pl.training.sessions.some(s => { const g = s.exercises.map(grp); return JSON.stringify(g) !== JSON.stringify(g.slice().sort((a, b) => a - b)); })), 'sin A1 hay sesiones desordenadas');
+});
+
+test('DEC-022: las reglas A1 y A3 están en VALIDATOR_RULES (E4, implementadas) y el relleno nunca vuelve a juntar sentadilla y bisagra', () => {
+  ['sessionOrderByDemand', 'hingeSquatSeparation'].forEach(k => { const r = K.VALIDATOR_RULES[k]; assert.equal(r.level, 'E4'); assert.equal(r.status, 'implementada'); assert.equal(r.value, true); assert.ok(r.source && r.source.label); });
+  // Con lesiones declaradas o con la bandera salud/funcional el plan también cumple A3.
+  const base = SIM022.profiles[5];
+  [{ healthGoal: true }, { injuryZones: ['shoulder'] }, { injuryZones: ['knee'] }, { injuryZones: ['lower_back'] }].forEach(extra => {
+    [3, 4, 5, 6].forEach(d => {
+      const plan = E.buildPlan(Object.assign({}, base, extra, { daysPerWeek: d }), TODAY);
+      plan.training.sessions.forEach(s => { const k = new Set(s.exercises.map(heavy022).filter(Boolean)); assert.ok(!(k.has('squat') && k.has('hinge')), `${JSON.stringify(extra)} ${d}d ${s.name}`); });
+    });
+  });
+});
+
+test('DEC-022 · A3 solo separa lo de lumbar alta: un hinge de demanda lumbar media no se separa de la sentadilla (ejercicio sintético)', () => {
+  const prof = K.JOINT_PROFILE['hamstrings.rdl'], saved = prof.lumbar.nivel;
+  try {
+    prof.lumbar.nivel = 'media';
+    const joined = plans022().filter(pl => pl.training.sessions.some(s => s.exercises.some(e => e.pattern === 'squat_bilateral') && s.exercises.some(e => e.pattern === 'hinge')));
+    assert.ok(joined.length > 100, `con el rumano en media vuelve a convivir con la sentadilla: ${joined.length}`);
+  } finally { prof.lumbar.nivel = saved; }
+});
+
+/* ---------- DEC-022 (ajustes): remo por defecto con apoyo de pecho, remo con barra opcional, A2 como aviso y curl sin tope (el máximo es 10, bajo el umbral de R1) ---------- */
+
+const plansBar022 = () => { const out = []; [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => out.push(E.buildPlan(Object.assign({}, p, { barbellRow: true, daysPerWeek: d }), TODAY)))); return out; };
+const lumbarAlta022 = s => s.exercises.filter(e => K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta');
+const ids022 = plan => plan.training.sessions.flatMap(s => s.exercises.map(e => e.exerciseId));
+
+test('DEC-022 · el remo por defecto es con apoyo de pecho (lumbar baja): sin remo con barra no hay A2 en ninguno de los 360 planes', () => {
+  assert.equal(E.normalizeProfile(male).barbellRow, false);
+  assert.equal(E.normalizeProfile(Object.assign({}, male, { barbellRow: true })).barbellRow, true);
+  assert.equal(K.JOINT_PROFILE['back.row_chest_supported'].lumbar.nivel, 'baja');
+  let conApoyo = 0;
+  plans022().forEach((plan, i) => {
+    const ids = ids022(plan);
+    assert.ok(!ids.includes('back.row_barbell'), `plan ${i}: el remo con barra no entra por defecto`);
+    if (ids.includes('back.row_chest_supported')) conApoyo++;
+    plan.training.sessions.forEach(s => assert.ok(lumbarAlta022(s).length <= K.VALIDATOR_RULES.maxLumbarHighPerSession.value, `plan ${i} ${s.name}: A2`));
+    assert.ok(!plan.training.warnings.some(w => w.kind === 'tope_lumbar'), `plan ${i}: sin aviso A2`);
+  });
+  assert.ok(conApoyo >= 300, `planes con remo con apoyo de pecho: ${conApoyo}`);
+});
+
+test('DEC-022 · con el remo con barra elegido: entra, A3 lo separa de la sentadilla y A2 avisa cuando cae con otra bisagra', () => {
+  const plans = plansBar022();
+  let conBarra = 0, avisos = 0;
+  plans.forEach((plan, i) => {
+    if (ids022(plan).includes('back.row_barbell')) conBarra++;
+    plan.training.sessions.forEach(s => { const k = new Set(s.exercises.map(heavy022).filter(Boolean)); assert.ok(!(k.has('squat') && k.has('hinge')), `plan ${i} ${s.name}: sentadilla y bisagra (incluido el remo con barra)`); });
+    const demasiadas = plan.training.sessions.filter(s => lumbarAlta022(s).length > 1);
+    const aviso = plan.training.warnings.find(w => w.kind === 'tope_lumbar');
+    assert.equal(!!aviso, demasiadas.length > 0, `plan ${i}: el aviso A2 sale exactamente cuando hay más de un ejercicio de lumbar alta en una sesión`);
+    if (aviso) { avisos++; assert.deepEqual([aviso.level, aviso.evidence, aviso.rule], ['warn', 'E4', 'A2']); assert.equal(aviso.sessions.length, demasiadas.length); }
+  });
+  // Con la espalda rezagada (más series de espalda) el remo con barra cae en el primer día de espalda: A3 lo cambia si ese día lleva la sentadilla.
+  let rezagados = 0;
+  [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => {
+    const pl = E.buildPlan(Object.assign({}, p, { laggingMuscles: ['back'], barbellRow: true, daysPerWeek: d }), TODAY); rezagados++;
+    pl.training.sessions.forEach(s => { assert.ok(!(s.exercises.some(e => e.pattern === 'squat_bilateral') && s.exercises.some(e => e.pattern === 'row_barbell')), `espalda rezagada ${d}d ${s.name}: sentadilla con remo con barra`); });
+  }));
+  assert.equal(rezagados, 360);
+  assert.ok(conBarra >= 300, `planes con remo con barra: ${conBarra}`);
+  assert.ok(avisos > 0 && avisos < 360, `planes con aviso A2: ${avisos}`);
+});
+
+test('DEC-022 · el curl del día de sentadilla no lleva tope: en los 360 planes el máximo es 10, bajo el umbral de R1 (11), y ningún aviso R1 es de isquios', () => {
+  const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
+  let maxCurl = 0, avisosIsquios = 0, maxFracIsquios = 0;
+  plans022().forEach(pl => {
+    pl.training.sessions.forEach(s => {
+      s.exercises.filter(e => e.exerciseId === 'hamstrings.leg_curl').forEach(e => { maxCurl = Math.max(maxCurl, e.sets); });
+      maxFracIsquios = Math.max(maxFracIsquios, s.fractionalSets.hamstrings || 0);
+    });
+    avisosIsquios += pl.training.warnings.filter(w => w.rule === 'R1' && w.muscle === 'hamstrings').length;
+  });
+  assert.equal(maxCurl, 10);
+  assert.ok(maxCurl < r1 && maxFracIsquios <= r1, `isquios por sesión: máximo ${maxFracIsquios} fraccionadas (umbral ${r1})`);
+  assert.equal(avisosIsquios, 0);
 });

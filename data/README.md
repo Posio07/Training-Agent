@@ -64,7 +64,7 @@ Un test de `engine.test.js` falla si el módulo no coincide con el CSV, y ese ar
 
 ## `perfil-articular.csv` · demanda de cada ejercicio en lumbar, hombro y rodilla (Fase 3, DEC-021)
 
-Una fila por ejercicio y articulación; **todo el catálogo lleva perfil** (35 ejercicios × 3 articulaciones). Por ahora la app solo carga estos datos: ninguna regla articular los usa todavía (`docs/specs/validador-fase3.md`).
+Una fila por ejercicio y articulación; **todo el catálogo lleva perfil** (36 ejercicios × 3 articulaciones desde DEC-022, que agregó el remo con apoyo de pecho). Por ahora la app solo carga estos datos: ninguna regla articular los usa todavía (`docs/specs/validador-fase3.md`).
 
 | Columna | Qué lleva |
 | --- | --- |

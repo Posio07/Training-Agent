@@ -381,6 +381,8 @@
     // DEC-011: un ejercicio que solo entra por una lesión declarada es una
     // precaución heurística (E4), no una adaptación validada.
     if (ex.injuryOnly) entry.injurySubstitute = { zone: ex.injuryOnly, evidence: 'E4' };
+    // DEC-022: indicación breve del catálogo (p. ej. preferir el curl femoral sentado, E4).
+    if (ex.cue) entry.cue = { text: ex.cue, evidence: 'E4' };
     return entry;
   }
 
@@ -412,6 +414,42 @@
       const resolved = resolvePick(ex, lib, used);
       used.add(basePattern(resolved));
       return resolved;
+    });
+  }
+
+  /* ---------- DEC-022 · Fase 3, Paso 2: A3 (sentadilla pesada y bisagra pesada en días distintos) y A1 (orden) ---------- */
+
+  // Sentadilla pesada = patrón squat_bilateral con demanda lumbar alta; bisagra pesada = patrón hinge con demanda lumbar alta
+  // (perfil articular, DEC-021). La búlgara, la prensa y el hip thrust no cuentan: son lumbar media o baja.
+  function heavyKind(id, pattern) {
+    const prof = K.JOINT_PROFILE[id];
+    if (!prof || !prof.lumbar || prof.lumbar.nivel !== 'alta') return null;
+    // El remo con barra (bisagra sostenida, regla 2 del criterio) cuenta como bisagra pesada; solo aparece si el usuario lo elige.
+    return pattern === 'squat_bilateral' ? 'squat' : (pattern === 'hinge' || pattern === 'row_barbell') ? 'hinge' : null;
+  }
+  // DEC-022: el remo con barra es opcional; sin esa elección el remo del plan es el de apoyo de pecho (misma posición de la rotación).
+  function applyRowChoice(lib, barbellRow) { return lib.filter(e => (barbellRow ? !e.defaultOnly : !e.optIn)); }
+  // A3: ¿agregar `cand` (entrada del plan o del catálogo) a `dayExercises` juntaría la sentadilla y la bisagra pesadas?
+  function violatesA3(dayExercises, cand) {
+    if (!K.VALIDATOR_RULES.hingeSquatSeparation.value) return false;
+    const kind = heavyKind(cand.exerciseId || cand.id, cand.pattern);
+    if (!kind) return false;
+    const other = kind === 'squat' ? 'hinge' : 'squat';
+    return dayExercises.some(e => heavyKind(e.exerciseId, e.pattern) === other);
+  }
+  // A1: orden de cada sesión por demanda. Primero lo de lumbar alta (con la espalda descansada), luego los
+  // multiarticulares y al final los aislamientos; el hip thrust (lumbar media) va al final de los multiarticulares.
+  // Estable: dentro de cada grupo se conserva el orden del generador. Solo reordena; no cambia series ni ejercicios.
+  function orderByDemand(sessions) {
+    if (!K.VALIDATOR_RULES.sessionOrderByDemand.value) return;
+    const group = e => {
+      const prof = K.JOINT_PROFILE[e.exerciseId];
+      if (prof && prof.lumbar && prof.lumbar.nivel === 'alta') return 0;
+      if (e.type === 'isolation') return 3;
+      return e.pattern === 'hip_thrust' ? 2 : 1;
+    };
+    sessions.forEach(s => {
+      s.exercises = s.exercises.map((e, i) => ({ e, i, g: group(e) })).sort((a, b) => a.g - b.g || a.i - b.i).map(x => x.e);
     });
   }
 
@@ -576,7 +614,7 @@
   //    elegido del catálogo ya filtrado por lesiones (DEC-009 / DEC-011) y sin repetir patrón en el día (DEC-006).
   //  - No lleva a ningún músculo por encima del umbral de R1 en una sesión (11 fraccionadas): sería crear el aviso.
   //  - Si el déficit no cabe, el grupo queda como estaba y sigue el aviso de grupos bajo el mínimo.
-  function completeToFloor(sessions, splitDays, injuryZones, cap, floors) {
+  function completeToFloor(sessions, splitDays, injuryZones, cap, floors, barbellRow) {
     const fullFloor = K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value;
     const floorOf = mu => (floors && floors[mu] != null ? floors[mu] : fullFloor);
     const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
@@ -608,8 +646,8 @@
       if (!done) for (const i of cand) { // 2) ejercicio nuevo, solo si no hay otra forma
         if (room(i) < 2) continue;
         const used = new Set(sessions[i].exercises.map(e => e.pattern || e.name));
-        const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
-          .filter(x => !used.has(basePattern(x)))
+        const ex = applyRowChoice(filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones), barbellRow)
+          .filter(x => !used.has(basePattern(x)) && !violatesA3(sessions[i].exercises, x))
           .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
         if (!ex) continue;
         const entry = makeEntry(ex, mu, 2);
@@ -637,7 +675,7 @@
   //     la aceptación explícita del usuario: `limit` ya la incluye).
   // DEC-011: un grupo sin ningún ejercicio posible tras las exclusiones por lesión no recibe mínimo.
   // No lleva a ningún músculo por encima del umbral de R1 en una sesión (11 fraccionadas).
-  function ensureGroupMinimum(sessions, splitDays, injuryZones, limit, floors) {
+  function ensureGroupMinimum(sessions, splitDays, injuryZones, limit, floors, barbellRow) {
     const MIN = K.VALIDATOR_RULES.groupMinimumWeeklySets.value;
     const direct = K.VALIDATOR_RULES.directSetWeight.value;
     const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
@@ -705,8 +743,8 @@
       const attempts = [];
       const existing = sessions[i].exercises.filter(e => e.bucket === mu && (e.setWeights[mu] || 0) >= direct && fitsR1(i, e.setWeights, 1)).sort((a, b) => a.sets - b.sets)[0];
       if (existing) attempts.push({ n: 1, e: existing, isNew: false });
-      const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
-        .filter(x => !used.has(basePattern(x)))
+      const ex = applyRowChoice(filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones), barbellRow)
+        .filter(x => !used.has(basePattern(x)) && !violatesA3(sessions[i].exercises, x))
         .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
       if (ex) attempts.push({ n: 2, ex, isNew: true });
       for (const a of attempts) {
@@ -782,10 +820,16 @@
     const freq = {};
     split.days.forEach(d => d.muscles.forEach(mu => { freq[mu] = (freq[mu] || 0) + 1; }));
 
+    // DEC-022 · A3: la sentadilla pesada cae en el primer día con cuádriceps (rotación del catálogo). Ese día los isquios se
+    // cubren con flexión de rodilla (curl femoral, lumbar baja) y la bisagra pesada pasa al siguiente día de isquios.
+    const barbellRow = !!p.barbellRow; // DEC-022
+    const quadsLib = filterLibByInjuries(K.EXERCISES.quads, 'quads', injuryZones);
+    const squatDay = K.VALIDATOR_RULES.hingeSquatSeparation.value && quadsLib.length && heavyKind(quadsLib[0].id, quadsLib[0].pattern) === 'squat'
+      ? split.days.findIndex(d => d.muscles.includes('quads')) : -1;
     const remaining = Object.assign({}, weeklySets);
     const rotate = {};
     const rotateExtra = {}; // DEC-005
-    const sessions = split.days.map(d => {
+    const sessions = split.days.map((d, dayIdx) => {
       const exercises = [];
       d.muscles.forEach(mu => {
         // DEC-005: con la bandera "salud/funcional" activa, pierna suma
@@ -793,7 +837,7 @@
         // rotación de ejercicios. Desactivada (por defecto), el catálogo es
         // el mismo de siempre.
         const extra = p.healthGoal ? filterLibByInjuries(K.FUNCTIONAL_EXERCISES[mu] || [], mu, injuryZones) : [];
-        const lib = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones); // DEC-009
+        const lib = applyRowChoice(filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones), barbellRow); // DEC-009 / DEC-022
         if (!lib.length) { weeklySets[mu] = 0; return; } // DEC-011/DEC-020: sin ejercicios posibles tras las exclusiones por lesión
         const perSession = Math.max(2, Math.round(weeklySets[mu] / freq[mu]));
         const sets = Math.min(perSession, Math.max(0, remaining[mu]));
@@ -809,6 +853,25 @@
         }
         // DEC-006: ningún patrón (variantes incluidas) se repite en el día.
         picks = dedupPicks(picks, lib, exercises);
+        // DEC-022 · A3: un ejercicio que juntaría la sentadilla y la bisagra pesadas (p. ej. el remo con barra elegido, junto a la sentadilla) se cambia por otro de la rotación.
+        let reset = false;
+        picks = picks.map(ex => {
+          if (!violatesA3(exercises, ex)) return ex;
+          const alt = lib.find(x => !picks.includes(x) && !violatesA3(exercises, x) && !exercises.some(e => (e.pattern || e.name) === basePattern(x)));
+          if (alt && heavyKind(ex.id, ex.pattern) === 'hinge') reset = true; // la bisagra que se cambia vuelve a la rotación
+          return alt || ex;
+        });
+        if (reset) rotate[mu] = idx;
+        if (mu === 'hamstrings' && dayIdx === squatDay) {
+          const kept = picks.filter(ex => heavyKind(ex.id, ex.pattern) !== 'hinge');
+          if (kept.length < picks.length) {
+            const alt = lib.find(ex => heavyKind(ex.id, ex.pattern) !== 'hinge');
+            if (kept.length || alt) {
+              picks = kept.length ? kept : [alt];
+              rotate[mu] = idx; // el próximo día de isquios vuelve a empezar por la bisagra
+            }
+          }
+        }
         const per = Math.floor(sets / picks.length);
         let rest = sets - per * picks.length;
         const dayEntries = picks.map(ex => {
@@ -949,7 +1012,7 @@
     });
 
     // DEC-017 · completar hasta el piso dentro del tope (ver completeToFloor).
-    const fillLog = completeToFloor(sessions, split.days, injuryZones, sessionLimit.cap, floors);
+    const fillLog = completeToFloor(sessions, split.days, injuryZones, sessionLimit.cap, floors, barbellRow);
     sessionLimit.filled = [];
     if (fillLog.length) {
       new Set(fillLog.map(x => x.bucket)).forEach(mu => {
@@ -972,7 +1035,7 @@
     // DEC-020 · mínimo semanal por grupo dentro del tope E4 (ver ensureGroupMinimum). Con una
     // aceptación vigente el techo es el máximo que el usuario aceptó; sin ella, el tope.
     const minLimit = accepted && acceptance ? Math.max(sessionLimit.cap, acceptance.maxSets) : sessionLimit.cap;
-    const minResult = ensureGroupMinimum(sessions, split.days, injuryZones, minLimit, floors);
+    const minResult = ensureGroupMinimum(sessions, split.days, injuryZones, minLimit, floors, barbellRow);
     sessionLimit.minimum = { value: minResult.minimum, level: 'E4', limit: minResult.limit, groups: minResult.groups, filled: [] };
     if (minResult.log.length) {
       new Set(minResult.log.map(x => x.bucket).concat(...minResult.log.map(x => x.donated.map(d => d.bucket)))).forEach(mu => {
@@ -1031,6 +1094,15 @@
     // no recorta nada. Mismo conteo fraccionado que Pelland et al. 2026.
     diminishingReturnsWarnings(sessions).forEach(w => trainingWarnings.push(w));
 
+    // DEC-022 · A2: más de un ejercicio de lumbar alta en una sesión se avisa (el usuario decide). Con el remo por defecto (apoyo de
+    // pecho) y A3 no debería pasar; sí puede pasar si el usuario elige el remo con barra y cae con el peso muerto rumano.
+    const a2Max = K.VALIDATOR_RULES.maxLumbarHighPerSession.value;
+    const a2 = sessions.map(s => ({ s, ex: s.exercises.filter(e => K.JOINT_PROFILE[e.exerciseId] && K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta') })).filter(x => x.ex.length > a2Max);
+    if (a2.length) {
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'A2', kind: 'tope_lumbar', sessions: a2.map(x => ({ session: x.s.name, exercises: x.ex.map(e => e.name) })),
+        text: `Más de ${a2Max} ejercicio de demanda lumbar alta en la misma sesión: ${a2.map(x => `${x.s.name} (${x.ex.map(e => e.name).join(' + ')})`).join('; ')}. Puedes quitar el remo con barra en tu perfil o repartir esos ejercicios en otro día. (Criterio de modelado E4.)` });
+    }
+
     // DEC-021 (Fase 3, Paso 1) · un ejercicio sin perfil articular completo se avisa, nunca pasa en silencio. Hoy todo
     // el catálogo lo tiene (un test lo exige); el aviso cubre un ejercicio nuevo al que se le olvide.
     const noProfile = [];
@@ -1039,6 +1111,9 @@
       trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'A', kind: 'sin_perfil_articular', exercises: noProfile,
         text: `Sin perfil articular completo: ${noProfile.map(x => `${x.name} (${x.missing.join(', ')})`).join('; ')}. Las reglas articulares (Fase 3) no pueden evaluar estos ejercicios. (Criterio de modelado E4.)` });
     }
+
+    // DEC-022 · A1: orden por demanda (antes del top set, para que el primer ejercicio elegible sea el más exigente).
+    orderByDemand(sessions);
 
     // DEC-002 / DEC-008: en definición, el primer ejercicio ELEGIBLE del día
     // lleva un top set pesado (no suma series nuevas: la primera de sus
@@ -1418,6 +1493,7 @@
       division, goal: ['cut', 'bulk', 'maintain'].includes(src.goal) ? src.goal : 'cut',
       targetDate: src.targetDate || '', targetBf: n(src.targetBf), classicLimitLb: n(src.classicLimitLb),
       laggingMuscles, healthGoal: !!src.healthGoal,
+      barbellRow: !!src.barbellRow, // DEC-022: el remo con barra solo entra si el usuario lo elige
       // DEC-014: aceptación explícita de sesiones más largas que el tope E4 (fecha AAAA-MM-DD).
       longSessionAcceptedOn: /^\d{4}-\d{2}-\d{2}$/.test(src.longSessionAcceptedOn || '') ? src.longSessionAcceptedOn : '',
       // DEC-016: la misma aceptación, acotada a la firma del plan y a un máximo de series. Reemplaza al campo anterior.

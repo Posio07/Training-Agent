@@ -333,6 +333,8 @@
           </div>
           <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="healthGoal" style="width:auto" ${d.healthGoal ? 'checked' : ''}> Priorizar salud/funcional sobre estética</label>
           <p class="help">En definición, mantiene el cardio en 150 min/semana en vez de recortarlo, y suma sentadilla búlgara, step-up con carga y paseo del granjero a la rutina de pierna.</p>
+          <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="barbellRow" style="width:auto" ${d.barbellRow ? 'checked' : ''}> Incluir remo con barra</label>
+          <p class="help">Por defecto el remo del plan es con apoyo de pecho, que carga menos la espalda baja. No hay estudios que muestren más hipertrofia de espalda con el remo con barra. Si lo incluyes, el plan puede avisarte cuando junte dos ejercicios de mucha demanda lumbar en un día.</p>
         </fieldset>
         <fieldset>
           <legend>Barra cargada</legend>
@@ -709,6 +711,7 @@
           <span class="f">${icon('gauge')} RIR ${esc(showTag ? e.topSet.rir : e.rir)}</span>
           <span class="f">${icon('clock')} ${esc(showTag ? '3 min' : e.rest)}</span>
         </div>
+        ${e.cue ? `<div class="help">${esc(e.cue.text)} ${evTag(e.cue.evidence)}</div>` : ''}
       </div>
       <div class="ex-sets">${esc(setsLabel)} × ${esc(reps)}</div>
     </div>`;

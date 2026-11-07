@@ -337,7 +337,10 @@
     ],
     back: [
       { id: 'back.vertical_pull', name: 'Dominadas o jalón al pecho', type: 'compound', reps: [6, 10], pattern: 'vertical_pull' },
-      { id: 'back.row_barbell', name: 'Remo con barra o remo pendlay', type: 'compound', reps: [6, 10], pattern: 'row_barbell' },
+      // DEC-022: el remo con barra (lumbar alta, bisagra sostenida) solo entra si el usuario lo elige (`optIn`); por defecto el
+      // remo del plan es el de apoyo de pecho (lumbar baja, `defaultOnly`). Se usan los mismos huecos de la rotación.
+      { id: 'back.row_barbell', name: 'Remo con barra o remo pendlay', type: 'compound', reps: [6, 10], pattern: 'row_barbell', optIn: true },
+      { id: 'back.row_chest_supported', name: 'Remo con apoyo de pecho (máquina o banco inclinado)', type: 'compound', reps: [8, 12], pattern: 'row_supported', defaultOnly: true },
       { id: 'back.row_cable', name: 'Remo en polea baja o máquina', type: 'compound', reps: [8, 12], pattern: 'row_cable' },
       { id: 'back.pullover_cable', name: 'Pullover en polea', type: 'isolation', reps: [10, 15], pattern: 'pullover' },
     ],
@@ -362,7 +365,7 @@
     ],
     hamstrings: [
       { id: 'hamstrings.rdl', name: 'Peso muerto rumano', type: 'compound', reps: [6, 10], pattern: 'hinge' },
-      { id: 'hamstrings.leg_curl', name: 'Curl femoral tumbado o sentado', type: 'isolation', reps: [10, 15], pattern: 'leg_curl' },
+      { id: 'hamstrings.leg_curl', name: 'Curl femoral tumbado o sentado', type: 'isolation', reps: [10, 15], pattern: 'leg_curl', cue: 'Si tu máquina lo permite, prefiere el curl sentado: en un estudio de 12 semanas (Maeo et al. 2021, 20 personas sin entrenar) los isquios que cruzan la cadera crecieron más con el curl sentado que con el tumbado (+14 % frente a +9 %).' },
     ],
     glutes: [
       { id: 'glutes.hip_thrust', name: 'Hip thrust con barra', type: 'compound', reps: [6, 10], pattern: 'hip_thrust' },
@@ -544,6 +547,21 @@
     // DEC-005 / DEC-010 · series del ejercicio funcional que no aporta volumen
     // de hipertrofia (paseo del granjero). Se agregan aparte, sin descontar.
     functionalNoVolumeExtraSets: rule(2, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
+    // DEC-022 · Fase 3, Paso 2. Restricciones del generador (no numéricas: `value` indica si están activas).
+    // A1: orden por demanda dentro de la sesión. El costo cero en hipertrofia tiene respaldo E2 (Nunes et al. 2021); el motivo de seguridad es E4.
+    sessionOrderByDemand: rule(true, 'E4', { label: 'Nunes et al. 2021, Eur J Sport Sci (la hipertrofia es similar en cualquier orden; la fuerza mejora más en lo hecho al inicio)', url: 'https://pubmed.ncbi.nlm.nih.gov/32077380/' }, {
+      usage: 'Cada sesión se ordena: lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos. Solo reordena.',
+      note: 'El orden no cuesta hipertrofia (E2, Nunes 2021, solo resumen); que el motivo sea proteger la espalda es criterio de la app (E4).' }),
+    // A2: como máximo un ejercicio de lumbar alta por sesión; si hay más, el plan avisa (el usuario decide).
+    maxLumbarHighPerSession: rule(1, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 (PMID 27328853) y Tung et al. 2024, BMJ Open Sport Exerc Med 10(4):e001884 (PMID 39650568): dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
+      kind: 'warning', reviewRequired: true,
+      usage: 'Advertencia, no restricción: con el remo por defecto (apoyo de pecho) y A3 no suele saltar; salta si el usuario elige el remo con barra y cae con el peso muerto rumano.',
+      note: 'Ninguna fuente prueba que el tope prevenga lesiones (E4).' }),
+    // A3: la sentadilla pesada y la bisagra pesada (lumbar alta) no van el mismo día. El trabajo de isquiotibiales no se separa.
+    hingeSquatSeparation: rule(true, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 (PMID 27328853) y Tung et al. 2024, BMJ Open Sport Exerc Med 10(4):e001884 (PMID 39650568): dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
+      reviewRequired: true,
+      usage: 'El día de la sentadilla pesada, los isquios se cubren con flexión de rodilla (curl femoral); la bisagra pesada va el otro día de isquios. Ningún relleno posterior (piso, mínimo) la vuelve a juntar.',
+      note: 'Ninguna fuente prueba que separar estos ejercicios prevenga lesiones (E4). La preferencia por el curl sentado sobre el tumbado se apoya en un estudio (Maeo et al. 2021, MSSE 53(4):825-837): E4 como indicación, no como regla.' }),
     // DEC-003 v2 / DEC-014 · regla E4: tope de series por sesión. Convención de la app, sin fuente externa
     // (validador.md no fija un valor; ningún framework define un máximo de minutos). El usuario puede aceptar
     // una sesión más larga de forma explícita.

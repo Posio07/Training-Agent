@@ -611,7 +611,7 @@ El plan generado y las huellas de los 30 planes (es solo texto); la cifra de agu
 - `tests/e2e-agua.js` (navegador, 3 corridas sin fallos): la tarjeta de hombre y de mujer dice "agua total (bebidas + alimentos)", avisa del 20-30 % de alimentos y de que se necesita más si se suda mucho, y no usa "≥" ni "+ lo perdido por sudor".
 - Mutaciones: volver a la tarjeta anterior hace fallar 5 comprobaciones del E2E; volver al texto anterior de la fuente, 1 test; cambiar la cifra, 3 tests. `sw.js` pasa a la caché v12.
 
-**Estado: implementada, pendiente de aceptación.**
+**Estado: implementada. Aceptado por Emanuel el 2026-11-07.**
 
 ## DEC-020 · Mínimo semanal por grupo dentro del tope E4 (grupos chicos)
 **Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). Lo creó el agente como Propuesto; aceptado por Emanuel en el chat el 2026-11-07, después de ver el efecto de la restricción del último ejercicio directo (bíceps con 0 series directas a los 3 días: de 65 a 50 de 90 perfiles). Las decisiones de diseño de abajo también las tomó Emanuel.
@@ -755,3 +755,83 @@ Las reglas A1 a A7 (A1 y A3 se implementan en el Paso 2, DEC-022; A4 solo con do
 
 **Estado: implementada (capa de datos). Aceptado por Emanuel el 2026-11-07.**
 
+
+## DEC-022 · Fase 3, Paso 2: A1 (orden por demanda) y A3 (sentadilla y bisagra pesadas en días distintos) en el generador
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). Lo creó el agente como Propuesto; aceptado por Emanuel en el chat el 2026-11-07, después de ver el efecto de A1 y A3 en los 360 planes, la verificación de los avisos R1 y las sesiones sobre 25 series, y de decidir que el curl no lleva tope. Depende de DEC-021 (tabla `perfil_articular`, Aceptado el 2026-11-07), cuya rama se mergea antes.
+
+Contexto: `docs/specs/validador-fase3.md`, reglas A1, A2 y A3 (E4 en el motivo de seguridad; A1 tiene respaldo E2 solo en que el orden no cuesta hipertrofia, Nunes et al. 2021, resumen). Emanuel pidió implementar A1 y A3 como **restricciones del generador** (no como advertencias sobre un plan ya hecho). **Cambia el plan generado.**
+
+### Qué cambia
+- **A3 · separar la bisagra pesada de la sentadilla pesada.** Sentadilla pesada = patrón `squat_bilateral` con lumbar alta; bisagra pesada = patrón `hinge` con lumbar alta (peso muerto rumano) y, si el usuario lo elige, el remo con barra (bisagra sostenida, lumbar alta). El día de la sentadilla (el primer día con cuádriceps) los isquios se cubren con **flexión de rodilla** (curl femoral, lumbar baja) y la bisagra pasa al **siguiente día de isquios**. Solo se separa la bisagra pesada: el trabajo de isquiotibiales no se mueve. El relleno posterior (`completeToFloor`, `ensureGroupMinimum`) no puede volver a juntarlas. Si la rotación del catálogo no ofrece alternativa, no se cambia nada.
+- **A1 · orden por demanda dentro de cada sesión.** Primero lo de lumbar alta, luego los multiarticulares, al final los aislamientos. **El hip thrust va al final de los multiarticulares** (confirmado por Emanuel). El orden es estable: dentro de cada grupo se conserva el del generador. El top set de definición cae en el primer ejercicio elegible, que ahora es el de lumbar alta.
+- **Remo por defecto con apoyo de pecho (lumbar baja): criterio de demanda lumbar (E4), no de hipertrofia.** (Ver la sección del investigador más abajo: no hay estudios directos de más hipertrofia con el remo con barra.) Entrada nueva del catálogo `back.row_chest_supported` ("Remo con apoyo de pecho (máquina o banco inclinado)"), que ocupa en la rotación el lugar del remo con barra. El **remo con barra** (`back.row_barbell`) solo aparece si el usuario lo elige: campo de perfil `barbellRow` (casilla "Incluir remo con barra"; falso por defecto). Con la casilla activa la rotación es la de antes. Con el remo con barra elegido **aplican A2 y A3**: A3 lo cambia por otro remo si caería con la sentadilla, y A2 avisa si cae con el peso muerto rumano. Datos de la entrada nueva: lumbar baja, hombro media y rodilla baja (fila "Remo con apoyo de pecho" de la tabla de la spec, `spec_inicial`); espalda directa `a_verificar` (el músculo del bucket cuenta siempre directo, DEC-016), bíceps indirecta `probable` (la Tabla 1 de Pelland et al. 2026 cuenta los remos en máquina como indirectos para los flexores del codo; es una clasificación, no una medición), hombro indirecta `a_verificar`. Sin imagen.
+- **A2 · aviso.** Nueva regla `maxLumbarHighPerSession` (1, E4, advertencia): el plan avisa (`kind: 'tope_lumbar'`) si una sesión junta más de un ejercicio de lumbar alta. Con el remo por defecto no salta en ninguno de los 360 planes.
+- **El curl del día de sentadilla no lleva tope por ejercicio** (decisión de Emanuel): el umbral de R1 es por músculo y sesión, y el máximo de series de curl en una sesión es 10, bajo 11. No hay tope ni traspaso de series: esta decisión no describe ningún comportamiento de topes o traspasos. Separar el curl sentado y tumbado queda en B-035 como propuesta de variedad. Historia: se probó un tope por músculo y sesión con el umbral de R1 y un traspaso del excedente al curl del día de bisagra; el tope cambiaba 4 planes de 3 días por efectos laterales del mínimo de grupos chicos y dejaba una sesión en 27 series donde sin tope tenía 24; se quitó junto con el traspaso. (Cifras de esa versión anterior: no reproducibles, el código ya no existe.)
+- **Curl femoral con indicación (`cue`, E4):** preferir el sentado; se muestra bajo el ejercicio.
+- **`VALIDATOR_RULES`:** `sessionOrderByDemand` (A1), `hingeSquatSeparation` (A3) y `maxLumbarHighPerSession` (A2), todas E4, implementadas, con fuente; un test comprueba que el motor las lee. `sw.js` pasa a la caché v17.
+
+### Fuente del curl sentado frente al tumbado (investigador)
+Maeo S et al. 2021, *Med Sci Sports Exerc* 53(4):825-837, doi 10.1249/MSS.0000000000002523 (PMID 33009197). El investigador leyó el resumen de PubMed y el texto completo de PMC **a través de un resumidor** (no el texto literal; las cifras no se compararon contra las tablas originales). Estudio intra-sujeto, 20 adultos jóvenes sanos sin entrenamiento de fuerza, curl al 70 % de 1RM, 5 series de 10, dos veces por semana, 12 semanas, resonancia: isquios totales **+14,1 % con curl sentado y +9,3 % con tumbado**; bíceps femoral cabeza larga, semitendinoso y semimembranoso crecieron más con el sentado (significativo); la cabeza corta (no cruza la cadera) no mostró diferencia significativa. **Nivel propuesto para la regla "preferir el curl sentado": E4** (un solo estudio, sin replicación encontrada; Maeo 2023, PMID 35819335, es sobre tríceps). Confianza media. Por eso es una indicación y el texto dice "en un estudio de 12 semanas".
+Nota del repo: `data/exercise-muscles.csv` marca esa relación como `verificado` con la fuente de Maeo 2021, pero `docs/research/fuentes-musculos-ejercicio.md` la registra como "Resumen". Se sugiere revisar si corresponde `verificado (1 estudio)`. No se tocó.
+
+### ¿Hay evidencia de que el remo con barra dé más hipertrofia de espalda que el remo con apoyo de pecho? (investigador)
+**No hay estudios directos.** Búsqueda solo en PubMed, sin texto completo de ninguna fuente (resúmenes): dos meta-análisis de pesos libres contra máquinas (Haugen et al. 2023, PMID 37582807, 5 estudios de hipertrofia; Heidel et al. 2022, PMID 34609100) no encuentran diferencia de tamaño muscular, y no se confirmó qué músculos midieron; Schwanbeck et al. 2020 (PMID 32358310; DOI no verificado) midió bíceps y cuádriceps, no espalda. Lo único que favorece al remo con barra es mayor activación del erector espinal y el multífido en EMG (Fenwick et al. 2009, PMID 19197209; Saeterbakken et al. 2015, PMID 26134664): es demanda lumbar, no crecimiento de espalda. Ninguno compara dorsal, trapecio o romboides entre remo con apoyo y sin apoyo. La ausencia de estudios no prueba que no haya diferencia: confianza media para "no hay estudios directos" y baja a media para "sin ventaja demostrada". **Elegir el remo con apoyo como predeterminado es un criterio E4 de demanda lumbar; la app no afirma que dé igual o más hipertrofia.** Nada de lo anterior mueve una relación ejercicio-músculo.
+
+### Antes y después (10 perfiles de referencia, sin aceptación)
+Las series por sesión no cambian salvo en un perfil; cambian los minutos porque un curl (aislamiento, descanso corto) reemplaza a un peso muerto rumano (multiarticular, descanso largo) el día de sentadilla. El remo con apoyo de pecho no cambia series ni minutos.
+
+| Perfil | Series por sesión (antes → después) | Minutos por sesión (antes → después) |
+| --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 (igual) | 72/72/55/53/70 → 72/68/55/53/70 |
+| novice_bulk_physique_4d | 25/11/24/11 (igual) | 70/33/59/34 → 70/30/59/36 |
+| wellness_maintain_5d | 21/25/15/15/25 (igual) | 58/92/36/35/92 → 58/86/36/35/92 |
+| general_cut_3d | 25/25/26 (igual) | 76/82/88 → 72/82/88 |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25 → 25/25/25/25/25/25 | 69/65/98/64/58/96 → 69/65/89/64/58/96 |
+| bikini_cut_lagging_4d | 25/19/25/19 (igual) | 67/70/60/53 → 67/65/60/53 |
+| emanuel_legs_cut_4d | 25/25/25/25 (igual) | 69/89/63/83 → 69/84/63/83 |
+| figure_maintain_novice_3d | 25/25/25 (igual) | 75/81/83 → 71/81/83 |
+| physique_cut_adv_lag_5d | 25/12/24/25/12 (igual) | 82/40/57/61/47 → 82/35/57/61/53 |
+| physique_w_bulk_6d | 20/22/23/20/20/23 (igual) | 58/55/81/49/46/85 → 58/55/76/49/46/85 |
+
+En `bb_bulk_advanced_6d` la sesión de pierna A bajó de 26 a 25 series: antes el peso muerto rumano (multiarticular) no se podía recortar y la sesión quedaba sobre el tope; ahora el curl sí, y el tope lo recorta en una serie.
+
+### Barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días), plan por defecto
+- **Planes que cambian: 360 de 360** (A1 reordena todas las sesiones; A3 cambia el día de la bisagra; el remo con apoyo reemplaza al de barra).
+- **A3 se cumple en los 360**, también con la bandera salud/funcional, con lesiones, con la espalda rezagada y con el remo con barra elegido.
+- **Frecuencia semanal de isquios: no baja en ninguno de los 360** (días con ejercicios de isquios: 180 por cada cantidad de días, 720 en total antes y después). **Glúteos:** no baja; sube en 2 planes de 3 días.
+- **Series semanales de isquios:** de 4377 a 4250 (−2,9 %); bajan en 53 planes (por 1 a 4 series): el curl (aislamiento) sí puede recortarse por el tope de 25 y la bisagra no. Por cantidad de días: 3 días 883→872, 4 días 1116→1036, 5 días 1187→1161, 6 días 1191→1181. **Glúteos** suben de 4665 a 4720 y no bajan en ningún plan.
+- **Máximo de series de curl en una sesión: 10** (122 de los 360 planes tienen 7 o más el día de sentadilla). Qué cuenta cada cifra: el **10** es el valor final, después de todos los recortes del tope de 25 series y del mínimo. El **12** que se mencionó antes era el reparto inicial del curl en 16 planes, ANTES de esos recortes; en esos planes el tope de 25 lo baja a 10 o menos. Solo el valor final es lo que ve el usuario.
+- **Series por sesión distintas:** 101 de 1620 sesiones. **Minutos por sesión distintos:** 436 sesiones (de −15 a +6 min).
+
+### Avisos de rendimiento decreciente (R1) y de tope: qué cambió y por qué
+Corrección: la cifra anterior de este DEC ("34 planes más, 12 menos") mezclaba los avisos R1 con los avisos del tope E4 (recortes de series), que comparten el campo sin `kind`. Separados, medidos en el barrido de 360 planes frente a la rama de DEC-021:
+- **R1:** 448 → 467 avisos. **Aparecen 19 avisos nuevos en 19 planes (glúteos 11, hombros 8) y ninguno desaparece.** Los avisos R1 son informativos (no recortan nada).
+- **Aviso de recorte del tope E4:** más en 17 planes y menos en 14 (976 → 979 avisos). Aviso informativo de mínimo de grupo: 266 → 253 (menos en 12 planes). Completado de piso: 86 → 82 (menos en 4 planes).
+- **Causa de los 19 avisos R1 nuevos (verificada en los 19 con `node scripts/verificar-avisos-r1.js`, que compara el motor de `main` con el actual y mide el estado justo antes del paso del mínimo de grupos chicos, DEC-020):** en los 19, la sesión ya superaba el umbral de 11 para ese músculo antes de ese paso en el motor anterior y ese paso le sacó series de aislamiento a ese músculo en esa sesión (para dárselas a un grupo chico, pantorrillas o abdomen), dejándolo en 11 o menos; en el motor actual la sesión supera el umbral antes del paso y el paso le saca **nada (13 planes) o menos que antes (6 planes, hombros: 14 → 12 en vez de 14 → 11)**, así que queda sobre 11. La causa de fondo: el reparto semanal ya dejaba esas sesiones con más de 11 series de ese músculo (B-037); antes un efecto lateral del mínimo lo tapaba y ahora no, porque el curl del día de sentadilla (aislamiento) cambia qué sesión usa el mínimo.
+
+### Sesiones sobre 25 series sin aceptación
+`node scripts/simular-reglas-articulares.js`: **108 sesiones (en 72 planes) pasan de 25 series sin aceptación del usuario; en `main` (antes del Paso 2) eran 105 (en 80 planes). No es 0 y no puede serlo con las reglas vigentes**: son sesiones de multiarticulares que el tope E4 no recorta por diseño (DEC-014: no se recorta ningún multiarticular; el plan avisa y ofrece aceptar), sobre todo de 3 días (78 de las 108). Cambios atribuibles a este PR: A3 deja 19 sesiones nuevas sobre 25 (todas con el peso muerto rumano, que ahora cae en la sesión de bisagra con otros multiarticulares) y saca 16 (15 eran sesiones que juntaban sentadilla y rumano): neto +3 (el desglose +19/−16 se midió con un script aparte, no incluido en el repo); la sesión más larga baja de 40 a 37 series. Este PR no mueve series entre sesiones, así que nada rompe el tope de 25 por esa vía. Aceptar sesiones más largas sigue siendo del usuario.
+
+### A2 vuelto a medir (A1 y A3 aplicados, remo por defecto con apoyo)
+`node scripts/simular-reglas-articulares.js` (plan por defecto) y `--barra` (remo con barra elegido):
+
+| Cantidad de días | A2 por defecto | A2 con remo con barra elegido |
+| --- | --- | --- |
+| 3 días | 0 de 90 (0 %) | 90 de 90 (100 %): el remo cae con el peso muerto rumano en Cuerpo completo B |
+| 4 días | 0 de 90 (0 %) | 0 de 90 |
+| 5 días | 0 de 90 (0 %) | 0 de 90 |
+| 6 días | 0 de 90 (0 %) | 0 de 90 |
+| **Total** | **0 de 360 (0 %)** | **90 de 360 (25 %)** |
+
+Antes de estos cambios saltaba en el 100 % de los planes (sin A1 ni A3) y, con A1 y A3 pero con el remo con barra por defecto, en el 25 % (todos de 3 días). A1 salta en 0. A4 (71,1 % como advertencia general) no se implementó: por decisión de Emanuel solo se activará si A6 registró dolor de hombro.
+
+### Pruebas
+- `engine.test.js` (171 tests): A3 en los 360 planes y con bandera salud/lesiones; la frecuencia de isquios y glúteos no baja contra la salida con las reglas apagadas; A1 en cada sesión; el hip thrust al final de los multiarticulares; el remo por defecto con apoyo (sin remo con barra ni A2 en los 360); con el remo con barra elegido entra, A3 lo separa de la sentadilla (también con la espalda rezagada) y el aviso A2 sale exactamente cuando hay más de un ejercicio de lumbar alta; el curl del día de sentadilla no lleva tope (máximo 10 < 11 y ningún aviso R1 de isquios en los 360 planes); el relleno no junta sentadilla y bisagra; las reglas están en `VALIDATOR_RULES`.
+- Referencias actualizadas a propósito: `plan-hashes.json` y `despues_dec022` en `dec017-referencia.json`; la línea base de DEC-010 se compara con A1 y A3 apagadas y `barbellRow: true`; los planes de DEC-020 con A1 y A3 apagadas.
+- Mutaciones: A3 apagada 7 tests; sin reinicio de la rotación 3; sin guarda en el relleno 1; A1 apagada 3; hip thrust sin ir al final 2 a 4; sin elegir el remo 8; sin el reemplazo de A3 en el día 1; el remo con barra sin contar como bisagra 1; sin aviso A2 1.
+- E2E (`e2e.js`, `e2e-aceptacion.js`) pasan.
+
+### Fuera de alcance
+A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7; el reparto semanal que deja sesiones con más de 11 series de un músculo (B-037); la variedad de curl sentado y tumbado (B-035); el split de 3 días (no se tocó).
+
+**Estado: implementada. Aceptado por Emanuel el 2026-11-07.**
