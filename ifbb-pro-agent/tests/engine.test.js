@@ -2732,3 +2732,13 @@ test('DEC-021: el plan no cambia (el perfil no se expone ni lo usa ninguna regla
     assert.equal(p2.warnings.filter(x => x.kind === 'sin_perfil_articular').length, 1, 'un solo aviso por plan, sin repetir ejercicios');
   } finally { K.JOINT_PROFILE['chest.bench_press_barbell'] = saved; K.JOINT_PROFILE['hamstrings.rdl'] = savedRdl; }
 });
+
+test('DEC-021: el módulo perfilArticular.js se carga en index.html (antes de knowledge.js) y está en la caché del service worker (offline)', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+  const iPerfil = html.indexOf('js/perfilArticular.js'), iKnow = html.indexOf('js/knowledge.js');
+  assert.ok(iPerfil >= 0 && iKnow >= 0 && iPerfil < iKnow, 'index.html carga perfilArticular.js antes que knowledge.js');
+  assert.ok(sw.includes("'./js/perfilArticular.js'"), 'sw.js lo precachea');
+});
