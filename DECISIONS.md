@@ -406,7 +406,7 @@ Contexto: diagnóstico del modo sesión (Fase 4/5) antes del rediseño visual. P
 ### Paso 2 · Editar y borrar series
 - **UI mínima, compartida:** un solo editor (peso, repeticiones, Guardar / Borrar serie / Cancelar) que usan el modo sesión y el historial; el rediseño visual lo reemplaza sin tocar la lógica (`sessionStore.js`).
   - **En la sesión en curso:** en una serie ya registrada, el botón "Editar" (donde antes había un check deshabilitado) abre el editor.
-  - **En el historial:** Progreso tiene una sección "Sesiones registradas" con las últimas 30 sesiones desplegables; tocar una serie abre el mismo editor. Incluye las sesiones completadas y los registros anteriores a DEC-015 (que se muestran como "sin estado" y se identifican por sus datos, sin migrarlos). La sesión en curso no se lista ahí: se edita en su pantalla.
+  - **En el historial:** Progreso tiene una sección "Sesiones registradas" con las últimas 30 sesiones desplegables; tocar una serie abre el mismo editor. Incluye las sesiones completadas y los registros anteriores a DEC-015 (que se muestran como "sin estado" y se identifican por sus datos, sin migrarlos). La sesión en curso no se lista ahí: se edita en su pantalla. **Reemplazado por DEC-023 desde el corte al núcleo nuevo, solo en la parte de los registros anteriores a DEC-015 (sin `setKey`)** (no antes: hasta entonces sigue vigente; su código se elimina en el PR del corte).
 - **Validación:** peso de 0 a 1000 (vacío = 0, peso corporal) y repeticiones enteras de 1 a 999; si no cumple, un aviso y no cambia nada. Editar no toca el dolor registrado ni los avisos de DEC-009/011.
 - **Borrar** pide confirmación. En la sesión en curso la serie queda sin registrar y se puede volver a registrar (una sola fila); en el historial, la sesión completada baja su contador de series hechas. Una sesión sin series sigue listada con "Sin series".
 - **Sin resucitar nada ante un corte** (la sesión y el historial son dos escrituras, y en el historial el estado entero es una sola):
@@ -448,7 +448,7 @@ Contexto: revisión de DEC-014 contra lo acordado. Tres desvíos o huecos, corre
 - **No vence por fecha.** Las fechas de aceptación siguen guardándose (`on`), como pide el spec.
 - **Lo que no invalida:** cambios fuera de la firma (peso, edad, medidas, etc.) mientras ninguna sesión pase del máximo.
 - **Editar el perfil conserva la aceptación** (antes el formulario la borraba sin avisar): decide la firma.
-- **Migración de `longSessionAcceptedOn`:** al arrancar la app, cada perfil con la fecha vieja y sin aceptación nueva se migra **una vez**, tomando la firma y el máximo **del plan vigente al migrar** (que con la aceptación vieja sale sin recortes). Queda `longSessionAcceptedOn: ''`. Antes de migrar, el motor interpreta el formato viejo contra el plan vigente (mismo resultado). El import de un archivo con el formato viejo también migra. Migrar no cambia el plan que ve el usuario.
+- **Migración de `longSessionAcceptedOn`:** al arrancar la app, cada perfil con la fecha vieja y sin aceptación nueva se migra **una vez**, tomando la firma y el máximo **del plan vigente al migrar** (que con la aceptación vieja sale sin recortes). Queda `longSessionAcceptedOn: ''`. Antes de migrar, el motor interpreta el formato viejo contra el plan vigente (mismo resultado). El import de un archivo con el formato viejo también migra. Migrar no cambia el plan que ve el usuario. **Reemplazado por DEC-023 desde el corte al núcleo nuevo** (no antes: hasta entonces esta cláusula sigue vigente; su código se elimina en el PR del corte).
 - **`sessionLimit` suma:** `proposed { signature, maxSets }` (lo que se guardaría al aceptar), `acceptance`, `acceptanceInvalidated { reason: 'firma'|'maximo', on, previous }` y `belowMinimum`.
 
 ### 3. Aviso de grupos bajo el mínimo
@@ -568,7 +568,7 @@ Contexto: B-001. El export (`ENGINE.exportProfile`) lleva `workouts` y `sessions
 - `prepareImportedProfile(item, today, newProfileId)` ahora también devuelve `workouts` y `sessions`, y `importJson` los guarda en el perfil nuevo. El aviso final dice cuántas series se restauraron.
 - **Privacidad (DEC-009) sin cambios:** el export no cambia (sigue sin `health`, `painFlags` ni `workouts[].pain`). Al importar se **quita siempre** el `pain` de cada serie, aunque el archivo lo traiga (versiones anteriores lo exportaban), y se avisa como "datos de salud ignorados". `painFlags` y `health` siguen sin importarse.
 - **`profileId`:** el import siempre crea un perfil nuevo con id nuevo (nunca pisa uno existente). Si una fila trae `profileId`, se remapea al id del perfil nuevo. Hoy ninguna fila guardada lo trae: solo la sesión en curso (`sessionStore.js`), que no se exporta. El remapeo es una protección para archivos de otras versiones o armados a mano.
-- Se descartan las filas mal formadas (sin `sessionId`). Las filas anteriores a DEC-015 (sin `setKey`) vuelven tal cual, sin migrar.
+- Se descartan las filas mal formadas (sin `sessionId`). Las filas anteriores a DEC-015 (sin `setKey`) vuelven tal cual, sin migrar. **Reemplazado por DEC-023 desde el corte al núcleo nuevo** (no antes: hasta entonces esta cláusula sigue vigente; su código se elimina en el PR del corte).
 
 ### Lo que no cambia
 La política del export; que el import crea un perfil nuevo; que la sesión en curso nunca viaja (DEC-015); que `painFlags` y la salud nunca se importan. Consecuencias a tener presentes: el historial de dolor por serie **no** sobrevive a un export → import (es por diseño de DEC-009), e importar dos veces el mismo archivo crea dos perfiles con las mismas series (comportamiento previo del import).
@@ -837,7 +837,7 @@ A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7; el rep
 **Estado: implementada. Aceptado por Emanuel el 2026-11-07.**
 
 ## DEC-023 · Año de prueba: sin retrocompatibilidad de datos, exportación antes de cada reset y código muerto fuera en el mismo PR
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (arquitectura y alcance: lo decide solo Emanuel). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). **Nivel 3** (arquitectura y alcance: lo decide solo Emanuel). Lo creó el agente como Propuesto por pedido de Emanuel; aceptado por Emanuel en el chat el 2026-11-07.
 
 Contexto: la app la usan 2 personas y se prueba durante un año antes de una posible versión pública. Emanuel cambió de estrategia: se reconstruye el núcleo del generador con filosofía "clean core" (no se parchea el motor actual). Hoy el motor y el almacenamiento arrastran compatibilidad con formatos anteriores (por ejemplo `migrateLongSessionAcceptance`, el campo legado `longSessionAcceptedOn` y las filas de series anteriores a DEC-015 sin `setKey`) y parches que corrigen efectos de otros pasos. Esa compatibilidad no sirve a nadie mientras los datos del año de prueba se puedan borrar. Hoy esos caminos siguen en uso (se llaman al cargar y al importar).
 
@@ -848,7 +848,7 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 
 ### Qué no cambia
 - **DEC-009 (privacidad)**: los datos de salud y el dolor por serie siguen sin salir del dispositivo ni entrar a ningún export, tampoco al archivo de esta decisión.
-- **Los DEC aceptados no se editan ni se revierten por esta decisión**, pero **tres cláusulas de DEC aceptados quedarían sin efecto si Emanuel acepta DEC-023** (nivel 3: él decide al aceptar): DEC-016 (migrar `longSessionAcceptedOn` al formato acotado), DEC-015 (mostrar y editar las filas anteriores sin `setKey`) y DEC-018 (importar archivos exportados antes sin migrar). Hoy esos caminos siguen llamándose (al cargar en `app.js` y al importar en `engine.js`); eliminarlos exige que DEC-023 los reemplace de forma explícita. Su estado no se edita.
+- **Los DEC aceptados no se editan ni se revierten por esta decisión**, pero **tres cláusulas de DEC aceptados quedan reemplazadas por DEC-023 desde el corte al núcleo nuevo, no antes** (decisión de Emanuel, 2026-11-07): DEC-016 (migrar `longSessionAcceptedOn` al formato acotado), DEC-015 (mostrar y editar las filas anteriores sin `setKey`) y DEC-018 (importar archivos exportados antes sin migrar). Hasta el corte siguen vigentes y el motor actual no se toca; en el PR del corte se elimina su código junto con el código muerto del inventario. Cada una lleva en su DEC la nota "reemplazado por DEC-023 desde el corte"; su estado no se edita.
 - El registro de entrenamiento sigue funcionando sin conexión; el server no es una dependencia.
 - Las reglas de evidencia (E1 a E4, fuente y estado) y las pruebas de mutación siguen igual.
 
@@ -858,8 +858,8 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 - **C. Sin retrocompatibilidad y sin exportación.** Descartada: el historial de entrenamiento es el único dato que no se puede regenerar.
 
 ### Consecuencias
-- `CLAUDE.md` y la checklist del revisor (`.claude/agents/revisor.md`) reflejan estas reglas (en este mismo PR, a pedido de Emanuel, aunque la decisión siga Propuesta: quedan en vigor cuando la acepte).
+- `CLAUDE.md` y la checklist del revisor (`.claude/agents/revisor.md`) reflejan estas reglas (en este mismo PR; en vigor desde que Emanuel aceptó la decisión).
 - Herramienta: `scripts/exportar-historial.js` (JSON y CSV; entradas: el volcado del almacenamiento de la app o la exportación de un perfil). Probada con datos sintéticos; no se ejecutó contra el almacenamiento real de nadie.
 - No se elimina ningún código en este PR: la limpieza llega con la spec del núcleo nuevo (inventario en `docs/research/inventario-generador.md`).
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-07.**

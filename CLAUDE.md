@@ -41,15 +41,15 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 3. **Toda regla numérica lleva nivel de evidencia (E1 a E4), fuente y estado** (`implementada` o `pendiente`) en `VALIDATOR_RULES`. Un test comprueba el estado contra el uso real.
 4. **La evidencia solo mueve relaciones entre categorías** (ninguna ↔ indirecta ↔ directa), como máximo un paso por estudio. Nunca pesos a medida por ejercicio.
 5. **Privacidad según DEC-009.** Los datos de salud y el dolor por serie no salen del dispositivo ni entran al export.
-6. **El registro funciona sin conexión; el server nunca es una dependencia.** Cuando DEC-023 esté Aceptado: durante el año de prueba no se escriben migraciones de datos (ver abajo); sí se exporta antes de resetear.
+6. **El registro funciona sin conexión; el server nunca es una dependencia.** Durante el año de prueba no se escriben migraciones de datos (DEC-023, ver abajo); sí se exporta antes de resetear.
 7. **Los tests deben fallar si se rompe la regla.** Verifícalo con una prueba de mutación; no actualices un baseline para "poner en verde" sin entender por qué cambió.
 8. **BACKLOG:** al abrir una tarea, ponla `en curso`; al entregarla, anota el PR y que queda pendiente de cierre. El agente agrega ítems solo como `propuesto`, y no reordena ni cierra ítems de Emanuel.
 9. **No toques** `docs/VISION.md` ni el estado de un DEC `Aceptado`; no edites a mano `js/exerciseMuscles.js`.
 10. **Al explicarle algo a Emanuel, usa lenguaje simple:** qué cambia, por qué importa y qué tiene que decidir. Los detalles técnicos (rutas, funciones, tablas, mutaciones, identificadores) van en el PR, no en el resumen. Lo que devuelven los subagentes es técnico: tradúcelo antes de contárselo.
 
-## Año de prueba (DEC-023, Propuesto: en vigor cuando Emanuel lo acepte)
+## Año de prueba (DEC-023, Aceptado el 2026-11-07)
 
-Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: el formato del almacenamiento y del plan puede cambiar sin migración. **Antes de cada reset de datos se exporta el historial** con `scripts/exportar-historial.js` (sin salud ni dolor por serie: DEC-009 sigue igual) y se archiva fuera de la app. **El código que una decisión deja muerto se elimina en el mismo PR**: migraciones, campos legados, caminos sin uso y los tests que solo fijaban ese detalle; los tests de comportamiento se conservan. No se parchea el motor actual: el núcleo del generador se reconstruye a partir de `docs/research/inventario-generador.md`.
+Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: el formato del almacenamiento y del plan puede cambiar sin migración. **Antes de cada reset de datos se exporta el historial** con `scripts/exportar-historial.js` (sin salud ni dolor por serie: DEC-009 sigue igual) y se archiva fuera de la app. **El código que una decisión deja muerto se elimina en el mismo PR**: migraciones, campos legados, caminos sin uso y los tests que solo fijaban ese detalle; los tests de comportamiento se conservan. No se parchea el motor actual: el núcleo del generador se reconstruye a partir de `docs/research/inventario-generador.md` y de `docs/specs/nucleo-v2.md`. Las cláusulas de DEC-015 (filas sin `setKey`), DEC-016 (migración de la aceptación) y DEC-018 (importar archivos viejos) siguen vigentes **hasta el corte** al núcleo nuevo; su código se elimina en el PR del corte.
 
 ## Fuentes e identificadores
 
