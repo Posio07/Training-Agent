@@ -689,7 +689,7 @@ Los pesos o niveles de las relaciones; relajar la garantía de series reales de 
 **Estado: implementada.**
 
 ## DEC-021 · Fase 3, Paso 1: tabla `perfil_articular` de todo el catálogo
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte. Los 21 ejercicios ambiguos los resolvió Emanuel con cinco reglas de desempate (abajo); los casos de revisión también son suyos.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). Lo creó el agente como Propuesto; aceptado por Emanuel en el chat el 2026-11-07, después de resolver los 21 ejercicios ambiguos con cinco reglas de desempate (abajo) y de fijar los motivos de las aperturas y del step-up.
 
 Contexto: `docs/specs/validador-fase3.md` (aprobada por Emanuel el 2026-11-07; Paso 1 desbloqueado al mergear DEC-020). Este paso **solo crea la capa de datos**, igual que DEC-013 hizo con los músculos: el plan que ve el usuario **no cambia** y ninguna regla articular (A1 a A7) se implementa todavía.
 
@@ -714,12 +714,12 @@ Los 21 ejercicios ambiguos (27 celdas) se resolvieron con reglas de desempate, q
 
 Celdas que **cambiaron** respecto del valor provisional (8): `chest.fly_cable_pecdeck` lumbar media→baja (motivo: tronco apoyado); `back.pullover_cable` lumbar media→baja; `biceps.curl_barbell` lumbar media→baja; `triceps.pushdown_cable` lumbar media→baja; `biceps.curl_incline` hombro baja→media; `glutes.kickback_cable` lumbar media→baja y rodilla media→baja; `abs.crunch_or_wheel` hombro baja→media. Además, `shoulders.rear_delt_facepull` lumbar quedó en **baja** (la regla 3 gana sobre la lectura literal) y `glutes.bulgarian_hip` lumbar en **media** (no llega a bisagra sostenida), como indica la tabla de la spec. El resto de las 27 celdas conserva su valor.
 
-**Celdas decididas por la regla 5, revisadas tras acotarla a conflictos reales:** `glutes.hip_thrust` lumbar sigue en media (conflicto real entre carga en la cadera y tronco apoyado); `functional.step_up` rodilla sigue en alta, pero la regla 5 no la cubre (es la altura del cajón, no un conflicto entre reglas): el nivel lo fijó Emanuel de forma explícita; `glutes.bulgarian_hip` lumbar pasó de alta a media (por mecánica, regla 2); `shoulders.rear_delt_facepull` lumbar pasó de media a baja (regla 3).
+**Celdas decididas por la regla 5, revisadas tras acotarla a conflictos reales:** `glutes.hip_thrust` lumbar sigue en media (conflicto real entre carga en la cadera y tronco apoyado); `functional.step_up` rodilla sigue en alta, pero su motivo es la regla 1 (variante más exigente: cajón alto), no la regla 5; `glutes.bulgarian_hip` lumbar pasó de alta a media (por mecánica, regla 2); `shoulders.rear_delt_facepull` lumbar pasó de media a baja (regla 3).
 
 Quedan en el backlog: separar las variantes que cambian el nivel lumbar (B-031), la prensa de piernas (lumbar baja hasta leer el texto completo, B-032) y cómo clasificar ejercicios con peso corporal y palanca larga (rueda abdominal, B-033).
 
 ### Casos que Emanuel debe revisar: donde lo decidido y lo escrito en este DEC no coinciden del todo
-1. **`chest.fly_cable_pecdeck` lumbar = baja por tronco apoyado.** Es el motivo que fijó Emanuel; queda en tensión con la regla 1 (variante más exigente), que apuntaría a la polea de pie (media).
+1. **`chest.fly_cable_pecdeck` lumbar = baja.** La variante más exigente (aperturas en polea de pie) es un aislamiento ligero, así que la regla 3 también da baja: no hay tensión con la regla 1 (aclaración de Emanuel).
 2. **`abs.crunch_or_wheel` lumbar y hombro = media.** La regla 1 manda a la rueda abdominal; no tiene carga externa y se la trató como la elevación de piernas colgado. Queda en media y abierta como B-033.
 3. **`shoulders.press_landmine_neutral` hombro = media.** El motivo anterior de este DEC se apoyaba en su función de sustituto del press ante lesión de hombro (DEC-011); esa razón queda **descartada** por la regla 4. Hoy es media solo por su mecánica. Consecuencia para A7: queda disponible como sustituto porque no es alta, pero no por ser sustituto.
 4. **Regla "primera variante nombrada o lectura literal".** El texto anterior de este DEC usaba esa regla de desempate. Queda **reemplazada** por las cinco reglas.
@@ -753,5 +753,5 @@ Se extiende la etiqueta. Pasan a **`probable`** las celdas con fuente leída (re
 ### Fuera de alcance
 Las reglas A1 a A7 (A1 y A3 se implementan en el Paso 2, DEC-022; A4 solo con dolor de hombro de A6; A2 se vuelve a medir con A1 y A3), el orden de ejercicios del generador, el dolor por serie (A6) y mostrar el perfil en la interfaz. Anclar el criterio con datos biomecánicos es B-026 (PR aparte).
 
-**Estado: implementada (capa de datos), pendiente de aceptación.**
+**Estado: implementada (capa de datos). Aceptado por Emanuel el 2026-11-07.**
 

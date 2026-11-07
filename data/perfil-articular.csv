@@ -8,7 +8,7 @@ chest.incline_press_db,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
 chest.dip_or_machine_press,lumbar,baja,a_verificar,spec_inicial,no,,Spec: fondos en paralelas (la variante de máquina da el mismo nivel).,2026-11-07
 chest.dip_or_machine_press,hombro,alta,a_verificar,spec_inicial,no,,"Fondos y press en máquina: empuje con carga. Fondos: solo contexto cinemático (McKenzie 2022, PMID 36293792).",2026-11-07
 chest.dip_or_machine_press,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
-chest.fly_cable_pecdeck,lumbar,baja,a_verificar,criterio_e4,no,,"Tronco apoyado (Emanuel, 2026-11-07): ese es el motivo de la lumbar baja, no la regla 3.",2026-11-07
+chest.fly_cable_pecdeck,lumbar,baja,a_verificar,criterio_e4,no,,"Regla 3 (Emanuel, 2026-11-07): la variante más exigente (aperturas en polea de pie) es un aislamiento ligero, así que la regla 3 también da lumbar baja; no hay tensión con la regla 1.",2026-11-07
 chest.fly_cable_pecdeck,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4 (Emanuel, 2026-11-07): aislamiento en el final del rango.",2026-11-07
 chest.fly_cable_pecdeck,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
 back.vertical_pull,lumbar,baja,a_verificar,spec_inicial,no,,"Spec: jalón al pecho y dominadas, mismos niveles.",2026-11-07
@@ -100,7 +100,7 @@ functional.bulgarian_db,hombro,baja,a_verificar,spec_inicial,no,,,2026-11-07
 functional.bulgarian_db,rodilla,alta,a_verificar,spec_inicial,no,"Mackey ER, Riemann BL. Int J Exerc Sci 2021;14(1):533-43. PMID 34055144 (texto abierto sin figuras)","Fuente candidata; sigue a_verificar (la fuente solo confirma de forma indirecta o sugiere otro nivel). CORRIGE: Mackey y Riemann (un estudio, barra y con otra carga relativa) sugieren media. No se aplica: la spec manda para esta tabla inicial.",2026-11-07
 functional.step_up,lumbar,media,a_verificar,criterio_e4,no,,"Carga en manos, tronco sin apoyo.",2026-11-07
 functional.step_up,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
-functional.step_up,rodilla,alta,a_verificar,criterio_e4,no,,Decidido por Emanuel (2026-11-07): rodilla alta. La regla 5 no cubre este caso (no es un conflicto entre reglas sino la altura del cajón); el nivel lo fijó Emanuel de forma explícita.,2026-11-07
+functional.step_up,rodilla,alta,a_verificar,criterio_e4,no,,"Regla 1 (Emanuel, 2026-11-07): variante más exigente (cajón alto) = rodilla alta.",2026-11-07
 functional.farmer_carry,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 2 (Emanuel, 2026-11-07): carga axial sin bisagra ni flexión profunda.",2026-11-07
 functional.farmer_carry,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-07
 functional.farmer_carry,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07
