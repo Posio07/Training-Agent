@@ -550,6 +550,21 @@
     sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
   };
 
+  // DEC-020 (Propuesto) · mínimo semanal por grupo. Es el MISMO número del piso de mantenimiento de DEC-017
+  // (minWeeklySetsPerMuscle × maintenanceFloorFactor = 5 series fraccionadas por semana, contando el aporte
+  // indirecto de los compuestos), derivado de esas dos reglas para no inventar otro valor. A diferencia del
+  // piso de 10 (que solo frena recortes y completa grupos mayores), este mínimo se exige también a los grupos
+  // chicos (abdomen, pantorrillas, bíceps, tríceps) y cede ante el tope E4 salvo aceptación explícita.
+  VALIDATOR_RULES.groupMinimumWeeklySets = rule(
+    VALIDATOR_RULES.minWeeklySetsPerMuscle.value * VALIDATOR_RULES.maintenanceFloorFactor.value, 'E4',
+    VALIDATOR_RULES.maintenanceFloorFactor.source,
+    {
+      convention: true, reviewRequired: true,
+      usage: 'Mínimo semanal por grupo, medido en series fraccionadas (directa 1, indirecta 0,5). Se cumple dentro del tope E4 quitando series de aislamiento al grupo con más volumen fraccionado acumulado, sin bajar a ningún grupo de su propio mínimo o piso. Si no cabe dentro del tope, la sesión solo puede pasarse con la aceptación explícita del usuario (DEC-016) y el plan lo avisa. Un grupo sin ningún ejercicio posible tras las exclusiones por lesión (DEC-011) no recibe mínimo.',
+      note: 'Convención de la app (E4), igual al piso de mantenimiento de DEC-017. Respaldo parcial: Spiering et al. 2021 (revisión narrativa; solo se leyó el resumen) respalda el concepto de mantener con poco volumen, no la cifra.',
+    }
+  );
+
   // DEC-014 · peso de UNA serie de cada ejercicio en el conteo fraccionado, por músculo.
   // La categoría de la relación fija el peso; a_verificar cuenta como ninguna.
   // DEC-016: EXCEPCIÓN para el músculo del bucket. El bucket es el músculo para el que se programa el

@@ -1833,7 +1833,8 @@ test('DEC-016 (1): el pecho cuenta el press inclinado en un plan real', () => {
 });
 
 test('DEC-016 (1): pecho y espalda semanales en los splits de 3, 4 y 5 días (antes → después)', () => {
-  Object.entries(REF016.generico3a5.despues).forEach(([key, d]) => {
+  // DEC-020: los valores vigentes son los de despues_dec020 (el mínimo de los grupos chicos le saca series de aislamiento al grupo con más volumen acumulado).
+  Object.entries(REF016.generico3a5.despues_dec020).forEach(([key, d]) => {
     const [days, goal] = key.split('d ');
     const plan = E.buildPlan(Object.assign({}, g3, { daysPerWeek: Number(days), goal }), TODAY);
     const f = fracWeek(plan);
@@ -1877,7 +1878,7 @@ test('DEC-016 (3): aviso visible de grupos bajo el mínimo, con opciones y cuán
   assert.equal(w.rule, 'R2');
   assert.equal(w.evidence, 'E1');
   assert.deepEqual(w.options, ['aceptar_sesiones_largas', 'cambiar_split']);
-  assert.match(w.text, /Pantorrillas 2 \(el tope E4 quitó 5\)/);
+  assert.match(w.text, /Pantorrillas 3 \(el tope E4 quitó 5\)/); // DEC-020: el mínimo le devolvió 1 serie (2 → 3)
   assert.match(w.text, /objetivo de hipertrofia del ACSM 2026/);
   assert.match(w.text, /aceptar sesiones más largas/);
   assert.match(w.text, /cambiar de split/);
@@ -2007,10 +2008,10 @@ const sess = (name, ...ex) => ({ name, exercises: ex, totalSets: ex.reduce((a, e
 const fracOf = sessions => sessions.reduce((acc, s) => { Object.entries(E.fractionalByMuscle(s.exercises)).forEach(([m, n]) => { acc[m] = (acc[m] || 0) + n; }); return acc; }, {});
 
 test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptación), con duración por sesión', () => {
-  assert.equal(Object.keys(REF017.despues).length, 10);
+  assert.equal(Object.keys(REF017.despues_dec020).length, 10); // DEC-020: valores vigentes; `despues` es el histórico de DEC-017
   Object.entries(BASELINE016.cases).forEach(([key, c]) => {
     const plan = E.buildPlan(c.profile, BASELINE016.today);
-    const f = fracWeek(plan), t = plan.training, d = REF017.despues[key], a = REF017.antes[key];
+    const f = fracWeek(plan), t = plan.training, d = REF017.despues_dec020[key], a = REF017.antes[key];
     const floors = t.sessionLimit.floors;
     assert.deepEqual(t.sessions.map(s => s.totalSets), d.sesiones, `${key}: series por sesión`);
     assert.deepEqual(t.sessions.map(s => s.durationMin), d.minutos, `${key}: duración derivada por sesión`);
@@ -2018,20 +2019,20 @@ test('DEC-017: perfiles de referencia de DEC-014 antes y después (sin aceptaci�
     K.MAJOR_GROUPS.forEach(mu => { assert.equal(Math.round((f[mu] || 0) * 100) / 100, d.mayores[mu], `${key}: ${mu}`); assert.equal(floors[mu], d.pisos[mu], `${key}: piso de ${mu}`); });
     assert.deepEqual(K.MAJOR_GROUPS.filter(mu => (f[mu] || 0) < floors[mu]), d.bajoMinimoMayores, `${key}: grupos mayores bajo su piso`);
     assert.equal(t.sessionLimit.filled.reduce((x, y) => x + y.sets, 0), d.agregadas, `${key}: series agregadas`);
-    // Nunca pasa de 25 por esta regla: una sesión solo crece si queda dentro del tope; las que ya pasaban no se tocan.
+    // Nunca pasa de 25 por estas reglas: una sesión solo crece si queda dentro del tope; las que ya pasaban no se tocan.
+    // (DEC-020: el mínimo de los grupos chicos puede sacar series de otro grupo, así que una sesión también puede bajar.)
     t.sessions.forEach((s, i) => {
-      assert.ok(s.totalSets >= a.sesiones[i], `${key}: la regla no quita series`);
-      if (s.totalSets > a.sesiones[i]) assert.ok(s.totalSets <= t.sessionLimit.cap, `${key} ${s.name}: ${s.totalSets} pasa del tope`);
-      else { assert.equal(s.totalSets, a.sesiones[i]); assert.equal(s.durationMin, a.minutos[i], `${key}: una sesión sin cambios conserva su duración`); }
+      assert.ok(s.totalSets <= Math.max(a.sesiones[i], t.sessionLimit.cap), `${key} ${s.name}: ${s.totalSets} pasa del tope`);
     });
     assert.deepEqual(d.sobreTope, a.sobreTope, `${key}: mismas sesiones sobre el tope que antes`);
-    K.MAJOR_GROUPS.forEach(mu => assert.ok(d.mayores[mu] >= a.mayores[mu], `${key}: ${mu} no baja`));
+    // Ningún grupo mayor queda por debajo del menor entre lo que tenía y su piso (R2 prevalece; DEC-020 también lo respeta).
+    K.MAJOR_GROUPS.forEach(mu => assert.ok(d.mayores[mu] >= Math.min(a.mayores[mu], d.pisos[mu]), `${key}: ${mu} no baja de su piso`));
   });
   // Sesiones de más de 90 minutos: ya existían antes y esta regla no las crea ni las alarga.
-  const over90 = k => REF017.despues[k].minutos.filter(m => m > 90);
+  const over90 = k => REF017.despues_dec020[k].minutos.filter(m => m > 90);
   assert.deepEqual(over90('wellness_maintain_5d'), [92, 92]);
   assert.deepEqual(over90('bb_bulk_advanced_6d'), [98, 96]);
-  Object.keys(REF017.despues).forEach(k => assert.deepEqual(over90(k), REF017.antes[k].minutos.filter(m => m > 90), `${k}: sin sesiones nuevas de más de 90 min`));
+  Object.keys(REF017.despues_dec020).forEach(k => assert.deepEqual(over90(k), REF017.antes[k].minutos.filter(m => m > 90), `${k}: sin sesiones nuevas de más de 90 min`));
 });
 
 test('DEC-017: piso de mantenimiento: los grupos "down" de la división usan 5, los rezagados y los demás 10', () => {
@@ -2070,7 +2071,7 @@ test('DEC-017: novice_bulk_physique_4d (physique_m): las piernas están reducida
   const c = BASELINE016.cases.novice_bulk_physique_4d;
   const plan = E.buildPlan(c.profile, BASELINE016.today);
   const f = fracWeek(plan), t = plan.training;
-  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 9, 24, 6], 'las sesiones de 9 y 6 series no cambian');
+  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 11, 24, 11], 'las sesiones de pierna crecen solo por el mínimo de los grupos chicos (DEC-020), no por el completado de DEC-017');
   assert.deepEqual([f.quads, f.hamstrings, f.glutes], [7, 5, 7.5]);
   ['quads', 'hamstrings', 'glutes'].forEach(mu => assert.ok(f[mu] >= t.sessionLimit.floors[mu], `${mu} cumple su piso de mantenimiento`));
   assert.deepEqual(t.sessionLimit.filled, []);
@@ -2080,7 +2081,7 @@ test('DEC-017: novice_bulk_physique_4d (physique_m): las piernas están reducida
   const sessions = t.sessions.map(s => ({ name: s.name, exercises: s.exercises.map(e => Object.assign({}, e)), totalSets: s.totalSets }));
   const log = E.completeToFloor(sessions, SPLIT_DAYS_4, [], 25);
   assert.ok(log.length > 0 && sessions.every(s => s.totalSets <= 25));
-  assert.ok([1, 3].every(i => sessions[i].totalSets > t.sessions[i].totalSets), 'con piso 10 crecen las sesiones de 9 y 6');
+  assert.ok([1, 3].every(i => sessions[i].totalSets > t.sessions[i].totalSets), 'con piso 10 crecen las sesiones de pierna');
 });
 
 test('DEC-017: wellness_maintain_5d y bikini_cut_lagging_4d tienen el pecho "down" y con el piso de mantenimiento ya no hay déficit', () => {
@@ -2091,7 +2092,7 @@ test('DEC-017: wellness_maintain_5d y bikini_cut_lagging_4d tienen el pecho "dow
     const f = fracWeek(plan), t = plan.training;
     assert.equal(t.sessionLimit.floors.chest, 5, `${key}: el pecho es "down" en ${c.profile.division}`);
     assert.ok(f.chest >= 5 && f.chest < 10, `${key}: pecho ${f.chest}`);
-    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.antes[key].sesiones, `${key}: sin series agregadas`);
+    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.despues_dec020[key].sesiones, `${key}: sin series agregadas por el completado (DEC-020 puede mover series de los grupos chicos)`);
     assert.deepEqual(t.sessionLimit.filled, []);
     assert.ok(!t.sessionLimit.belowMinimum.some(x => x.muscle === 'chest'), `${key}: el pecho ya no está en el aviso`);
   });
@@ -2142,7 +2143,7 @@ test('DEC-017: figure_maintain_novice_3d (figure_w, sin "down") completa el pech
   assert.ok(fracWeek(plan).chest >= 10);
   assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 25, 25]);
   assert.equal(t.sessionLimit.filled.reduce((a, x) => a + x.sets, 0), 1);
-  assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.despues[key].minutos);
+  assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.despues_dec020[key].minutos);
 });
 
 test('DEC-017: nunca pasa de 25 por esta regla (barrido de divisiones, días, objetivos, niveles y rezagados)', () => {
@@ -2346,4 +2347,203 @@ test('DEC-019: la cifra de agua no cambia (2,5 / 2,0 L) y la fuente dice que es 
   // El comentario del motor deja claro que no es solo bebida ni un mínimo.
   const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'engine.js'), 'utf8');
   assert.match(src, /ingesta ADECUADA de agua TOTAL \(bebidas \+ alimentos\)/);
+});
+
+/* ---------- DEC-020 (Propuesto): mínimo semanal por grupo dentro del tope E4 ---------- */
+
+const MIN020 = K.VALIDATOR_RULES.groupMinimumWeeklySets;
+const SMALL020 = ['abs', 'calves', 'biceps', 'triceps'];
+const sweep020 = () => {
+  const base = { name: 'T', sex: 'M', age: 30, heightCm: 178, weightKg: 85, bodyFatPct: 15, activity: 'moderate' };
+  const out = [];
+  ['novice', 'intermediate', 'advanced'].forEach(level => ['cut', 'bulk', 'maintain'].forEach(goal => [['M', 'general_m'], ['M', 'classic_m'], ['M', 'physique_m'], ['F', 'bikini_w'], ['F', 'wellness_w']]
+    .forEach(([sex, division]) => [[], ['quads', 'hamstrings', 'glutes']].forEach(laggingMuscles => out.push(Object.assign({}, base, { sex, division, level, goal, laggingMuscles }))))));
+  return out; // 90 perfiles
+};
+const accept020 = (p, today) => { const pr = E.buildPlan(p, today || TODAY).training.sessionLimit.proposed; return Object.assign({}, p, { longSessionAcceptance: { on: '2026-11-07', signature: pr.signature, maxSets: pr.maxSets } }); };
+const groupsByMuscle = plan => Object.fromEntries(plan.training.sessionLimit.minimum.groups.map(g => [g.muscle, g]));
+
+test('DEC-020: el mínimo es el piso de mantenimiento de DEC-017 (5 series fraccionadas), E4, convención, derivado y sin número nuevo', () => {
+  assert.equal(MIN020.value, K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value * K.VALIDATOR_RULES.maintenanceFloorFactor.value);
+  assert.equal(MIN020.value, 5);
+  assert.deepEqual([MIN020.level, MIN020.status, MIN020.convention], ['E4', 'implementada', true]);
+  assert.equal(MIN020.source, K.VALIDATOR_RULES.maintenanceFloorFactor.source, 'misma fuente parcial que el piso de mantenimiento (Spiering 2021, resumen)');
+  assert.match(MIN020.note, /Convención de la app/);
+  assert.match(MIN020.note, /Spiering/);
+  assert.match(MIN020.usage, /aceptación explícita/);
+});
+
+test('DEC-020: en el split de 4 días ningún grupo queda bajo el mínimo ni en 0, sin aceptación y dentro del tope (90 perfiles)', () => {
+  sweep020().forEach(p => {
+    const pp = Object.assign({}, p, { daysPerWeek: 4 });
+    const plan = E.buildPlan(pp, TODAY), t = plan.training, f = fracWeek(plan);
+    const who = `${p.level} ${p.goal} ${p.division} rez=${p.laggingMuscles.length}`;
+    SMALL020.forEach(mu => { assert.ok((f[mu] || 0) >= MIN020.value - 1e-9, `${who}: ${mu} ${f[mu] || 0}`); assert.ok(t.weeklySets[mu] > 0 || (f[mu] || 0) >= MIN020.value, `${who}: ${mu} en 0`); });
+    assert.ok(!plan.warnings.some(w => w.kind === 'minimo_no_cabe'), who);
+    // R2 prevalece: ningún grupo mayor baja de lo que tenía sin tope (con aceptación) ni de su piso, y las sesiones no pasan del tope.
+    const ref = fracWeek(E.buildPlan(accept020(pp), TODAY));
+    K.MAJOR_GROUPS.forEach(mu => assert.ok((f[mu] || 0) >= Math.min(ref[mu] || 0, t.sessionLimit.floors[mu]) - 1e-9, `${who}: ${mu} bajó de su piso`));
+    t.sessions.forEach(s => assert.ok(s.totalSets <= Math.max(t.sessionLimit.cap, ...t.sessionLimit.overCap.map(o => o.sets)), `${who}: ${s.name}`));
+  });
+});
+
+test('DEC-020: en 5 y 6 días tampoco hay grupos bajo el mínimo (90 perfiles por split)', () => {
+  [5, 6].forEach(days => sweep020().forEach(p => {
+    const f = fracWeek(E.buildPlan(Object.assign({}, p, { daysPerWeek: days }), TODAY));
+    SMALL020.forEach(mu => assert.ok((f[mu] || 0) >= MIN020.value - 1e-9, `${days}d ${p.level} ${p.goal} ${p.division}: ${mu} ${f[mu] || 0}`));
+  }));
+});
+
+test('DEC-020: en 3 días, o el mínimo cabe dentro de 25 o el plan lo avisa; con la aceptación explícita siempre se cumple y no se pasa de lo aceptado', () => {
+  let noFit = 0, fit = 0;
+  sweep020().forEach(p => {
+    const pp = Object.assign({}, p, { daysPerWeek: 3 });
+    const plan = E.buildPlan(pp, TODAY), f = fracWeek(plan), g = groupsByMuscle(plan);
+    const who = `${p.level} ${p.goal} ${p.division} rez=${p.laggingMuscles.length}`;
+    const unmet = SMALL020.filter(mu => (f[mu] || 0) < MIN020.value - 1e-9);
+    SMALL020.forEach(mu => assert.equal(g[mu].met, !unmet.includes(mu), `${who}: ${mu} met`));
+    if (!unmet.length) { fit++; assert.ok(!plan.warnings.some(w => w.kind === 'minimo_no_cabe'), who); return; }
+    noFit++;
+    const w = plan.warnings.find(x => x.kind === 'minimo_no_cabe');
+    assert.ok(w, `${who}: falta el aviso de que el mínimo no cabe`);
+    assert.deepEqual([w.level, w.evidence, w.rule], ['warn', 'E4', 'E4']);
+    assert.deepEqual(w.muscles.map(m => m.muscle).sort(), unmet.slice().sort(), `${who}: el aviso nombra los grupos que faltan`);
+    assert.ok(w.options.includes('aceptar_sesiones_largas'));
+    assert.match(w.text, /no cabe dentro del tope de 25/);
+    assert.match(w.text, /aceptar sesiones más largas/);
+    // Nunca queda peor que sin la regla de mínimo: ningún grupo chico baja respecto de lo que el recorte E4 le dejó.
+    // Con la aceptación explícita todo se cumple y ninguna sesión pasa del máximo aceptado.
+    const acc = accept020(pp), a = E.buildPlan(acc, TODAY), fa = fracWeek(a);
+    SMALL020.forEach(mu => assert.ok((fa[mu] || 0) >= MIN020.value - 1e-9, `${who} con aceptación: ${mu} ${fa[mu] || 0}`));
+    assert.ok(!a.warnings.some(x => x.kind === 'minimo_no_cabe'), who);
+    assert.ok(a.training.sessions.every(s => s.totalSets <= acc.longSessionAcceptance.maxSets), `${who}: pasa del máximo aceptado`);
+  });
+  assert.ok(noFit > 10 && fit > 10, `el barrido tiene que ejercitar ambos caminos (no cabe ${noFit}, cabe ${fit})`);
+});
+
+test('DEC-020 · acceptance: full body, 3 días, lesión de hombro autorizada, sigue dentro de E4 y respeta DEC-011', () => {
+  const plan = E.buildPlan(clearedShoulder(), TODAY), t = plan.training, f = fracWeek(plan);
+  assert.equal(plan.health.blocked, false);
+  t.sessions.forEach(s => assert.ok(s.totalSets <= 25, `${s.name}: ${s.totalSets}`));
+  assert.deepEqual(t.sessionLimit.overCap, []);
+  assert.ok(!t.sessions.flatMap(s => s.exercises).some(e => e.exerciseId === 'shoulders.press_overhead'), 'sigue sin press de hombro');
+  // Cada grupo chico cumple el mínimo o el plan avisa que no cabe (y con aceptación se cumple).
+  const unmet = SMALL020.filter(mu => (f[mu] || 0) < MIN020.value - 1e-9);
+  assert.equal(plan.warnings.some(w => w.kind === 'minimo_no_cabe'), unmet.length > 0);
+  const fa = fracWeek(E.buildPlan(accept020(clearedShoulder()), TODAY));
+  SMALL020.forEach(mu => assert.ok((fa[mu] || 0) >= MIN020.value - 1e-9, `con aceptación: ${mu}`));
+});
+
+test('DEC-020 · caso donde el mínimo no cabe: advanced / bulk / wellness_w de 3 días (casi todo compuestos) pide la aceptación explícita', () => {
+  const p = Object.assign({}, fullBody3, { sex: 'F', division: 'wellness_w', level: 'advanced', goal: 'bulk', laggingMuscles: [] });
+  const plan = E.buildPlan(p, TODAY), t = plan.training, g = groupsByMuscle(plan);
+  assert.ok(t.sessions.some(s => s.totalSets > 25), 'las sesiones ya pasan del tope solo con multiarticulares, así que no hay de dónde sacar');
+  assert.ok(Object.values(g).some(x => !x.met), 'algún grupo chico queda bajo el mínimo');
+  const w = plan.warnings.find(x => x.kind === 'minimo_no_cabe');
+  assert.ok(w && w.options.includes('aceptar_sesiones_largas'));
+  assert.equal(plan.warnings.filter(x => x.kind === 'minimo_no_cabe').length, 1, 'un solo aviso por plan');
+  // Aceptar de forma explícita lo resuelve, sin pasar de lo aceptado.
+  const acc = accept020(p), a = E.buildPlan(acc, TODAY);
+  Object.values(groupsByMuscle(a)).forEach(x => assert.ok(x.met, `${x.muscle} con aceptación`));
+  assert.ok(a.training.sessions.every(s => s.totalSets <= acc.longSessionAcceptance.maxSets));
+  assert.ok(!a.warnings.some(x => x.kind === 'minimo_no_cabe'));
+  // Una aceptación vigente que no alcanza para el mínimo avisa sin ofrecer aceptar de nuevo.
+  const tight = Object.assign({}, p, { longSessionAcceptance: { on: '2026-11-07', signature: t.sessionLimit.proposed.signature, maxSets: t.sessionLimit.proposed.maxSets } });
+  assert.ok(E.buildPlan(tight, TODAY).training.sessionLimit.minimum.groups.every(x => x.met));
+});
+
+test('DEC-020: los planes que ya cumplen el mínimo no cambian (oscar 5d, bb 6d, physique_w 6d, wellness 5d, physique_cut_adv_lag 5d)', () => {
+  ['oscar_cut_classic_5d', 'bb_bulk_advanced_6d', 'physique_w_bulk_6d', 'wellness_maintain_5d', 'physique_cut_adv_lag_5d'].forEach(key => {
+    const t = E.buildPlan(BASELINE016.cases[key].profile, BASELINE016.today).training;
+    assert.deepEqual(t.sessions.map(s => s.totalSets), REF017.antes[key].sesiones, `${key}: series por sesión`);
+    assert.deepEqual(t.sessions.map(s => s.durationMin), REF017.antes[key].minutos, `${key}: minutos por sesión`);
+    assert.deepEqual(t.sessionLimit.minimum.filled, [], `${key}: no hubo que agregar nada`);
+  });
+});
+
+const ex020 = (id, sets) => mk(id, sets);
+const sess020 = (name, list) => { const exercises = list.map(([id, n]) => ex020(id, n)); return { name, exercises, totalSets: exercises.reduce((a, e) => a + e.sets, 0) }; };
+const days020 = [{ category: 'torso' }, { category: 'torso' }];
+const floors020 = { chest: 10, back: 10, shoulders: 10, quads: 10, hamstrings: 10, glutes: 10 };
+
+test('DEC-020: las series salen del grupo con más volumen fraccionado acumulado, contando el indirecto, y nadie baja de su propio mínimo', () => {
+  const day = name => sess020(name, [['chest.bench_press_barbell', 4], ['back.row_barbell', 4], ['quads.squat_back_or_hack', 4], ['triceps.pushdown_cable', 8], ['biceps.curl_barbell', 3], ['chest.fly_cable_pecdeck', 2]]);
+  const sessions = [day('A'), day('B')];
+  assert.deepEqual(sessions.map(s => s.totalSets), [25, 25]);
+  const before = E.fractionalByMuscle(sessions.flatMap(s => s.exercises));
+  assert.ok(before.triceps > before.biceps && before.triceps > before.chest, 'el tríceps es el grupo con más volumen acumulado (empuje directo + press indirecto)');
+  const r = E.ensureGroupMinimum(sessions, days020, [], 25, floors020);
+  const after = E.fractionalByMuscle(sessions.flatMap(s => s.exercises));
+  assert.ok(r.groups.filter(g => ['abs', 'calves'].includes(g.muscle)).every(g => g.met), 'abdomen y pantorrillas llegan a 5');
+  assert.ok(sessions.every(s => s.totalSets <= 25), 'dentro del tope');
+  // Las primeras series salen del tríceps (el de más volumen); ningún grupo baja de su propio mínimo o piso para cubrir a otro.
+  assert.equal(r.log[0].donated[0].bucket, 'triceps');
+  assert.ok(after.triceps >= MIN020.value && after.biceps >= MIN020.value, 'ningún grupo chico baja de su mínimo');
+  K.MAJOR_GROUPS.forEach(mu => assert.ok((after[mu] || 0) >= Math.min(before[mu] || 0, floors020[mu]) - 1e-9, `${mu} no baja de su piso`));
+  assert.ok(sessions.flatMap(s => s.exercises).filter(e => e.type === 'compound').every(e => e.sets === 4), 'nunca se recorta un multiarticular');
+});
+
+test('DEC-020: nunca se le quita a un grupo por debajo de su propio mínimo para cubrir el de otro: si nadie puede ceder, la sesión no cambia y se informa', () => {
+  // Tríceps y bíceps tienen exactamente 5 (solo series directas, sin aporte indirecto) y lo demás son multiarticulares: no hay de dónde sacar.
+  const sessions = [
+    sess020('A', [['triceps.pushdown_cable', 5], ['biceps.curl_barbell', 5], ['quads.squat_back_or_hack', 15]]),
+    sess020('B', [['quads.squat_back_or_hack', 10], ['hamstrings.rdl', 10], ['glutes.hip_thrust', 5]]),
+  ];
+  const before = E.fractionalByMuscle(sessions.flatMap(s => s.exercises));
+  assert.equal(before.triceps, 5); assert.equal(before.biceps, 5);
+  const snap = JSON.stringify(sessions.map(s => s.exercises.map(e => [e.exerciseId, e.sets])));
+  const r = E.ensureGroupMinimum(sessions, days020, [], 25, floors020);
+  assert.equal(JSON.stringify(sessions.map(s => s.exercises.map(e => [e.exerciseId, e.sets]))), snap, 'sin donantes posibles, nada cambia');
+  assert.deepEqual(r.log, []);
+  assert.ok(r.groups.filter(g => ['abs', 'calves'].includes(g.muscle)).every(g => !g.met && g.after === 0));
+  assert.ok(r.groups.filter(g => ['biceps', 'triceps'].includes(g.muscle)).every(g => g.met && g.after === 5), 'los dos grupos que no podían ceder siguen en su mínimo');
+  // Con un techo más alto (aceptación explícita) sí cabe, sin sacarle nada a nadie.
+  const r2 = E.ensureGroupMinimum(sessions, days020, [], 40, floors020);
+  assert.ok(r2.groups.every(g => g.met));
+  assert.deepEqual(E.fractionalByMuscle(sessions.flatMap(s => s.exercises)).triceps, 5);
+  assert.equal(r2.log.reduce((a, x) => a + x.donated.length, 0), 0, 'con espacio no se saca nada de otro grupo');
+});
+
+const clearedZone020 = (zone, extra) => { const base = E.normalizeProfile(Object.assign({}, fullBody3, { injuryZones: [zone] }, extra || {})); return Object.assign({}, base, { health: cleared(base.health, zone, '2026-10-01') }); };
+
+test('DEC-020 · DEC-011: un grupo sin ningún ejercicio posible tras las exclusiones por lesión no recibe mínimo; los demás sí', () => {
+  const saved = K.INJURY_EXCLUSIONS.shoulder;
+  K.INJURY_EXCLUSIONS.shoulder = Object.assign({}, saved, { abs: ['ab_flexion', 'leg_raise', 'vacuum'] }); // deja a abdomen sin ejercicios
+  try {
+    const plan = E.buildPlan(clearedZone020('shoulder', { daysPerWeek: 4 }), TODAY), g = groupsByMuscle(plan);
+    assert.equal(g.abs.excludedByInjury, true);
+    assert.equal(g.abs.after, 0);
+    const w = plan.warnings.find(x => x.kind === 'minimo_sin_ejercicios');
+    assert.ok(w && w.muscles.includes('abs'));
+    assert.match(w.text, /lesión declarada/);
+    assert.ok(!plan.warnings.some(x => x.kind === 'minimo_no_cabe' && x.muscles.some(m => m.muscle === 'abs')), 'abdomen no figura como mínimo que no cabe');
+    ['calves', 'biceps', 'triceps'].forEach(mu => assert.ok(g[mu].met, `${mu} sí recibe su mínimo`));
+    assert.ok(!plan.training.sessions.flatMap(s => s.exercises).some(e => e.bucket === 'abs'));
+    assert.equal(plan.training.weeklySets.abs, 0);
+  } finally { K.INJURY_EXCLUSIONS.shoulder = saved; }
+  // Sin la exclusión, abdomen sí lo recibe.
+  assert.ok(groupsByMuscle(E.buildPlan(clearedZone020('shoulder', { daysPerWeek: 4 }), TODAY)).abs.met);
+});
+
+test('DEC-020 · DEC-011: los ejercicios que el mínimo agrega respetan las exclusiones por zona (tobillo: sin elevación de talones de pie)', () => {
+  [3, 4].forEach(days => {
+    const plan = E.buildPlan(clearedZone020('ankle', { daysPerWeek: days }), TODAY);
+    const ids = plan.training.sessions.flatMap(s => s.exercises.map(e => e.exerciseId));
+    assert.ok(!ids.includes('calves.calf_raise_standing'), `${days}d: la exclusión por tobillo se respeta`);
+    if (days === 4) assert.ok(groupsByMuscle(plan).calves.met && ids.includes('calves.calf_raise_seated'), 'pantorrillas llega al mínimo con el ejercicio permitido');
+  });
+});
+
+test('DEC-020: los avisos del mínimo llevan nivel E4 y la regla; las series agregadas quedan dentro del tope y sin crear avisos R1', () => {
+  const plan = E.buildPlan(BASELINE016.cases.novice_bulk_physique_4d.profile, BASELINE016.today), t = plan.training;
+  const info = plan.warnings.filter(w => w.kind === 'minimo_grupo');
+  assert.ok(info.length >= 1);
+  info.forEach(w => { assert.deepEqual([w.evidence, w.rule], ['E4', 'E4']); assert.match(w.text, /mínimo semanal de 5 series fraccionadas/); assert.match(w.text, /E4 · convención/); });
+  assert.deepEqual(t.sessions.map(s => s.totalSets), [25, 11, 24, 11]);
+  assert.ok(t.sessions.every(s => s.totalSets <= 25));
+  assert.ok(!plan.warnings.some(w => w.rule === 'R1'), 'no se crean avisos R1');
+  t.sessionLimit.minimum.filled.forEach(x => assert.equal(x.sets, x.items.reduce((a, i) => a + i.sets, 0)));
+  // El volumen semanal mostrado coincide con lo que aparece en las sesiones.
+  const all = t.sessions.flatMap(s => s.exercises);
+  Object.keys(t.weeklySets).forEach(mu => assert.equal(all.filter(e => e.bucket === mu).reduce((a, e) => a + e.sets, 0), t.weeklySets[mu], mu));
 });

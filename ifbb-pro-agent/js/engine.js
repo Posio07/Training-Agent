@@ -621,6 +621,128 @@
     return log;
   }
 
+  // DEC-020 (Propuesto) · mínimo semanal por grupo, dentro del tope E4.
+  // El mínimo es el de VALIDATOR_RULES.groupMinimumWeeklySets (5 series fraccionadas por semana, contando el
+  // indirecto de los compuestos). Los grupos mayores ya llegan a su piso con completeToFloor (DEC-017); esto
+  // cubre a los grupos chicos, que el tope E4 recorta primero. Para cada grupo chico bajo el mínimo (el de mayor
+  // déficit primero):
+  //  1) se agregan series en una sesión COMPATIBLE con el grupo (SMALL_COMPAT) que tenga espacio bajo `limit`
+  //     (primero series extra de un ejercicio directo que ya está en la sesión; si no, un ejercicio nuevo de 2
+  //     series del catálogo ya filtrado por lesiones);
+  //  2) si ninguna sesión tiene espacio, las series se sacan de aislamientos de la MISMA sesión, empezando por
+  //     el grupo con más volumen fraccionado acumulado, sin bajar a ningún grupo de su propio mínimo o piso
+  //     (nunca se descubre un grupo para cubrir a otro) y nunca de un multiarticular;
+  //  3) si tampoco se puede, el grupo queda como está y se informa (la sesión solo puede pasarse del tope con
+  //     la aceptación explícita del usuario: `limit` ya la incluye).
+  // DEC-011: un grupo sin ningún ejercicio posible tras las exclusiones por lesión no recibe mínimo.
+  // No lleva a ningún músculo por encima del umbral de R1 en una sesión (11 fraccionadas).
+  function ensureGroupMinimum(sessions, splitDays, injuryZones, limit, floors) {
+    const MIN = K.VALIDATOR_RULES.groupMinimumWeeklySets.value;
+    const direct = K.VALIDATOR_RULES.directSetWeight.value;
+    const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
+    const EPS = 1e-9;
+    const total = s => s.exercises.reduce((a, e) => a + e.sets, 0);
+    const room = i => limit - total(sessions[i]);
+    const weekly = sumFractional(sessions);
+    const sessFrac = sessions.map(s => fractionalByMuscle(s.exercises));
+    const fitsR1 = (i, w, n) => Object.keys(w).every(mu => (sessFrac[i][mu] || 0) + w[mu] * n <= r1 + EPS);
+    const compat = (mu, i) => SMALL_COMPAT[mu](splitDays[i].category);
+    // Lo mínimo que cada grupo debe conservar: su piso (mayores) o este mínimo (chicos); si ya estaba más
+    // abajo, no se le quita nada más.
+    const protect = {};
+    Object.keys(K.MUSCLE_LABELS).forEach(mu => { protect[mu] = Math.min(K.MAJOR_GROUPS.includes(mu) ? (floors && floors[mu] != null ? floors[mu] : MIN) : MIN, weekly[mu] || 0); });
+    // Los grupos mayores también conservan sus series REALES por encima de su piso (garantía de DEC-014: el tope
+    // E4 no los baja de ahí ni en fraccionadas ni en reales); cubrir a un grupo chico no la rompe.
+    const plain = {};
+    sessions.forEach(s => s.exercises.forEach(e => { plain[e.bucket] = (plain[e.bucket] || 0) + e.sets; }));
+    const plainProtect = {};
+    K.MAJOR_GROUPS.forEach(mu => { plainProtect[mu] = Math.min(floors && floors[mu] != null ? floors[mu] : MIN, plain[mu] || 0); });
+    const before = {};
+    SMALL_MUSCLES_LIST.forEach(mu => { before[mu] = Math.round((weekly[mu] || 0) * 100) / 100; });
+    const excluded = new Set(SMALL_MUSCLES_LIST.filter(mu => filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones).length === 0));
+    const apply = (i, e, n, isNew, donated) => {
+      Object.keys(e.setWeights).forEach(mu => { weekly[mu] = (weekly[mu] || 0) + e.setWeights[mu] * n; sessFrac[i][mu] = (sessFrac[i][mu] || 0) + e.setWeights[mu] * n; });
+      log.push({ sessionIndex: i, session: sessions[i].name, exerciseId: e.exerciseId, bucket: e.bucket, sets: n, isNew, donated });
+    };
+    const log = [];
+    // Plan de donación dentro de la sesión i: k series de aislamientos, grupo con más volumen acumulado primero.
+    const planDonation = (i, mu, k) => {
+      const tent = Object.assign({}, weekly), taken = new Map(), steps = [], tentPlain = {};
+      let got = 0;
+      while (got < k) {
+        const rem = e => e.sets - (taken.get(e) || 0);
+        const ok = e => {
+          const step = rem(e) > 2 ? 1 : rem(e);
+          if (!Object.keys(e.setWeights).every(m => !(m in protect) || tent[m] - e.setWeights[m] * step >= protect[m] - EPS)) return false;
+          // Un grupo mayor no baja de su piso en series reales y no desaparece de una sesión (frecuencia semanal, R2).
+          if (K.MAJOR_GROUPS.includes(e.bucket)) {
+            if (plain[e.bucket] - (tentPlain[e.bucket] || 0) - step < plainProtect[e.bucket]) return false;
+            const left = sessions[i].exercises.filter(x => x.bucket === e.bucket).reduce((a, x) => a + x.sets - (taken.get(x) || 0), 0);
+            if (left - step < 1) return false;
+          }
+          return true;
+        };
+        const cand = sessions[i].exercises.filter(e => e.type === 'isolation' && e.bucket !== mu && !(e.setWeights[mu] > 0) && Object.keys(e.setWeights).length && rem(e) > 0 && ok(e))
+          .sort((a, b) => ((tent[b.bucket] || 0) - (tent[a.bucket] || 0)) || (rem(b) - rem(a)));
+        if (!cand.length) return null;
+        const e = cand[0], step = rem(e) > 2 ? 1 : rem(e);
+        taken.set(e, (taken.get(e) || 0) + step);
+        tentPlain[e.bucket] = (tentPlain[e.bucket] || 0) + step;
+        Object.keys(e.setWeights).forEach(m => { tent[m] = (tent[m] || 0) - e.setWeights[m] * step; });
+        steps.push({ e, step }); got += step;
+      }
+      return steps;
+    };
+    const place = (i, mu, allowDonation) => {
+      const free = Math.max(0, room(i));
+      const used = new Set(sessions[i].exercises.map(e => e.pattern || e.name));
+      const attempts = [];
+      const existing = sessions[i].exercises.filter(e => e.bucket === mu && (e.setWeights[mu] || 0) >= direct && fitsR1(i, e.setWeights, 1)).sort((a, b) => a.sets - b.sets)[0];
+      if (existing) attempts.push({ n: 1, e: existing, isNew: false });
+      const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
+        .filter(x => !used.has(basePattern(x)))
+        .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
+      if (ex) attempts.push({ n: 2, ex, isNew: true });
+      for (const a of attempts) {
+        const need = Math.max(0, a.n - free);
+        if (need > 0 && !allowDonation) continue;
+        const steps = need > 0 ? planDonation(i, mu, need) : [];
+        if (!steps) continue;
+        const donated = steps.map(x => ({ exerciseId: x.e.exerciseId, bucket: x.e.bucket, sets: x.step }));
+        steps.forEach(({ e, step }) => {
+          e.sets -= step;
+          plain[e.bucket] -= step;
+          Object.keys(e.setWeights).forEach(m => { weekly[m] = (weekly[m] || 0) - e.setWeights[m] * step; sessFrac[i][m] = (sessFrac[i][m] || 0) - e.setWeights[m] * step; });
+        });
+        sessions[i].exercises = sessions[i].exercises.filter(e => e.sets > 0);
+        let target = a.e;
+        if (a.isNew) { target = makeEntry(a.ex, mu, 2); sessions[i].exercises.push(target); } else target.sets += 1;
+        apply(i, target, a.n, a.isNew, donated);
+        return true;
+      }
+      return false;
+    };
+    const stuck = new Set();
+    let guard = 0;
+    for (;;) {
+      const mu = SMALL_MUSCLES_LIST.filter(m => !excluded.has(m) && !stuck.has(m) && (weekly[m] || 0) < MIN - EPS)
+        .sort((a, b) => ((weekly[a] || 0) - MIN) - ((weekly[b] || 0) - MIN))[0]; // mayor déficit primero (estable)
+      if (!mu) break;
+      const cand = sessions.map((s, i) => i).filter(i => compat(mu, i)).sort((a, b) => room(b) - room(a) || a - b);
+      const w0 = weekly[mu] || 0;
+      const done = cand.some(i => place(i, mu, false)) || cand.some(i => place(i, mu, true));
+      if (!done || (weekly[mu] || 0) <= w0 + EPS) stuck.add(mu); // sin avance neto, el grupo queda como está (evita ciclos)
+      else protect[mu] = Math.max(protect[mu], weekly[mu]); // lo ya ganado no se le quita a este grupo para cubrir a otro
+      if (++guard > 200) break;
+    }
+    sessions.forEach(s => { s.totalSets = total(s); });
+    const groups = SMALL_MUSCLES_LIST.map(mu => {
+      const after = Math.round((weekly[mu] || 0) * 100) / 100;
+      return { muscle: mu, before: before[mu], after, minimum: MIN, met: after >= MIN - EPS, excludedByInjury: excluded.has(mu) };
+    });
+    return { minimum: MIN, limit, log, groups };
+  }
+
   function computeTraining(p, t) {
     const days = clamp(Math.round(p.daysPerWeek) || 4, 3, 6);
     const split = SPLITS[days];
@@ -666,6 +788,7 @@
         // el mismo de siempre.
         const extra = p.healthGoal ? filterLibByInjuries(K.FUNCTIONAL_EXERCISES[mu] || [], mu, injuryZones) : [];
         const lib = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones); // DEC-009
+        if (!lib.length) { weeklySets[mu] = 0; return; } // DEC-011/DEC-020: sin ejercicios posibles tras las exclusiones por lesión
         const perSession = Math.max(2, Math.round(weeklySets[mu] / freq[mu]));
         const sets = Math.min(perSession, Math.max(0, remaining[mu]));
         remaining[mu] -= sets;
@@ -758,6 +881,7 @@
       freq[mu] = freqMu;
       const chosen = eligible.slice(0, freqMu).map(x => x.i);
       const lib = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones); // DEC-009
+      if (!lib.length) { weeklySets[mu] = 0; return; } // DEC-011/DEC-020: sin ejercicios posibles tras las exclusiones por lesión
       const perSession = Math.max(2, Math.round(weeklySets[mu] / freqMu));
       let remainingMu = weeklySets[mu];
       chosen.forEach((dayIdx, k) => {
@@ -837,6 +961,43 @@
         trainingWarnings.push({ level: 'info', evidence: 'E1', rule: 'R2', kind: 'completado_piso', muscle: mu, items,
           text: `${K.MUSCLE_LABELS[mu]} quedaba bajo el piso semanal de ${floors[mu]} series fraccionadas (${floors[mu] < K.VALIDATOR_RULES.minWeeklySetsPerMuscle.value ? 'piso de mantenimiento: énfasis reducido por la división' : 'objetivo de hipertrofia del ACSM 2026, usado como piso protector'}): se ${sets === 1 ? 'agregó 1 serie' : `agregaron ${sets} series`} dentro del tope de ${sessionLimit.cap} por sesión. ${detail}.` });
       });
+    }
+
+    // DEC-020 (Propuesto) · mínimo semanal por grupo dentro del tope E4 (ver ensureGroupMinimum). Con una
+    // aceptación vigente el techo es el máximo que el usuario aceptó; sin ella, el tope.
+    const minLimit = accepted && acceptance ? Math.max(sessionLimit.cap, acceptance.maxSets) : sessionLimit.cap;
+    const minResult = ensureGroupMinimum(sessions, split.days, injuryZones, minLimit, floors);
+    sessionLimit.minimum = { value: minResult.minimum, level: 'E4', limit: minResult.limit, groups: minResult.groups, filled: [] };
+    if (minResult.log.length) {
+      new Set(minResult.log.map(x => x.bucket).concat(...minResult.log.map(x => x.donated.map(d => d.bucket)))).forEach(mu => {
+        weeklySets[mu] = sessions.reduce((a, s) => a + s.exercises.filter(e => e.bucket === mu).reduce((b, e) => b + e.sets, 0), 0);
+      });
+      const byGroup = {};
+      minResult.log.forEach(x => { (byGroup[x.bucket] = byGroup[x.bucket] || []).push(x); });
+      Object.keys(byGroup).forEach(mu => {
+        const sets = byGroup[mu].reduce((a, x) => a + x.sets, 0);
+        const donors = {};
+        byGroup[mu].forEach(x => x.donated.forEach(d => { donors[d.bucket] = (donors[d.bucket] || 0) + d.sets; }));
+        sessionLimit.minimum.filled.push({ muscle: mu, sets, donors, items: byGroup[mu].map(x => ({ session: x.session, exerciseId: x.exerciseId, sets: x.sets, isNew: x.isNew })) });
+        const detail = byGroup[mu].map(x => `${x.session}: ${K.EXERCISE_INDEX[x.exerciseId].entry.name} +${x.sets}${x.isNew ? ' (ejercicio nuevo)' : ''}`).join('; ');
+        const from = Object.keys(donors).length ? ` Se sacaron ${Object.keys(donors).map(d => `${donors[d]} de ${K.MUSCLE_LABELS[d]}`).join(' y ')} (empezando por el grupo con más volumen fraccionado acumulado; ningún grupo baja de su propio mínimo o piso).` : '';
+        trainingWarnings.push({ level: 'info', evidence: 'E4', rule: 'E4', kind: 'minimo_grupo', muscle: mu,
+          text: `${K.MUSCLE_LABELS[mu]} quedaba bajo el mínimo semanal de ${minResult.minimum} series fraccionadas (mínimo de la app, E4 · convención): se ${sets === 1 ? 'agregó 1 serie' : `agregaron ${sets} series`} dentro del tope de ${sessionLimit.cap} por sesión. ${detail}.${from}` });
+      });
+    }
+    const unmet = minResult.groups.filter(g => !g.met && !g.excludedByInjury);
+    if (unmet.length) {
+      const list = unmet.map(g => `${K.MUSCLE_LABELS[g.muscle]} ${g.after}`).join(', ');
+      const canAcceptMin = !accepted;
+      trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'E4', kind: 'minimo_no_cabe', muscles: unmet, options: canAcceptMin ? ['aceptar_sesiones_largas', 'cambiar_split'] : ['cambiar_split'],
+        text: accepted
+          ? `Ni con tu aceptación (hasta ${minLimit} series por sesión) cabe el mínimo semanal de ${minResult.minimum} series fraccionadas en: ${list}. Puedes cambiar de split (más días por semana). (Mínimo: E4 · convención de la app.)`
+          : `El mínimo semanal de ${minResult.minimum} series fraccionadas no cabe dentro del tope de ${sessionLimit.cap} series por sesión en: ${list}. Para cumplirlo una sesión tendría que pasarse del tope: puedes aceptar sesiones más largas, o cambiar de split (más días por semana). (Mínimo: E4 · convención de la app.)` });
+    }
+    const noLib = minResult.groups.filter(g => g.excludedByInjury);
+    if (noLib.length) {
+      trainingWarnings.push({ level: 'info', evidence: 'E4', rule: 'E4', kind: 'minimo_sin_ejercicios', muscles: noLib.map(g => g.muscle),
+        text: `Sin mínimo semanal para ${noLib.map(g => K.MUSCLE_LABELS[g.muscle]).join(', ')}: tras las exclusiones por la lesión declarada no queda ningún ejercicio posible (precaución E4, DEC-011).` });
     }
 
     // DEC-016 · aviso de grupos bajo el mínimo. El piso de 10 series fraccionadas semanales se FUERZA solo
@@ -1272,5 +1433,5 @@
 
   function unique(arr) { return arr.filter((v, i) => v && arr.indexOf(v) === i); }
 
-  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, enforceSessionCap, completeToFloor, diminishingReturnsWarnings, computeHealthScreen, buildPlan, planSignature, migrateLongSessionAcceptance, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
+  return { bmrMifflin, bmrKatch, bodyFatNavy, ffmi, classicLimit, computeMetrics, computeTargets, computeNutrition, computeTraining, fractionalByMuscle, ensureGroupMinimum, enforceSessionCap, completeToFloor, diminishingReturnsWarnings, computeHealthScreen, buildPlan, planSignature, migrateLongSessionAcceptance, normalizeProfile, validateProfile, exerciseFields, carryOverInjuryClearances, reconcileInjuryClearances, zonesPendingReauthorization, applyPainReading, painProfessionalAdvice, exportProfile, prepareImportedProfile, localHealthConflicts, SPLITS, LB_PER_KG };
 });

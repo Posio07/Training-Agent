@@ -568,6 +568,106 @@
      "abs=8"
     ]
    }
+  },
+  "despues_dec020": {
+   "3d cut": {
+    "sesiones": [
+     25,
+     25,
+     26
+    ],
+    "sobreTope": [
+     26
+    ],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=3",
+     "biceps=6",
+     "abs=3"
+    ]
+   },
+   "3d bulk": {
+    "sesiones": [
+     29,
+     25,
+     25
+    ],
+    "sobreTope": [
+     29
+    ],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=3",
+     "biceps=6",
+     "abs=3"
+    ]
+   },
+   "4d cut": {
+    "sesiones": [
+     24,
+     22,
+     24,
+     23
+    ],
+    "sobreTope": [],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=6",
+     "biceps=8.5",
+     "abs=5"
+    ]
+   },
+   "4d bulk": {
+    "sesiones": [
+     24,
+     24,
+     25,
+     25
+    ],
+    "sobreTope": [],
+    "pecho": 14,
+    "espalda": 14,
+    "bajoMinimo": [
+     "calves=6",
+     "biceps=7.5",
+     "abs=6"
+    ]
+   },
+   "5d cut": {
+    "sesiones": [
+     23,
+     18,
+     21,
+     20,
+     18
+    ],
+    "sobreTope": [],
+    "pecho": 12,
+    "espalda": 12,
+    "bajoMinimo": [
+     "calves=7",
+     "abs=7"
+    ]
+   },
+   "5d bulk": {
+    "sesiones": [
+     25,
+     21,
+     24,
+     23,
+     21
+    ],
+    "sobreTope": [],
+    "pecho": 14,
+    "espalda": 14,
+    "bajoMinimo": [
+     "calves=8",
+     "abs=8"
+    ]
+   }
   }
  }
 }

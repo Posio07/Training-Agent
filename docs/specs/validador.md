@@ -28,7 +28,7 @@ Los valores, el nivel, la fuente y la fecha de revisión de cada regla viven en 
 
 ## Reglas del validador
 
-Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3), una derivada por cálculo (R4) y un tope de series por sesión que es convención de la app (E4, Fase 2).
+Son siete reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), una heurística etiquetada (R3), una derivada por cálculo (R4), un tope de series por sesión que es convención de la app (E4, Fase 2) y un mínimo semanal por grupo, también convención (DEC-020, Propuesto).
 
 ### R1 · Aviso de rendimiento decreciente por músculo por sesión (E3)
 
@@ -69,6 +69,13 @@ Son seis reglas: dos firmes (R2, R5), un aviso con evidencia de preprint (R1), u
 - **Aceptación del usuario (DEC-016):** puede aceptar de forma explícita una sesión más larga; no se recorta nada. La aceptación queda guardada con fecha, ligada a la **firma del plan** (días, división, objetivo, rezagados y nivel) y a un **máximo de series** (`longSessionAcceptance`). Se invalida si cambia la firma o si alguna sesión supera el máximo aceptado, y entonces se vuelve a pedir. No vence por fecha.
 - **Costo conocido:** con el tope y el piso de los grupos mayores, los grupos chicos pueden quedar con pocas series o sin series directas en los splits de 3 y 4 días. El plan lo avisa y ofrece aceptar una sesión más larga.
 - **Duración:** sigue siendo derivada (R4). 25 series no equivalen a un tiempo fijo: en el modelo actual las sesiones de 25 series duran entre ~55 y ~98 min según los ejercicios (los unilaterales cuentan doble).
+
+### Mínimo semanal por grupo (E4, convención de la app; DEC-020, Propuesto)
+
+- **Regla:** cada grupo (también los chicos: abdomen, pantorrillas, bíceps y tríceps) llega a **5 series fraccionadas por semana**, contando el aporte indirecto de los compuestos. Es el mismo número del piso de mantenimiento de DEC-017 (10 × 0,5), no una cifra nueva. Nivel E4, convención de la app; respaldo parcial en Spiering et al. 2021 (revisión narrativa, solo resumen).
+- **Cómo:** dentro del tope de 25. Si una sesión compatible tiene espacio, se agregan series; si no, se sacan de aislamientos de la misma sesión, empezando por el grupo con más volumen fraccionado acumulado. Nunca se baja a un grupo de su propio mínimo o piso (los grupos mayores conservan además sus series reales y su frecuencia), y nunca se recorta un multiarticular.
+- **Si no cabe:** la sesión solo puede pasarse del tope con la aceptación explícita del usuario (la misma de E4), y el plan muestra un aviso claro con esa opción. A los 3 días, buena parte de los perfiles necesita esa aceptación.
+- **Lesiones (DEC-011):** un grupo al que las exclusiones por lesión le dejan sin ningún ejercicio posible no recibe mínimo; si le quedan ejercicios, sí.
 
 ### R5 · Tamizaje de condiciones (E1 para filtrar, sin framework para adaptar)
 
