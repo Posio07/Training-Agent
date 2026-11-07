@@ -2896,7 +2896,7 @@ test('DEC-022 · con el remo con barra elegido: entra, A3 lo separa de la sentad
   assert.ok(avisos > 0 && avisos < 360, `planes con aviso A2: ${avisos}`);
 });
 
-test('DEC-022 · el tope del curl usa el umbral de R1 (sin número nuevo): con R1 en 11 no se activa; con un umbral artificialmente bajo el excedente pasa al curl del día de bisagra y la frecuencia de isquios no baja', () => {
+test('DEC-022 · el tope del curl usa el umbral de R1 (sin número nuevo): con R1 en 11 actúa sobre el reparto inicial; con un umbral artificialmente bajo el excedente pasa al curl del día de bisagra y la frecuencia de isquios no baja', () => {
   const r = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession, prev = r.value;
   const curlSets = pl => pl.training.sessions.map(s => s.exercises.filter(e => e.exerciseId === 'hamstrings.leg_curl').reduce((a, e) => a + e.sets, 0));
   const squatIdx = pl => pl.training.sessions.findIndex(s => s.exercises.some(e => heavy022(e) === 'squat'));
