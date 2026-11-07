@@ -755,3 +755,60 @@ Las reglas A1 a A7 (A1 y A3 se implementan en el Paso 2, DEC-022; A4 solo con do
 
 **Estado: implementada (capa de datos). Aceptado por Emanuel el 2026-11-07.**
 
+
+## DEC-022 · Fase 3, Paso 2: A1 (orden por demanda) y A3 (sentadilla y bisagra pesadas en días distintos) en el generador
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente; no vale como base de otro trabajo hasta que Emanuel lo acepte. Depende de DEC-021 (tabla `perfil_articular`), que también está Propuesto: esta rama parte de la rama de DEC-021 y se mergea después.
+
+Contexto: `docs/specs/validador-fase3.md`, reglas A1 y A3 (E4 en el motivo de seguridad; A1 tiene respaldo E2 solo en que el orden no cuesta hipertrofia, Nunes et al. 2021, resumen). Emanuel pidió implementarlas como **restricciones del generador** (no como advertencias sobre un plan ya hecho). **Cambia el plan generado.**
+
+### Qué cambia
+- **A3 · separar la bisagra pesada de la sentadilla pesada.** Sentadilla pesada = patrón `squat_bilateral` con lumbar alta; bisagra pesada = patrón `hinge` con lumbar alta (peso muerto rumano). El día de la sentadilla (el primer día con cuádriceps) los isquios se cubren con **flexión de rodilla** (curl femoral, lumbar baja) y la bisagra pasa al **siguiente día de isquios**. Solo se separa la bisagra pesada: el trabajo de isquiotibiales no se mueve. El relleno posterior (`completeToFloor`, `ensureGroupMinimum`) no puede volver a juntarlas. Si la rotación del catálogo no ofrece alternativa, no se cambia nada.
+- **A1 · orden por demanda dentro de cada sesión.** Primero lo de lumbar alta (sentadilla, peso muerto rumano, remo con barra), luego los multiarticulares, al final los aislamientos. El **hip thrust va al final de los multiarticulares** (lumbar media): se interpretó "siempre al final" como "después de todo lo pesado y de los otros multiarticulares, antes de los aislamientos"; si Emanuel lo quiere literalmente al final de la sesión, es un cambio de una línea. El orden es estable: dentro de cada grupo se conserva el del generador. El top set de definición cae así en el primer ejercicio elegible, que ahora es el de lumbar alta.
+- **Indicación en el curl femoral.** El ejercicio "Curl femoral tumbado o sentado" lleva una indicación (`cue`, E4): preferir el sentado. Se muestra bajo el ejercicio en el plan.
+- **`VALIDATOR_RULES`:** `sessionOrderByDemand` (A1) y `hingeSquatSeparation` (A3), ambas E4, implementadas y con fuente. Un test comprueba que el motor las lee.
+- `sw.js` pasa a la caché v16.
+
+### Fuente del curl sentado frente al tumbado (investigador)
+Maeo S et al. 2021, *Med Sci Sports Exerc* 53(4):825-837, doi 10.1249/MSS.0000000000002523 (PMID 33009197). El investigador leyó el resumen de PubMed y el texto completo de PMC **a través de un resumidor** (no el texto literal; las cifras no se compararon contra las tablas originales). Estudio intra-sujeto, 20 adultos jóvenes sanos sin entrenamiento de fuerza, curl al 70 % de 1RM, 5 series de 10, dos veces por semana, 12 semanas, resonancia: isquios totales **+14,1 % con curl sentado y +9,3 % con tumbado**; bíceps femoral cabeza larga, semitendinoso y semimembranoso crecieron más con el sentado (significativo); la cabeza corta (no cruza la cadera) no mostró diferencia significativa. Sin diferencia en protección contra el daño muscular. **Nivel propuesto para la regla "preferir el curl sentado": E4** (un solo estudio, 20 personas sin entrenar, sin replicación encontrada, dos máquinas que difieren en la posición de la cadera: la interpretación como "longitud muscular" es de los autores). Maeo 2023 (PMID 35819335) **no** es una replicación: es sobre tríceps. Confianza media. Por eso es una indicación, no una regla dura, y el texto dice "en un estudio de 12 semanas".
+Nota del repo: `data/exercise-muscles.csv` marca esa relación como `verificado` con la fuente de Maeo 2021, pero `docs/research/fuentes-musculos-ejercicio.md` la registra como "Resumen". El investigador sugiere revisar si corresponde `verificado (1 estudio)`. No se tocó.
+
+### Antes y después (10 perfiles de referencia, sin aceptación)
+Las series por sesión no cambian salvo en un perfil; cambian los minutos porque un curl (aislamiento, descanso corto) reemplaza a un peso muerto rumano (multiarticular, descanso largo) el día de sentadilla.
+
+| Perfil | Series por sesión (antes → después) | Minutos por sesión (antes → después) |
+| --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19 (igual) | 72/72/55/53/70 → 72/68/55/53/70 |
+| novice_bulk_physique_4d | 25/11/24/11 (igual) | 70/33/59/34 → 70/30/59/36 |
+| wellness_maintain_5d | 21/25/15/15/25 (igual) | 58/92/36/35/92 → 58/86/36/35/92 |
+| general_cut_3d | 25/25/26 (igual) | 76/82/88 → 72/82/88 |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25 → 25/25/25/25/25/25 | 69/65/98/64/58/96 → 69/65/89/64/58/96 |
+| bikini_cut_lagging_4d | 25/19/25/19 (igual) | 67/70/60/53 → 67/65/60/53 |
+| emanuel_legs_cut_4d | 25/25/25/25 (igual) | 69/89/63/83 → 69/84/63/83 |
+| figure_maintain_novice_3d | 25/25/25 (igual) | 75/81/83 → 71/81/83 |
+| physique_cut_adv_lag_5d | 25/12/24/25/12 (igual) | 82/40/57/61/47 → 82/35/57/61/53 |
+| physique_w_bulk_6d | 20/22/23/20/20/23 (igual) | 58/55/81/49/46/85 → 58/55/76/49/46/85 |
+
+En `bb_bulk_advanced_6d` la sesión de pierna A bajó de 26 a 25 series: antes el peso muerto rumano (multiarticular) no se podía recortar y la sesión quedaba sobre el tope; ahora el curl sí, y el tope lo recorta en una serie.
+
+### Barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días)
+- **Planes que cambian: 360 de 360** (A1 reordena todas las sesiones; A3 cambia el día de la bisagra en los que juntaban ambas).
+- **A3 se cumple en los 360** (ninguna sesión junta sentadilla y bisagra pesadas), también con la bandera salud/funcional y con lesión de hombro, rodilla o espalda baja.
+- **Frecuencia semanal de isquios: no baja en ninguno de los 360** (días con ejercicios directos de isquios: 720 antes y 720 después; días con cualquier aporte: igual). **Glúteos: tampoco baja**; en 2 planes de 3 días sube un día.
+- **Series semanales de isquios:** bajan en 53 planes (por 1 serie en 9, 2 en 13, 3 en 25 y 4 en 6; de 4377 a 4250 en total, −2,9 %), porque el curl (aislamiento) sí puede recortarse por el tope de 25 series y la bisagra no. **Glúteos:** suben (de 4665 a 4720 series en total; no bajan en ningún plan). Cuádriceps: sin cambios.
+- **Series por sesión distintas:** 101 de 1620 sesiones. **Minutos por sesión distintos:** 436 sesiones (de −15 a +6 min).
+- **Avisos:** el aviso de rendimiento decreciente (R1) aparece en más avisos en 34 planes y en menos en 12; en los 34 afecta a glúteos (32 avisos), cuádriceps (19), hombros (14) y espalda (8). No se verificó la causa; la hipótesis es que sin el peso muerto rumano el día de sentadilla los glúteos pierden su aporte indirecto y el piso semanal los completa con series de glúteos (+55 series en total), lo que arrastra el reparto de las sesiones. El aviso informativo de mínimo de grupo desaparece en 12 planes y el de completado de piso en 4; en 2 planes más un grupo chico deja de llegar a su mínimo semanal.
+- **Efecto a vigilar:** el día de sentadilla el curl recibe todas las series de isquios. En 122 de los 360 planes tiene 7 o más series (hasta 10) de un solo ejercicio de aislamiento. Alternativa: tope al curl y repartir el resto, o separar el curl en dos entradas (sentado y tumbado), en línea con B-031.
+
+### A2 vuelto a medir (con A1 y A3 aplicados)
+`node scripts/simular-reglas-articulares.js`: **A2 salta en 90 de 360 planes (25,0 %), todos de 3 días (100 % de los de 3 días)**; antes saltaba en el 100 %. Los 90 casos son los días de cuerpo completo donde el **remo con barra** (bisagra sostenida, lumbar alta) cae con la sentadilla (Cuerpo completo A, 54 planes) o con el peso muerto rumano (Cuerpo completo B, 36): con un solo día de espalda y piernas juntos no se pueden separar sin cambiar el split de 3 días o el ejercicio de espalda. A1 salta en 0 (por construcción). A4 queda en 71,1 % y no se tocó: por decisión de Emanuel solo se activará si A6 registró dolor de hombro.
+
+### Pruebas
+- `engine.test.js` (167 tests): A3 en los 360 planes y con bandera salud/lesiones; la frecuencia de isquios y glúteos no baja contra la salida con las reglas apagadas; el día de sentadilla trae el curl y la bisagra sigue en la semana; A1 en cada sesión (incluye la condición de la spec, lumbar alta no después de dos o más de lumbar media o alta); el hip thrust al final de los multiarticulares; el relleno (`completeToFloor`) no junta sentadilla y bisagra; las reglas están en `VALIDATOR_RULES`.
+- Referencias actualizadas a propósito: `plan-hashes.json` (30 planes) y `despues_dec022` en `dec017-referencia.json` (los tests pasan a leer esa clave; `despues_dec020` queda como histórico). La línea base de DEC-010 y los planes que ya cumplían el mínimo (DEC-020) se comparan con A1 y A3 apagadas, para seguir demostrando que nada más cambió.
+- Mutaciones: A3 apagada falla 7 tests; sin reiniciar la rotación (la bisagra desaparece de la semana) 3; sin la guarda en el relleno 1; A1 apagada 3; hip thrust sin ir al final 2.
+- E2E (`e2e.js`, `e2e-aceptacion.js`) pasan.
+
+### Fuera de alcance
+A2 como restricción (solo se mide), A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7, y el reparto de series del curl del día de sentadilla. No se tocó el split de 3 días.
+
+**Estado: implementada, pendiente de aceptación.**

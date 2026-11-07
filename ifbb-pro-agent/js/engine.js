@@ -381,6 +381,8 @@
     // DEC-011: un ejercicio que solo entra por una lesión declarada es una
     // precaución heurística (E4), no una adaptación validada.
     if (ex.injuryOnly) entry.injurySubstitute = { zone: ex.injuryOnly, evidence: 'E4' };
+    // DEC-022: indicación breve del catálogo (p. ej. preferir el curl femoral sentado, E4).
+    if (ex.cue) entry.cue = { text: ex.cue, evidence: 'E4' };
     return entry;
   }
 
@@ -412,6 +414,39 @@
       const resolved = resolvePick(ex, lib, used);
       used.add(basePattern(resolved));
       return resolved;
+    });
+  }
+
+  /* ---------- DEC-022 · Fase 3, Paso 2: A3 (sentadilla pesada y bisagra pesada en días distintos) y A1 (orden) ---------- */
+
+  // Sentadilla pesada = patrón squat_bilateral con demanda lumbar alta; bisagra pesada = patrón hinge con demanda lumbar alta
+  // (perfil articular, DEC-021). La búlgara, la prensa y el hip thrust no cuentan: son lumbar media o baja.
+  function heavyKind(id, pattern) {
+    const prof = K.JOINT_PROFILE[id];
+    if (!prof || !prof.lumbar || prof.lumbar.nivel !== 'alta') return null;
+    return pattern === 'squat_bilateral' ? 'squat' : pattern === 'hinge' ? 'hinge' : null;
+  }
+  // A3: ¿agregar `cand` (entrada del plan o del catálogo) a `dayExercises` juntaría la sentadilla y la bisagra pesadas?
+  function violatesA3(dayExercises, cand) {
+    if (!K.VALIDATOR_RULES.hingeSquatSeparation.value) return false;
+    const kind = heavyKind(cand.exerciseId || cand.id, cand.pattern);
+    if (!kind) return false;
+    const other = kind === 'squat' ? 'hinge' : 'squat';
+    return dayExercises.some(e => heavyKind(e.exerciseId, e.pattern) === other);
+  }
+  // A1: orden de cada sesión por demanda. Primero lo de lumbar alta (con la espalda descansada), luego los
+  // multiarticulares y al final los aislamientos; el hip thrust (lumbar media) va al final de los multiarticulares.
+  // Estable: dentro de cada grupo se conserva el orden del generador. Solo reordena; no cambia series ni ejercicios.
+  function orderByDemand(sessions) {
+    if (!K.VALIDATOR_RULES.sessionOrderByDemand.value) return;
+    const group = e => {
+      const prof = K.JOINT_PROFILE[e.exerciseId];
+      if (prof && prof.lumbar && prof.lumbar.nivel === 'alta') return 0;
+      if (e.type === 'isolation') return 3;
+      return e.pattern === 'hip_thrust' ? 2 : 1;
+    };
+    sessions.forEach(s => {
+      s.exercises = s.exercises.map((e, i) => ({ e, i, g: group(e) })).sort((a, b) => a.g - b.g || a.i - b.i).map(x => x.e);
     });
   }
 
@@ -609,7 +644,7 @@
         if (room(i) < 2) continue;
         const used = new Set(sessions[i].exercises.map(e => e.pattern || e.name));
         const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
-          .filter(x => !used.has(basePattern(x)))
+          .filter(x => !used.has(basePattern(x)) && !violatesA3(sessions[i].exercises, x))
           .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
         if (!ex) continue;
         const entry = makeEntry(ex, mu, 2);
@@ -706,7 +741,7 @@
       const existing = sessions[i].exercises.filter(e => e.bucket === mu && (e.setWeights[mu] || 0) >= direct && fitsR1(i, e.setWeights, 1)).sort((a, b) => a.sets - b.sets)[0];
       if (existing) attempts.push({ n: 1, e: existing, isNew: false });
       const ex = filterLibByInjuries(K.EXERCISES[mu], mu, injuryZones)
-        .filter(x => !used.has(basePattern(x)))
+        .filter(x => !used.has(basePattern(x)) && !violatesA3(sessions[i].exercises, x))
         .find(x => { const w = K.EXERCISE_CONTRIBUTION[x.id].setWeights; return (w[mu] || 0) >= direct && fitsR1(i, w, 2); });
       if (ex) attempts.push({ n: 2, ex, isNew: true });
       for (const a of attempts) {
@@ -782,10 +817,15 @@
     const freq = {};
     split.days.forEach(d => d.muscles.forEach(mu => { freq[mu] = (freq[mu] || 0) + 1; }));
 
+    // DEC-022 · A3: la sentadilla pesada cae en el primer día con cuádriceps (rotación del catálogo). Ese día los isquios se
+    // cubren con flexión de rodilla (curl femoral, lumbar baja) y la bisagra pesada pasa al siguiente día de isquios.
+    const quadsLib = filterLibByInjuries(K.EXERCISES.quads, 'quads', injuryZones);
+    const squatDay = K.VALIDATOR_RULES.hingeSquatSeparation.value && quadsLib.length && heavyKind(quadsLib[0].id, quadsLib[0].pattern) === 'squat'
+      ? split.days.findIndex(d => d.muscles.includes('quads')) : -1;
     const remaining = Object.assign({}, weeklySets);
     const rotate = {};
     const rotateExtra = {}; // DEC-005
-    const sessions = split.days.map(d => {
+    const sessions = split.days.map((d, dayIdx) => {
       const exercises = [];
       d.muscles.forEach(mu => {
         // DEC-005: con la bandera "salud/funcional" activa, pierna suma
@@ -809,6 +849,16 @@
         }
         // DEC-006: ningún patrón (variantes incluidas) se repite en el día.
         picks = dedupPicks(picks, lib, exercises);
+        if (mu === 'hamstrings' && dayIdx === squatDay) {
+          const kept = picks.filter(ex => heavyKind(ex.id, ex.pattern) !== 'hinge');
+          if (kept.length < picks.length) {
+            const alt = lib.find(ex => heavyKind(ex.id, ex.pattern) !== 'hinge');
+            if (kept.length || alt) {
+              picks = kept.length ? kept : [alt];
+              rotate[mu] = idx; // el próximo día de isquios vuelve a empezar por la bisagra
+            }
+          }
+        }
         const per = Math.floor(sets / picks.length);
         let rest = sets - per * picks.length;
         const dayEntries = picks.map(ex => {
@@ -1039,6 +1089,9 @@
       trainingWarnings.push({ level: 'warn', evidence: 'E4', rule: 'A', kind: 'sin_perfil_articular', exercises: noProfile,
         text: `Sin perfil articular completo: ${noProfile.map(x => `${x.name} (${x.missing.join(', ')})`).join('; ')}. Las reglas articulares (Fase 3) no pueden evaluar estos ejercicios. (Criterio de modelado E4.)` });
     }
+
+    // DEC-022 · A1: orden por demanda (antes del top set, para que el primer ejercicio elegible sea el más exigente).
+    orderByDemand(sessions);
 
     // DEC-002 / DEC-008: en definición, el primer ejercicio ELEGIBLE del día
     // lleva un top set pesado (no suma series nuevas: la primera de sus

@@ -709,6 +709,7 @@
           <span class="f">${icon('gauge')} RIR ${esc(showTag ? e.topSet.rir : e.rir)}</span>
           <span class="f">${icon('clock')} ${esc(showTag ? '3 min' : e.rest)}</span>
         </div>
+        ${e.cue ? `<div class="help">${esc(e.cue.text)} ${evTag(e.cue.evidence)}</div>` : ''}
       </div>
       <div class="ex-sets">${esc(setsLabel)} × ${esc(reps)}</div>
     </div>`;
