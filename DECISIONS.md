@@ -841,7 +841,7 @@ A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7; el rep
 
 Contexto: la app la usan 2 personas y se prueba durante un año antes de una posible versión pública. Emanuel cambió de estrategia: se reconstruye el núcleo del generador con filosofía "clean core" (no se parchea el motor actual). Hoy el motor y el almacenamiento arrastran compatibilidad con formatos anteriores (por ejemplo `migrateLongSessionAcceptance`, el campo legado `longSessionAcceptedOn` y las filas de series anteriores a DEC-015 sin `setKey`) y parches que corrigen efectos de otros pasos. Esa compatibilidad no sirve a nadie mientras los datos del año de prueba se puedan borrar. Hoy esos caminos siguen en uso (se llaman al cargar y al importar).
 
-### Decisión (propuesta)
+### Decisión
 1. **Durante el año de prueba, la retrocompatibilidad de datos no es requisito.** El formato del almacenamiento y del plan puede cambiar sin migración. El año de prueba dura hasta que Emanuel lo cierre por escrito (DEC o `docs/VISION.md`).
 2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie.
 3. **El código que una decisión deja muerto se elimina en el mismo PR** que la implementa: migraciones, campos legados, caminos que ya nadie recorre, datos y tests que solo ejercitaban ese código. Un test de comportamiento se conserva; un test que solo fija un detalle interno del código eliminado se elimina con él. Quien revisa el PR comprueba que no queda nada muerto.
