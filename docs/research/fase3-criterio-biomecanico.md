@@ -93,8 +93,8 @@ No se encontró ningún estudio de carga glenohumeral, subacromial o acromioclav
 
 ## Qué se desprende para la tabla `perfil_articular` (Paso 1, PR aparte)
 
-- **Remo con barra inclinado, lumbar (alta en la spec):** la definición literal (carga en manos, tronco sin apoyo) daría media. Se agrega a la lista de ambiguos del Paso 1 (DEC-021, propuesto, en el PR #30; aún sin mergear).
-- **Hack squat y hip thrust, lumbar (media en la spec):** la definición literal daría baja; ya están en esa misma lista (PR #30).
+- **Remo con barra inclinado, lumbar (alta en la spec):** la definición literal (carga en manos, tronco sin apoyo) daría media. Emanuel lo resolvió el 2026-11-07 con una regla de desempate (el torso inclinado sin apoyo con carga cuenta como bisagra con carga): queda en alta (DEC-021, propuesto, PR #30).
+- **Hack squat y hip thrust, lumbar (media en la spec):** la definición literal daría baja; Emanuel los resolvió el 2026-11-07 por la variante más exigente (hack squat) y por la regla de que gana el nivel más alto (hip thrust): ambos quedan como indica la spec o más alto (DEC-021, PR #30).
 - **Prensa de piernas, lumbar (baja):** candidata a media por L7, con confianza baja; no se mueve.
 - **Elevaciones laterales, hombro (media):** posible subestimación por H2; no se mueve.
 
