@@ -17,6 +17,9 @@ back.vertical_pull,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
 back.row_barbell,lumbar,alta,a_verificar,spec_inicial,no,"Fenwick CM, Brown SH, McGill SM. J Strength Cond Res 2009;23(2):350-8. PMID 19197209 (resumen)","Fuente candidata; sigue a_verificar (el nivel salió de una regla de desempate). Desempate, regla 2 (Emanuel, 2026-11-07): mantener el torso inclinado sin apoyo con carga cuenta como bisagra con carga.",2026-11-07
 back.row_barbell,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-07
 back.row_barbell,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
+back.row_chest_supported,lumbar,baja,a_verificar,spec_inicial,no,,Spec: remo con apoyo de pecho. Tronco apoyado (DEC-022: es el remo por defecto del plan).,2026-11-07
+back.row_chest_supported,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-07
+back.row_chest_supported,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07
 back.row_cable,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 1 (Emanuel, 2026-11-07): polea baja sentada sin apoyo de pecho (la máquina con apoyo sería baja).",2026-11-07
 back.row_cable,hombro,media,a_verificar,spec_inicial,no,,"Spec: remo con apoyo de pecho, hombro media.",2026-11-07
 back.row_cable,rodilla,baja,a_verificar,spec_inicial,no,,,2026-11-07

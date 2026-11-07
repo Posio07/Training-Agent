@@ -5,6 +5,7 @@ chest.dip_or_machine_press,chest
 chest.fly_cable_pecdeck,chest
 back.vertical_pull,back
 back.row_barbell,back
+back.row_chest_supported,back
 back.row_cable,back
 back.pullover_cable,back
 shoulders.press_overhead,shoulders

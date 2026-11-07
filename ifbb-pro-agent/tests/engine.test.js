@@ -590,6 +590,7 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     'plan.training.sessions.#.exercises.#.setWeights': 'DEC-014: aporte de una serie por músculo (fraccionado)',
     'plan.training.sessions.#.fractionalSets': 'DEC-014: series fraccionadas por músculo y sesión',
     'plan.training.sessions.#.exercises.#.cue': 'DEC-022: indicación del catálogo (preferir el curl femoral sentado, E4)',
+    'plan.input.barbellRow': 'DEC-022: el remo con barra solo entra si el usuario lo elige (false por defecto; la línea base se compara con true)',
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
     'plan.training.warnings.length': 'DEC-014 / DEC-016: avisos nuevos (E4, R1, grupos bajo el mínimo)',
     'plan.warnings.length': 'DEC-014 / DEC-016: ídem, en la lista combinada',
@@ -605,7 +606,7 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     const rules = K.VALIDATOR_RULES, prev = [rules.sessionOrderByDemand.value, rules.hingeSquatSeparation.value];
     rules.sessionOrderByDemand.value = false; rules.hingeSquatSeparation.value = false;
     let plan;
-    try { plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24' }), fx.today); }
+    try { plan = E.buildPlan(Object.assign({}, c.profile, { longSessionAcceptedOn: '2026-10-24', barbellRow: true }), fx.today); }
     finally { rules.sessionOrderByDemand.value = prev[0]; rules.hingeSquatSeparation.value = prev[1]; }
     diffPaths(plan, c.plan, 'plan', seen);
     // Las claves permitidas valen "sin efecto" en estos perfiles: nunca pausan ni tocan nada.
@@ -1105,7 +1106,7 @@ test('DEC-012: todo exerciseId del CSV existe en el catálogo y viceversa (salvo
     else assert.ok(inCsv.has(id), `el ejercicio del catálogo no tiene filas en el CSV: ${id}`);
   });
   assert.deepEqual(K.NO_MUSCLE_CONTRIBUTION, ['functional.farmer_carry'], 'el paseo del granjero es el único sin aporte');
-  assert.ok(inCatalog.size === 35 && inCsv.size === 34);
+  assert.ok(inCatalog.size === 36 && inCsv.size === 35);
 });
 
 test('DEC-013: cada ejercicio tiene al menos una relación directa, salvo el paseo del granjero (ninguna fila)', () => {
@@ -1178,7 +1179,7 @@ test('DEC-012: el parser lee igual un CSV con coma y uno con punto y coma (Excel
   assert.deepEqual(semi.rows, comma.rows, 'coma y punto y coma tienen que dar las mismas filas');
   const crlf = MB.parseExerciseMuscles(table.map(r => r.map(c => quote(c, ',')).join(',')).join('\r\n'));
   assert.deepEqual(crlf.rows, comma.rows);
-  assert.equal(comma.rows.length, 61);
+  assert.equal(comma.rows.length, 64);
   // Lo mismo con el CSV de buckets.
   const bt = MB.parseCsv(bucketsText(), ',');
   const bSemi = MB.parseBuckets('﻿' + bt.map(r => r.join(';')).join('\r\n') + '\r\n');
@@ -1814,7 +1815,7 @@ test('DEC-016 (1): el músculo del bucket cuenta siempre como directo (1), sea c
     });
   });
   // Los 7 ejercicios cuyo bucket estaba a_verificar son justo los que cambian.
-  assert.deepEqual(aVerificarBucket.sort(), ['abs.vacuum', 'back.pullover_cable', 'chest.dip_or_machine_press', 'chest.incline_press_db', 'functional.step_up', 'shoulders.press_landmine_neutral', 'shoulders.rear_delt_facepull']);
+  assert.deepEqual(aVerificarBucket.sort(), ['abs.vacuum', 'back.pullover_cable', 'back.row_chest_supported', 'chest.dip_or_machine_press', 'chest.incline_press_db', 'functional.step_up', 'shoulders.press_landmine_neutral', 'shoulders.rear_delt_facepull']);
   // La evidencia de la fila NO se toca: sigue siendo a_verificar.
   assert.equal(K.EXERCISE_CONTRIBUTION['chest.incline_press_db'].relations.chest.evidencia, 'a_verificar');
   // Los datos son coherentes con la regla: todo bucket es una fila directa (salvo el paseo del granjero, sin filas).
@@ -2688,6 +2689,7 @@ test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálog
     'Curl femoral tumbado o sentado': ['hamstrings.leg_curl'], 'Press de banca': ['chest.bench_press_barbell'], 'Press inclinado': ['chest.incline_press_db'],
     'Fondos en paralelas': ['chest.dip_or_machine_press', 'triceps.close_grip_or_dips'], 'Jalón al pecho': ['back.vertical_pull'], 'Dominadas': ['back.vertical_pull'],
     'Elevaciones laterales': ['shoulders.lateral_raise_db', 'shoulders.lateral_raise_cable'],
+    'Remo con apoyo de pecho': ['back.row_chest_supported'],
   };
   Object.entries(equal).forEach(([name, ids]) => ids.forEach(id => {
     K.JOINTS.forEach((j, k) => { assert.equal(K.JOINT_PROFILE[id][j].nivel, specRows[name][k], `${name} → ${id} / ${j}`); assert.equal(K.JOINT_PROFILE[id][j].origen, 'spec_inicial', `${id}/${j}: origen`); });
@@ -2749,7 +2751,7 @@ test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambigua
 
 test('DEC-021: el perfil no se expone en el plan, solo lo leen A1 y A3 (DEC-022), y un ejercicio sin perfil advierte', () => {
   const engineSrc = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../js/engine.js'), 'utf8');
-  assert.equal((engineSrc.match(/JOINT_PROFILE/g) || []).length, 2, 'engine.js solo lee el perfil en heavyKind (A3) y orderByDemand (A1)');
+  assert.equal((engineSrc.match(/JOINT_PROFILE/g) || []).length, 4, 'engine.js solo lee el perfil en heavyKind (A3), orderByDemand (A1) y el aviso A2');
   const plan = E.buildPlan(fullBody3, TODAY);
   assert.ok(!plan.warnings.some(w => w.kind === 'sin_perfil_articular'), 'catálogo completo: sin aviso');
   assert.ok(!/"lumbar"|"hombro":\{/.test(JSON.stringify(plan.training.sessions)), 'las sesiones no exponen el perfil');
@@ -2849,4 +2851,73 @@ test('DEC-022 · A3 solo separa lo de lumbar alta: un hinge de demanda lumbar me
     const joined = plans022().filter(pl => pl.training.sessions.some(s => s.exercises.some(e => e.pattern === 'squat_bilateral') && s.exercises.some(e => e.pattern === 'hinge')));
     assert.ok(joined.length > 100, `con el rumano en media vuelve a convivir con la sentadilla: ${joined.length}`);
   } finally { prof.lumbar.nivel = saved; }
+});
+
+/* ---------- DEC-022 (ajustes): remo por defecto con apoyo de pecho, remo con barra opcional, A2 como aviso y tope del curl con el umbral de R1 ---------- */
+
+const plansBar022 = () => { const out = []; [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => out.push(E.buildPlan(Object.assign({}, p, { barbellRow: true, daysPerWeek: d }), TODAY)))); return out; };
+const lumbarAlta022 = s => s.exercises.filter(e => K.JOINT_PROFILE[e.exerciseId].lumbar.nivel === 'alta');
+const ids022 = plan => plan.training.sessions.flatMap(s => s.exercises.map(e => e.exerciseId));
+
+test('DEC-022 · el remo por defecto es con apoyo de pecho (lumbar baja): sin remo con barra no hay A2 en ninguno de los 360 planes', () => {
+  assert.equal(E.normalizeProfile(male).barbellRow, false);
+  assert.equal(E.normalizeProfile(Object.assign({}, male, { barbellRow: true })).barbellRow, true);
+  assert.equal(K.JOINT_PROFILE['back.row_chest_supported'].lumbar.nivel, 'baja');
+  let conApoyo = 0;
+  plans022().forEach((plan, i) => {
+    const ids = ids022(plan);
+    assert.ok(!ids.includes('back.row_barbell'), `plan ${i}: el remo con barra no entra por defecto`);
+    if (ids.includes('back.row_chest_supported')) conApoyo++;
+    plan.training.sessions.forEach(s => assert.ok(lumbarAlta022(s).length <= K.VALIDATOR_RULES.maxLumbarHighPerSession.value, `plan ${i} ${s.name}: A2`));
+    assert.ok(!plan.training.warnings.some(w => w.kind === 'tope_lumbar'), `plan ${i}: sin aviso A2`);
+  });
+  assert.ok(conApoyo >= 300, `planes con remo con apoyo de pecho: ${conApoyo}`);
+});
+
+test('DEC-022 · con el remo con barra elegido: entra, A3 lo separa de la sentadilla y A2 avisa cuando cae con otra bisagra', () => {
+  const plans = plansBar022();
+  let conBarra = 0, avisos = 0;
+  plans.forEach((plan, i) => {
+    if (ids022(plan).includes('back.row_barbell')) conBarra++;
+    plan.training.sessions.forEach(s => { const k = new Set(s.exercises.map(heavy022).filter(Boolean)); assert.ok(!(k.has('squat') && k.has('hinge')), `plan ${i} ${s.name}: sentadilla y bisagra (incluido el remo con barra)`); });
+    const demasiadas = plan.training.sessions.filter(s => lumbarAlta022(s).length > 1);
+    const aviso = plan.training.warnings.find(w => w.kind === 'tope_lumbar');
+    assert.equal(!!aviso, demasiadas.length > 0, `plan ${i}: el aviso A2 sale exactamente cuando hay más de un ejercicio de lumbar alta en una sesión`);
+    if (aviso) { avisos++; assert.deepEqual([aviso.level, aviso.evidence, aviso.rule], ['warn', 'E4', 'A2']); assert.equal(aviso.sessions.length, demasiadas.length); }
+  });
+  // Con la espalda rezagada (más series de espalda) el remo con barra cae en el primer día de espalda: A3 lo cambia si ese día lleva la sentadilla.
+  let rezagados = 0;
+  [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => {
+    const pl = E.buildPlan(Object.assign({}, p, { laggingMuscles: ['back'], barbellRow: true, daysPerWeek: d }), TODAY); rezagados++;
+    pl.training.sessions.forEach(s => { assert.ok(!(s.exercises.some(e => e.pattern === 'squat_bilateral') && s.exercises.some(e => e.pattern === 'row_barbell')), `espalda rezagada ${d}d ${s.name}: sentadilla con remo con barra`); });
+  }));
+  assert.equal(rezagados, 360);
+  assert.ok(conBarra >= 300, `planes con remo con barra: ${conBarra}`);
+  assert.ok(avisos > 0 && avisos < 360, `planes con aviso A2: ${avisos}`);
+});
+
+test('DEC-022 · el tope del curl usa el umbral de R1 (sin número nuevo): con R1 en 11 no se activa; con un umbral artificialmente bajo el excedente pasa al curl del día de bisagra y la frecuencia de isquios no baja', () => {
+  const r = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession, prev = r.value;
+  const curlSets = pl => pl.training.sessions.map(s => s.exercises.filter(e => e.exerciseId === 'hamstrings.leg_curl').reduce((a, e) => a + e.sets, 0));
+  const squatIdx = pl => pl.training.sessions.findIndex(s => s.exercises.some(e => heavy022(e) === 'squat'));
+  // Con la aceptación explícita el tope de 25 no recorta, así que se ve el reparto inicial.
+  const casos = [];
+  [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => casos.push(Object.assign({}, p, { longSessionAcceptedOn: '2026-11-07', daysPerWeek: d }))));
+  const normal = casos.map(c => E.buildPlan(c, TODAY));
+  let movidos = 0, topados = 0;
+  try {
+    r.value = 4;
+    casos.forEach((c, i) => {
+      const pl = E.buildPlan(c, TODAY), sq = squatIdx(pl), n = normal[i];
+      assert.ok(hamDays(pl) >= hamDays(n), `caso ${i}: la frecuencia de isquios no baja`);
+      if (curlSets(n)[sq] > 4) {
+        topados++;
+        assert.ok(curlSets(pl)[sq] <= 4, `caso ${i}: el curl del día de sentadilla no pasa del umbral (${curlSets(pl)[sq]})`);
+        if (curlSets(pl).findIndex((x, k) => k !== sq && x > curlSets(n)[k]) >= 0) movidos++;
+      }
+    });
+  } finally { r.value = prev; }
+  assert.ok(topados >= 100 && movidos >= 5, `topados ${topados}, con excedente movido ${movidos}`);
+  // Con el umbral real (11) el tope no se activa: ningún curl pasa de 10 y el reparto es el de siempre.
+  SIM022.profiles.forEach(p => [3, 4, 5, 6].forEach(d => { const pl = E.buildPlan(Object.assign({}, p, { daysPerWeek: d }), TODAY); assert.ok(Math.max(...curlSets(pl)) <= 10); }));
 });
