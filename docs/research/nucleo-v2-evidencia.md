@@ -125,7 +125,7 @@ Fecha 2026-11-07. Investigación hecha por el subagente `investigador`; **solo l
 
 ## E. Cardio de 150 min por semana (bandera salud/funcional): OMS 2020
 
-**Qué se leyó.** Metadatos de PubMed (PMID 33239350); resumen (parafraseado por la herramienta); texto completo **parcial** del artículo en PMC (la tabla 4 de recomendaciones; unos 100 000 de 138 922 caracteres; el PMCID se recordó de memoria y no se verificó, aunque el contenido es el artículo de Bull); la página de la OMS solo dio metadatos (el PDF y la página de la revista respondieron 403). Del ACSM 2011 solo metadatos.
+**Qué se leyó.** Metadatos de PubMed (PMID 33239350); resumen (parafraseado por la herramienta); texto completo **parcial** del artículo en PMC (la tabla 4 de recomendaciones; unos 100 000 de 138 922 caracteres; es una copia alojada de terceros; no se cita aquí su identificador y no se verificó contra la versión de la revista); la página de la OMS solo dio metadatos (el PDF y la página de la revista respondieron 403). Del ACSM 2011 solo metadatos.
 
 **Fuente verificada.** Bull FC, Al-Ansari SS, Biddle S et al. *World Health Organization 2020 guidelines on physical activity and sedentary behaviour.* Br J Sports Med 2020;54(24):1451-1462. doi 10.1136/bjsports-2020-102955. PMID 33239350. Documento de la OMS: ISBN 9789240015128 (2020). La cita del repo (`WHO_PA`) coincide en título, año y URL del ISBN.
 
@@ -150,3 +150,5 @@ Fecha 2026-11-07. Investigación hecha por el subagente `investigador`; **solo l
 - **Cobertura mínima por tipo de sesión:** sigue siendo criterio de diseño E4.
 - **18/14/10, 0,85 y 1,25:** E4 (o eliminarlos). Retirar o corregir las etiquetas `SCHOENFELD_VOL` y `HELMS_TRAIN` que sugieren un respaldo inexistente.
 - **0,5 del conteo fraccionado:** decidir si se deja como "E2 con salvedad" o E4; usar la cita de 2026.
+
+**Nota (2026-11-07):** los hallazgos sobre `SCHOENFELD_VOL`, `HELMS_TRAIN` y el cardio de 150 min quedaron resueltos en `docs/specs/nucleo-v2.md`: los números 18/14/10, 0,85 y 1,25 entran al registro con nombres propios y fuente "criterio de diseño E4", y el cardio mínimo (`CARDIO_MINIMO_SALUD`) con fuente OMS 2020. El código actual no se toca hasta el corte.
