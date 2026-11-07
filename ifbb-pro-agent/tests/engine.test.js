@@ -2896,31 +2896,17 @@ test('DEC-022 · con el remo con barra elegido: entra, A3 lo separa de la sentad
   assert.ok(avisos > 0 && avisos < 360, `planes con aviso A2: ${avisos}`);
 });
 
-test('DEC-022 · el tope del curl usa el umbral de R1 (sin número nuevo): con R1 en 11 actúa sobre el reparto inicial; con un umbral artificialmente bajo el excedente pasa al curl del día de bisagra y la frecuencia de isquios no baja', () => {
-  const r = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession, prev = r.value;
-  const curlSets = pl => pl.training.sessions.map(s => s.exercises.filter(e => e.exerciseId === 'hamstrings.leg_curl').reduce((a, e) => a + e.sets, 0));
-  const squatIdx = pl => pl.training.sessions.findIndex(s => s.exercises.some(e => heavy022(e) === 'squat'));
-  // Con la aceptación explícita el tope de 25 no recorta, así que se ve el reparto inicial.
-  const casos = [];
-  [3, 4, 5, 6].forEach(d => SIM022.profiles.forEach(p => casos.push(Object.assign({}, p, { longSessionAcceptedOn: '2026-11-07', daysPerWeek: d }))));
-  const normal = casos.map(c => E.buildPlan(c, TODAY));
-  let movidos = 0, topados = 0;
-  try {
-    r.value = 4;
-    casos.forEach((c, i) => {
-      const pl = E.buildPlan(c, TODAY), sq = squatIdx(pl), n = normal[i];
-      assert.ok(hamDays(pl) >= hamDays(n), `caso ${i}: la frecuencia de isquios no baja`);
-      if (curlSets(n)[sq] > 4) {
-        topados++;
-        assert.ok(curlSets(pl)[sq] <= 4, `caso ${i}: el curl del día de sentadilla no pasa del umbral (${curlSets(pl)[sq]})`);
-        if (curlSets(pl).findIndex((x, k) => k !== sq && x > curlSets(n)[k]) >= 0) movidos++;
-      }
+test('DEC-022 · el curl del día de sentadilla no lleva tope: en los 360 planes el máximo es 10, bajo el umbral de R1 (11), y ningún aviso R1 es de isquios', () => {
+  const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
+  let maxCurl = 0, avisosIsquios = 0, maxFracIsquios = 0;
+  plans022().forEach(pl => {
+    pl.training.sessions.forEach(s => {
+      s.exercises.filter(e => e.exerciseId === 'hamstrings.leg_curl').forEach(e => { maxCurl = Math.max(maxCurl, e.sets); });
+      maxFracIsquios = Math.max(maxFracIsquios, s.fractionalSets.hamstrings || 0);
     });
-  } finally { r.value = prev; }
-  assert.ok(topados >= 100 && movidos >= 5, `topados ${topados}, con excedente movido ${movidos}`);
-  // Con el umbral real (11) el tope sí actúa sobre el reparto inicial (sin recorte del tope de 25, gracias a la aceptación): el curl nunca pasa de 11,
-  // y en el barrido hay planes donde lo bajó (12 → 11). Sin el tope (mutación) el máximo sería 12.
-  let maxInicial = 0;
-  casos.forEach((c, i) => { maxInicial = Math.max(maxInicial, ...curlSets(normal[i])); });
-  assert.equal(maxInicial, 11, 'el curl inicial no pasa del umbral real');
+    avisosIsquios += pl.training.warnings.filter(w => w.rule === 'R1' && w.muscle === 'hamstrings').length;
+  });
+  assert.equal(maxCurl, 10);
+  assert.ok(maxCurl < r1 && maxFracIsquios <= r1, `isquios por sesión: máximo ${maxFracIsquios} fraccionadas (umbral ${r1})`);
+  assert.equal(avisosIsquios, 0);
 });

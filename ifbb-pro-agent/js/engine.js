@@ -826,7 +826,6 @@
     const quadsLib = filterLibByInjuries(K.EXERCISES.quads, 'quads', injuryZones);
     const squatDay = K.VALIDATOR_RULES.hingeSquatSeparation.value && quadsLib.length && heavyKind(quadsLib[0].id, quadsLib[0].pattern) === 'squat'
       ? split.days.findIndex(d => d.muscles.includes('quads')) : -1;
-    let hamExcess = 0; // DEC-022: series de curl del día de sentadilla que pasan al curl del día de bisagra
     const remaining = Object.assign({}, weeklySets);
     const rotate = {};
     const rotateExtra = {}; // DEC-005
@@ -879,24 +878,6 @@
           const n = per + (rest-- > 0 ? 1 : 0);
           return makeEntry(ex, mu, n);
         });
-        // DEC-022 · tope por ejercicio con el umbral de R1 (sin número nuevo): un ejercicio no pasa de las series que caben, junto con lo que
-        // ya hay en el día, bajo el umbral de rendimiento decreciente de su músculo. Hoy solo puede pasar con el curl del día de sentadilla,
-        // que recibe todas las series de isquios; el excedente pasa al curl del día de bisagra (la frecuencia de isquios no baja).
-        if (mu === 'hamstrings' && squatDay >= 0) {
-          const r1 = K.VALIDATOR_RULES.maxFractionalSetsPerMuscleSession.value;
-          const room = e => {
-            const other = (fractionalByMuscle(exercises.concat(dayEntries.filter(x => x !== e))).hamstrings) || 0;
-            return Math.max(1, Math.floor((r1 - other + 1e-9) / (e.setWeights.hamstrings || 1)));
-          };
-          if (dayIdx === squatDay) {
-            dayEntries.filter(e => e.type === 'isolation').forEach(e => { const cap = room(e); if (e.sets > cap) { hamExcess += e.sets - cap; e.sets = cap; } });
-          } else if (hamExcess > 0) {
-            let curl = dayEntries.find(e => e.type === 'isolation');
-            if (!curl) { const alt = lib.find(x => x.type === 'isolation' && !exercises.some(e => (e.pattern || e.name) === basePattern(x))); if (alt) { curl = makeEntry(alt, mu, 0); dayEntries.push(curl); } }
-            if (curl) { const add = Math.min(hamExcess, Math.max(0, room(curl) - curl.sets)); curl.sets += add; hamExcess -= add; }
-            for (let k = dayEntries.length - 1; k >= 0; k--) if (dayEntries[k].sets <= 0) dayEntries.splice(k, 1);
-          }
-        }
         dayEntries.forEach(e => exercises.push(e));
         // DEC-005 (aclarado): con la bandera activa, el ejercicio funcional
         // se SUMA después de los principales; nunca reemplaza el patrón
