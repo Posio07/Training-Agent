@@ -718,10 +718,10 @@ Quedan en el backlog: separar las variantes que cambian el nivel lumbar (B-031) 
 
 ### Casos que Emanuel debe revisar: donde lo decidido y lo escrito en este DEC no coinciden del todo
 1. **`glutes.bulgarian_hip` lumbar = alta.** Las reglas 1, 2 y 5 llevan a alta (torso inclinado sin apoyo con carga), pero la tabla inicial de la spec da **media** a la sentadilla búlgara con mancuernas, y el motivo anterior de este DEC la dejaba en media. Es la celda que más pesa: con ella en media, A1 baja del 94 % al 25 % de los planes.
-2. **`chest.fly_cable_pecdeck` lumbar = baja.** La regla 3 nombra elevaciones laterales, curl, tríceps en polea y pullover, no las aperturas; las traté como el mismo caso (aislamiento ligero de pie). Por la regla 1 (variante más exigente: polea de pie) habría quedado en media.
-3. **`shoulders.rear_delt_facepull` lumbar = media.** La regla 1 lleva a los pájaros con el torso inclinado sin apoyo, pero la regla 3 pide carga relevante y la carga es ligera (con la regla 3 sería baja). Dejé media y no la cambié.
-4. **`abs.crunch_or_wheel` lumbar = media y hombro = media.** La regla 1 manda a la rueda abdominal, pero no tiene carga externa: la traté como la elevación de piernas colgado (media). El motivo anterior hablaba de lumbar y hombro **alta** para la rueda.
-5. **`shoulders.press_landmine_neutral` hombro = media.** El motivo anterior de este DEC se apoyaba en su función de sustituto del press ante lesión de hombro (DEC-011); esa razón queda **descartada** por tu regla 4. Hoy es media solo por su mecánica. Consecuencia para A7: queda disponible como sustituto porque no es alta, pero no por ser sustituto.
+2. **`chest.fly_cable_pecdeck` lumbar = baja.** La regla 3 nombra elevaciones laterales, curl, tríceps en polea y pullover, no las aperturas; el agente las trató como el mismo caso (aislamiento ligero de pie). Por la regla 1 (variante más exigente: polea de pie) o por la regla 5 (gana el nivel más alto) habría quedado en media.
+3. **`shoulders.rear_delt_facepull` lumbar = media.** La regla 1 lleva a los pájaros con el torso inclinado sin apoyo, pero la regla 3 pide carga relevante y la carga es ligera (con la regla 3 sería baja). Se dejó en media, sostenida por la regla 5 (gana el nivel más alto).
+4. **`abs.crunch_or_wheel` lumbar = media y hombro = media.** La regla 1 manda a la rueda abdominal, pero no tiene carga externa: se la trató como la elevación de piernas colgado (media). El motivo anterior hablaba de lumbar y hombro **alta** para la rueda.
+5. **`shoulders.press_landmine_neutral` hombro = media.** El motivo anterior de este DEC se apoyaba en su función de sustituto del press ante lesión de hombro (DEC-011); esa razón queda **descartada** por la regla 4 de Emanuel. Hoy es media solo por su mecánica. Consecuencia para A7: queda disponible como sustituto porque no es alta, pero no por ser sustituto.
 6. **Regla "primera variante nombrada o lectura literal".** El texto anterior de este DEC usaba esa regla de desempate. Queda **reemplazada** por las cinco reglas; los valores que seguían la regla vieja y contradicen las nuevas son los de los puntos 1 a 4 y los 9 cambios de arriba.
 7. **Fuente y nivel.** `squat_back_or_hack` lumbar y `row_barbell` lumbar tienen una fuente candidata, pero su nivel viene de una regla de desempate: quedan `a_verificar` y no pasan a `probable`.
 
@@ -737,7 +737,7 @@ Se extiende la etiqueta. Pasan a **`probable`** las celdas con fuente leída (re
 | A2 (más de un ejercicio de lumbar alta por sesión) | 360 de 360 (100 %) | 27,6 % |
 | A4 (más de dos ejercicios de hombro alta por sesión) | 256 de 360 (71,1 %) | 17,5 % |
 
-**Las tres superan el 30 %: ninguna se implementa** (como dijiste, el umbral estaría mal). Por qué:
+**Las tres superan el 30 %: ninguna se implementa** (según el criterio de Emanuel, el umbral estaría mal). Por qué:
 - **A2:** el generador pone siempre la sentadilla y el peso muerto rumano en el mismo día de pierna (el caso de la sesión del 5 nov de la spec lo prevé como advertencia). Con ese reparto, A2 se dispara en todos los planes, sea cual sea el resto de la tabla.
 - **A1:** lo impulsa sobre todo la búlgara con énfasis en cadera en alta (con la búlgara en media baja a 25 %). A1 pide además reordenar al generar, que no se hizo; como advertencia sobre el orden actual, mide el estado antes de reordenar.
 - **A4:** cinco ejercicios tienen hombro alta (banca, inclinado, fondos, press de hombro y fondos de tríceps) y un día de empuje los junta; el 71 % sale del reparto del generador, no de la tabla.
