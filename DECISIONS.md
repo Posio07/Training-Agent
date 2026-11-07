@@ -900,6 +900,7 @@ Contexto: DEC-014 definió R1 como un **aviso** de rendimiento decreciente (E3: 
 1. **R1 pasa a restricción del reparto:** ningún músculo supera **11 series fraccionadas por sesión** (directa 1, indirecta 0,5).
 2. **Si la necesidad semanal de un músculo no cabe sin superar ese límite, queda sin cubrir** y lo explica el aviso único del reparto (la misma pantalla de DEC-024).
 3. Se reemplaza solo la cláusula de DEC-014 que define R1 como "aviso, no un tope". El nivel de evidencia del umbral sigue siendo E3.
+4. **Pendiente de decidir al aceptar: precedencia.** Cuando el límite de R1 choca con una demanda mínima (el piso de DEC-017 o la garantía de series reales de los grupos mayores de DEC-014), ¿cuál gana? Propuesta del agente: **ganan las demandas mínimas**; si no caben bajo R1 ni en la capacidad, el aviso único lo explica.
 
 ### Riesgo de evidencia (a tener presente)
 Los propios autores del preprint dicen que 11 **no es un límite superior** ("not upper limits") y que el punto se fijó de forma arbitraria; los datos casi no llegan a volúmenes altos y la mayoría de los estudios entrenaban un solo músculo (`docs/research/fraccionado-pelland-remmert.md`). Convertirlo en restricción dura es **más firme que la fuente**: lo asume Emanuel como decisión de diseño.
