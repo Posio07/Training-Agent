@@ -2910,3 +2910,36 @@ test('DEC-022 · el curl del día de sentadilla no lleva tope: en los 360 planes
   assert.ok(maxCurl < r1 && maxFracIsquios <= r1, `isquios por sesión: máximo ${maxFracIsquios} fraccionadas (umbral ${r1})`);
   assert.equal(avisosIsquios, 0);
 });
+
+/* ---------- DEC-023 (Propuesto): exportación del historial completo para archivarlo fuera de la app ---------- */
+
+const EXP = require('../../scripts/exportar-historial.js');
+const expProfile = () => ({
+  id: 'a1', createdAt: '2026-11-01', updatedAt: '2026-11-05',
+  data: { name: 'Ana, "Bikini"', sex: 'F', weightKg: 60, daysPerWeek: 4, health: { injuries: [{ zone: 'knee' }] }, injuryZones: ['knee'], diabetesType: 'type2' },
+  log: [{ date: '2026-11-01', weightKg: 60, notes: 'Datos iniciales' }], painFlags: { shoulder_press_safe: { flagged: true } },
+  workouts: [{ setKey: 's1:0:0', sessionId: 's1', date: '2026-11-05', exercise: 'Press, banca', setType: 'normal', setNumber: 1, weight: 40, reps: 8, pain: 3 }],
+  sessions: [{ sessionId: 's1', date: '2026-11-05', status: 'completada', setsDone: 1 }],
+});
+
+test('DEC-023: la exportación del historial trae perfiles, medidas, sesiones y series, y NUNCA salud ni dolor (DEC-009)', () => {
+  const { historial, tables } = EXP.build([{ profiles: [expProfile()], activeId: 'a1' }, expProfile().data && expProfile()], new Date('2026-11-07T10:00:00Z'));
+  assert.equal(historial.perfiles.length, 2, 'acepta el volcado del almacenamiento y un perfil suelto');
+  const p = historial.perfiles[0];
+  assert.equal(p.workouts.length, 1); assert.equal(p.sessions.length, 1); assert.equal(p.log.length, 1);
+  assert.equal(p.workouts[0].exercise, 'Press, banca'); assert.equal(p.workouts[0].weight, 40);
+  const texto = JSON.stringify(historial) + Object.values(tables).join('');
+  EXP.PRIVATE_KEYS.forEach(k => assert.ok(!texto.includes(`"${k}"`) && !new RegExp(`(^|,)${k}(,|\\r)`).test(Object.values(tables).join('')), `${k} no sale`));
+  assert.ok(!/knee|type2/.test(texto), 'ningún valor de salud sale');
+  assert.deepEqual(Object.keys(tables).sort(), ['medidas.csv', 'perfiles.csv', 'series.csv', 'sesiones.csv']);
+});
+
+test('DEC-023: el CSV escapa comas y comillas, lleva BOM y una fila por serie; assertNoPrivate falla si se cuela un campo de salud', () => {
+  const { tables } = EXP.build([expProfile()]);
+  const lineas = tables['series.csv'].trim().split('\r\n');
+  assert.equal(lineas.length, 2);
+  assert.ok(tables['series.csv'].startsWith('﻿'));
+  assert.match(lineas[1], /"Ana, ""Bikini""".*"Press, banca"/);
+  assert.throws(() => EXP.assertNoPrivate({ perfiles: [{ workouts: [{ pain: 3 }] }] }), /DEC-009/);
+  assert.throws(() => EXP.assertNoPrivate({ data: { health: {} } }), /DEC-009/);
+});
