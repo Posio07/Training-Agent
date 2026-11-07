@@ -839,7 +839,7 @@ A4 (solo con dolor de hombro de A6, que no existe todavía), A5, A6 y A7; el rep
 ## DEC-023 · Año de prueba: sin retrocompatibilidad de datos, exportación antes de cada reset y código muerto fuera en el mismo PR
 **Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (arquitectura y alcance: lo decide solo Emanuel). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte.
 
-Contexto: la app la usan 2 personas y se prueba durante un año antes de una posible versión pública. Emanuel cambió de estrategia: se reconstruye el núcleo del generador con filosofía "clean core" (no se parchea el motor actual). Hoy el motor y el almacenamiento arrastran compatibilidad con formatos anteriores (por ejemplo `migrateLongSessionAcceptance`, el campo legado `longSessionAcceptedOn` y las filas de series anteriores a DEC-015 sin `setKey`) y parches que corrigen efectos de otros pasos. Esa compatibilidad no sirve a nadie mientras los datos del año de prueba se puedan borrar.
+Contexto: la app la usan 2 personas y se prueba durante un año antes de una posible versión pública. Emanuel cambió de estrategia: se reconstruye el núcleo del generador con filosofía "clean core" (no se parchea el motor actual). Hoy el motor y el almacenamiento arrastran compatibilidad con formatos anteriores (por ejemplo `migrateLongSessionAcceptance`, el campo legado `longSessionAcceptedOn` y las filas de series anteriores a DEC-015 sin `setKey`) y parches que corrigen efectos de otros pasos. Esa compatibilidad no sirve a nadie mientras los datos del año de prueba se puedan borrar. Hoy esos caminos siguen en uso (se llaman al cargar y al importar).
 
 ### Decisión (propuesta)
 1. **Durante el año de prueba, la retrocompatibilidad de datos no es requisito.** El formato del almacenamiento y del plan puede cambiar sin migración. El año de prueba dura hasta que Emanuel lo cierre por escrito (DEC o `docs/VISION.md`).
@@ -848,12 +848,12 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 
 ### Qué no cambia
 - **DEC-009 (privacidad)**: los datos de salud y el dolor por serie siguen sin salir del dispositivo ni entrar a ningún export, tampoco al archivo de esta decisión.
-- **Los DEC aceptados siguen vigentes**: eliminar el código que una decisión deja muerto no cambia ni revierte un DEC aceptado (eso sigue siendo nivel 3). Su estado no se edita.
+- **Los DEC aceptados no se editan ni se revierten por esta decisión**, pero **tres cláusulas de DEC aceptados quedarían sin efecto si Emanuel acepta DEC-023** (nivel 3: él decide al aceptar): DEC-016 (migrar `longSessionAcceptedOn` al formato acotado), DEC-015 (mostrar y editar las filas anteriores sin `setKey`) y DEC-018 (importar archivos exportados antes sin migrar). Hoy esos caminos siguen llamándose (al cargar en `app.js` y al importar en `engine.js`); eliminarlos exige que DEC-023 los reemplace de forma explícita. Su estado no se edita.
 - El registro de entrenamiento sigue funcionando sin conexión; el server no es una dependencia.
 - Las reglas de evidencia (E1 a E4, fuente y estado) y las pruebas de mutación siguen igual.
 
 ### Alternativas
-- **A. Mantener la retrocompatibilidad (estado actual).** Costo: cada cambio de formato exige una migración y un test que la cubra; el código muerto se acumula (ya hay migraciones y campos legados sin uso real). Beneficio: ningún dato se pierde sin pedirlo.
+- **A. Mantener la retrocompatibilidad (estado actual).** Costo: cada cambio de formato exige una migración y un test que la cubra; el código legado se acumula (ya hay migraciones y campos legados que solo existen para datos viejos). Beneficio: ningún dato se pierde sin pedirlo.
 - **B. Recomendada: sin retrocompatibilidad durante el año de prueba, con exportación obligatoria antes de cada reset.** Costo: un reset obliga a perder el estado vivo de la app (el historial queda archivado fuera, no se reimporta salvo que se escriba un importador a propósito). Beneficio: el núcleo nuevo no carga con formatos viejos y el historial no se pierde.
 - **C. Sin retrocompatibilidad y sin exportación.** Descartada: el historial de entrenamiento es el único dato que no se puede regenerar.
 

@@ -8,6 +8,7 @@
  *  - el volcado del almacenamiento de la app: en la consola del navegador, con la app abierta, `copy(localStorage.getItem('ifbb-agent:v1'))`
  *    y se pega en un archivo (objeto con `profiles`);
  *  - la exportación de un perfil que hace la app (botón Exportar), o una lista de perfiles.
+ * No archiva la sesión en curso (`ifbb-agent:session:v1`): termina o descarta la sesión antes de exportar.
  * Salida (por defecto `./historial-<fecha>/`): historial.json, perfiles.csv, medidas.csv, sesiones.csv y series.csv.
  *
  * PRIVACIDAD (DEC-009): igual que la exportación de la app, los datos de salud y el dolor por serie NO entran. Se quitan con
@@ -78,7 +79,9 @@ function main(argv) {
   for (let i = 0; i < argv.length; i++) { if (argv[i] === '--salida') out = argv[++i]; else files.push(argv[i]); }
   if (!files.length) { console.error('Uso: node scripts/exportar-historial.js <entrada.json> [<otra.json> ...] [--salida <carpeta>]'); return 2; }
   const inputs = files.map(f => JSON.parse(fs.readFileSync(f, 'utf8')));
-  const { historial, tables } = build(inputs);
+  let built;
+  try { built = build(inputs); } catch (e) { console.error(`No se exportó nada: ${e.message}`); return 1; }
+  const { historial, tables } = built;
   if (!historial.perfiles.length) { console.error('Ninguna entrada trae perfiles con datos (data.name).'); return 1; }
   const dir = out || path.join(process.cwd(), `historial-${historial.exportadoEn.slice(0, 10)}`);
   fs.mkdirSync(dir, { recursive: true });

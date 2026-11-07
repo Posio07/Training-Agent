@@ -41,7 +41,7 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 3. **Toda regla numérica lleva nivel de evidencia (E1 a E4), fuente y estado** (`implementada` o `pendiente`) en `VALIDATOR_RULES`. Un test comprueba el estado contra el uso real.
 4. **La evidencia solo mueve relaciones entre categorías** (ninguna ↔ indirecta ↔ directa), como máximo un paso por estudio. Nunca pesos a medida por ejercicio.
 5. **Privacidad según DEC-009.** Los datos de salud y el dolor por serie no salen del dispositivo ni entran al export.
-6. **El registro funciona sin conexión; el server nunca es una dependencia.** Durante el año de prueba no se escriben migraciones de datos (ver abajo); sí se exporta antes de resetear.
+6. **El registro funciona sin conexión; el server nunca es una dependencia.** Cuando DEC-023 esté Aceptado: durante el año de prueba no se escriben migraciones de datos (ver abajo); sí se exporta antes de resetear.
 7. **Los tests deben fallar si se rompe la regla.** Verifícalo con una prueba de mutación; no actualices un baseline para "poner en verde" sin entender por qué cambió.
 8. **BACKLOG:** al abrir una tarea, ponla `en curso`; al entregarla, anota el PR y que queda pendiente de cierre. El agente agrega ítems solo como `propuesto`, y no reordena ni cierra ítems de Emanuel.
 9. **No toques** `docs/VISION.md` ni el estado de un DEC `Aceptado`; no edites a mano `js/exerciseMuscles.js`.

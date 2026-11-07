@@ -5,7 +5,7 @@ Fecha 2026-11-07, sobre `main` tras el PR #32 (DEC-022). **Solo lectura: ningún
 ## Qué se leyó y cómo se comprobó
 - `ifbb-pro-agent/js/engine.js` completo en los tramos del generador (`buildPlan`, `computeTraining` y todas sus funciones auxiliares), `knowledge.js` (catálogo, `VALIDATOR_RULES`, perfil articular), y de `app.js` y `sessionStore.js` solo lo que toca al plan.
 - `DECISIONS.md` (DEC-001 a DEC-023), `docs/specs/validador.md` y `docs/specs/validador-fase3.md` como referencia de nivel de evidencia.
-- Los 170 tests de `engine.test.js` (se numeran por su posición en el archivo hoy), los 30 de `regression.test.js`, los 4 E2E y los 4 archivos de `tests/fixtures/`.
+- Los 170 tests de `engine.test.js` (se numeran por su posición en el archivo hoy), los 3 de `regression.test.js`, los 4 E2E y los 4 archivos de `tests/fixtures/`.
 - "Sin uso" se comprobó buscando cada nombre en `js/`, `tests/` y `scripts/`; los números salen de ejecutar el generador (barrido de 360 planes: 90 perfiles × 3, 4, 5 y 6 días). Lo que **no** se auditó línea a línea: nutrición y cálculo de metas (se resume abajo) y la interfaz.
 
 ## 0. Resumen
@@ -13,7 +13,7 @@ Fecha 2026-11-07, sobre `main` tras el PR #32 (DEC-022). **Solo lectura: ningún
 2. **108 de 1620 sesiones** del barrido pasan de 25 series sin aceptación, y 467 avisos informan sesiones con más de 11 series fraccionadas de un músculo: salen del reparto, no del tope.
 3. Hay **números fijos dentro del código sin entrada en `VALIDATOR_RULES`** (volumen base 18/14/10, factores ×0,85, ×1,25, ×0,5, ×0,6, tope 20, top set 4–6 repeticiones, descansos 150/75 s, cardio, progresión, descarga). Incumplen la regla 3 de CLAUDE.md (sección 4).
 4. **Código muerto o sin uso:** 5 reglas `pendiente` que ningún código lee, una constante sin ningún uso, 7 exportaciones que nadie llama, y todo el camino de retrocompatibilidad de la aceptación de sesiones largas (sección 5).
-5. De los 170 tests de `engine.test.js`: **121 se conservan tal cual** (comportamiento), **25 se conservan en intención** y se reescriben contra la API nueva, y **24 se descartan** (congelan la salida actual, prueban estructura interna o retrocompatibilidad). Los 30 de `regression.test.js` y los 4 archivos de fixtures se descartan junto con el motor (sección 6).
+5. De los 170 tests de `engine.test.js`: **120 se conservan tal cual** (comportamiento), **26 se conservan en intención** y se reescriben contra la API nueva, y **24 se descartan** (congelan la salida actual, prueban estructura interna o retrocompatibilidad). Los 3 de `regression.test.js` y los 4 archivos de fixtures se descartan junto con el motor (sección 6); las 30 huellas son el test 95.
 6. El día de tirón con press militar y la versión corta de 1 o 0 ejercicios tienen causa en el diseño actual (rotación del catálogo sin noción de función del día; la versión corta vive en la interfaz): ver `docs/research/diagnostico-rutina-corta-y-dia-de-tiron.md`.
 
 ## 1. Cadena completa de `buildPlan` (orden de ejecución)
@@ -44,8 +44,8 @@ Nutrición, metas y salud solo se resumen aquí: no se auditaron línea a línea
 | T5b | A3 (en el mismo bucle) | El primer día de cuádriceps lleva la sentadilla pesada; ese día el peso muerto rumano se cambia por el curl y la rotación de isquios se "reinicia" para que la bisagra caiga el otro día; cualquier ejercicio que juntaría sentadilla y bisagra se cambia | 022 | E4 | estricta | 162, 164, 165, 167 |
 | T5c | Remo por defecto / opcional | La rotación de espalda usa el remo con apoyo de pecho; el remo con barra solo con la casilla del perfil | 022 | E4 | estricta | 166, 167 |
 | T6 | Grupos chicos | Abdomen, pantorrillas, bíceps, tríceps se reparten **después** en los días compatibles con **menos series acumuladas** (hasta 2 días; abdomen y pantorrillas prefieren no-pierna) | 003 v2 | E4 | estricta | 21 |
+| T7a (corre antes de T7) | `resolveAcceptance` | La aceptación del usuario vale para la firma del plan (días, división, objetivo, rezagados, nivel) y hasta un máximo de series; incluye el formato viejo `longSessionAcceptedOn` | 014, 016 | E4 | estricta | 116–118, 120 |
 | T7 | `enforceSessionCap` | Tope de 25 series por sesión: recorta **solo aislamientos** de la sesión más pasada, de 1 en 1 (de 2 en 2 bajo 2 series), grupos chicos primero, sin bajar a los mayores de su piso (fraccionado ni real); no recorta multiarticulares; con aceptación explícita no recorta | 003 v2, 014, 016 | E4 (`sessionSetCap`) | estricta + avisos | 22, 87, 88, 92, 116–118, 129 |
-| T7a | `resolveAcceptance` | La aceptación del usuario vale para la firma del plan (días, división, objetivo, rezagados, nivel) y hasta un máximo de series; incluye el formato viejo `longSessionAcceptedOn` | 014, 016 | E4 | estricta | 116–118, 120 |
 | T8 | Recalcular series semanales | Tras recortar, vuelve a sumar las series reales de los grupos recortados | 014 | n/a | bookkeeping | no se encontró un test propio |
 | T9 | `completeToFloor` | Si un grupo **mayor** quedó bajo su piso, agrega series en sesiones con espacio bajo el tope (primero series extra de lo que ya está, si no un ejercicio nuevo de 2 series); no pasa del tope ni de R1 | 017 | E1 (piso) | estricta | 123–132 |
 | T10 | `ensureGroupMinimum` | Si un grupo **chico** quedó bajo 5 series fraccionadas, agrega series en una sesión compatible (si no hay espacio, le saca series de aislamiento al grupo con más volumen de **esa misma sesión**, sin bajar a nadie de su piso, sin quitar un multiarticular ni el último ejercicio directo de un grupo); avisa si no cabe | 020 | E4 (`groupMinimumWeeklySets`) | estricta + avisos | 139–153 |
@@ -104,10 +104,10 @@ Valores que **sí** tienen entrada en `VALIDATOR_RULES`: 11 (R1), 1, 0,5 y 0 (co
 
 **Sin ninguna referencia fuera de su definición:** `DEFAULT_BAR_WEIGHT` en `knowledge.js` (la interfaz no la usa), `VERSION` e `isValid` exportados de `sessionStore.js` (`isValid` solo se usa dentro del módulo).
 
-**Exportaciones de `engine.js` que nadie llama (ni la app ni los tests):** `classicLimit`, `computeMetrics`, `computeTargets`, `computeNutrition`, `computeTraining`, `planSignature`, `LB_PER_KG`. **Exportadas solo para los tests** (detalles internos): `bodyFatNavy`, `ffmi`, `fractionalByMuscle`, `enforceSessionCap`, `completeToFloor`, `ensureGroupMinimum`, `diminishingReturnsWarnings`, `carryOverInjuryClearances`, `SPLITS`, y de `knowledge.js` `JOINT_LEVELS`, `NO_MUSCLE_CONTRIBUTION`, `EXERCISE_ID_BY_NAME`.
+**Exportaciones de `engine.js` que nadie llama (ni la app ni los tests; se usan dentro de `engine.js`, solo sobra exportarlas):** `classicLimit`, `computeMetrics`, `computeTargets`, `computeNutrition`, `computeTraining`, `planSignature`, `LB_PER_KG`. **Exportadas solo para los tests** (detalles internos): `bodyFatNavy`, `ffmi`, `fractionalByMuscle`, `enforceSessionCap`, `completeToFloor`, `ensureGroupMinimum`, `diminishingReturnsWarnings`, `carryOverInjuryClearances`, `SPLITS`, y de `knowledge.js` `JOINT_LEVELS`, `NO_MUSCLE_CONTRIBUTION`, `EXERCISE_ID_BY_NAME`.
 
 **Retrocompatibilidad que DEC-023 deja sin razón de ser:**
-- Aceptación de sesiones más largas en el formato anterior: el campo `longSessionAcceptedOn`, la rama `legacy` de `resolveAcceptance`, `migrateLongSessionAcceptance` (llamada al cargar en `app.js` y al importar), la bandera `legacy` en `sessionLimit.acceptance`. Test 119 (migración).
+- Aceptación de sesiones más largas en el formato anterior (**tocaría cláusulas de DEC-016, DEC-015 y DEC-018, que DEC-023 debe reemplazar de forma explícita**): el campo `longSessionAcceptedOn`, la rama `legacy` de `resolveAcceptance`, `migrateLongSessionAcceptance` (llamada al cargar en `app.js` y al importar), la bandera `legacy` en `sessionLimit.acceptance`. Tests que usan `longSessionAcceptedOn` o `migrateLongSessionAcceptance` (posición en `engine.test.js`): 22, 46, 87–91, 111, 114, 115, 119 y 132, más `regression.test.js` y `e2e-aceptacion.js`; incluye tests clasificados A que habrá que reescribir con el formato nuevo de aceptación.
 - Series registradas antes de DEC-015 sin `setKey`: el identificador `legacy:` en `sessionStore.js` y el camino de edición y borrado de esas filas (test 106).
 - Importar archivos exportados antes (sin `workouts` ni `sessions`): test 137.
 - Datos de `DEC-010`: línea base `plan-identity-baseline.json` y el detector de diferencias que la lee (tests 45 y 46).
@@ -119,20 +119,20 @@ Valores que **sí** tienen entrada en `VALIDATOR_RULES`: 11 (R1), 1, 0,5 y 0 (co
 ## 6. Tests: cuáles se conservan y cuáles se descartan
 Criterio: **A** = comportamiento observable (se conserva tal cual); **B** = intención válida que hoy se prueba llamando funciones internas o contra una línea base (se conserva la intención y se reescribe contra la API nueva); **C** = congela la salida actual, prueba estructura interna o retrocompatibilidad (se descarta con el motor actual). Los números son la posición en `engine.test.js`.
 
-**Resultado: 170 tests = 121 A + 25 B + 24 C.** Además: `regression.test.js` (30 tests de huellas, todos C) y los fixtures `plan-hashes.json`, `plan-identity-baseline.json`, `dec016-referencia.json`, `dec017-referencia.json` (todos C).
+**Resultado: 170 tests = 120 A + 26 B + 24 C.** Además: `regression.test.js` (3 tests que fijan series semanales y nutrición de 3 perfiles contra una línea base vieja, todos C) y los fixtures `plan-hashes.json`, `plan-identity-baseline.json`, `dec016-referencia.json`, `dec017-referencia.json` (todos C).
 
-### A · se conservan (121)
+### A · se conservan (120)
 - **Fórmulas y plan de nutrición (1–9, 12, 138)** — 11 tests
 - **Entrenamiento: volumen, rezagados, top set, cardio, duración, patrones (10, 11, 13–22, 24–27, 30–34, 48, 69)** — 23 tests
 - **Salud, lesiones, dolor y privacidad (35–38, 49–51, 53–66, 70, 71, 134–136)** — 26 tests
-- **Datos de ejercicio-músculo y perfil articular (43, 44, 73–82, 84, 154–159, 161)** — 19 tests
-- **Registro de sesión, DEC-015 (96–109)** — 14 tests (no son del generador, pero sí del núcleo de la app)
+- **Datos de ejercicio-músculo y perfil articular (43, 44, 73–74, 76–82, 84, 154–159, 161)** — 19 tests
+- **Registro de sesión, DEC-015 (96–105, 107–109)** — 13 tests (no son del generador, pero sí del núcleo de la app)
 - **Tope, piso y mínimo (87, 88, 93, 110, 114–118, 123, 126, 129, 132, 133, 139–144, 151, 152)** — 22 tests
 - **Fase 3 (164–167) y exportación del historial (169, 170)** — 6 tests
 
 Los A de entrenamiento y de tope, piso y mínimo prueban **invariantes** (ningún grupo bajo su mínimo, ninguna sesión sobre el tope sin aceptación, sin patrones repetidos, etc.) sobre barridos de perfiles: son los que la spec nueva debe seguir cumpliendo o decidir cambiar de forma explícita. Si la spec cambia una regla (por ejemplo el tope por duración, B-038), el test se reemplaza junto con su DEC.
 
-### B · conservar la intención, reescribir (25)
+### B · conservar la intención, reescribir (26)
 | # | Test | Qué intención conservar |
 | --- | --- | --- |
 | 40 | DEC-010: cada entrada del catálogo tiene id único y una fila en la tabla de aporte (y no sobran filas) | tabla de aporte: integridad (formato interno K.EXERCISE_CONTRIBUTION) |
@@ -150,6 +150,7 @@ Los A de entrenamiento y de tope, piso y mínimo prueban **invariantes** (ningú
 | 90 | DEC-014 · acceptance hip thrust: pasar a "ninguna" no hace que el generador agregue isquios por encima de | conteo del hip thrust |
 | 91 | DEC-014: R1 es un aviso de rendimiento decreciente (E3, Remmert et al., preprint), no un tope: no recorta | R1 (diminishingReturnsWarnings) |
 | 92 | DEC-014: enforceSessionCap — recorta aislamientos de grupos chicos primero, nunca multiarticulares, y res | enforceSessionCap (unidad) |
+| 106 | DEC-015: editar y borrar en el historial (sesiones completadas y registros viejos sin setKey) | conservar editar y borrar de sesiones completadas; la parte de filas sin `setKey` es retrocompatibilidad y se descarta |
 | 111 | DEC-016 (1): el pecho cuenta el press inclinado en un plan real | conteo en un plan real con línea base |
 | 120 | DEC-016 (2): normalizeProfile valida la aceptación acotada | normalizeProfile de la aceptación |
 | 121 | DEC-016: cada regla de VALIDATOR_RULES lleva un estado, y R3 y la frecuencia mínima de R2 están pendiente | estados de VALIDATOR_RULES contra el código fuente |
