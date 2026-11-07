@@ -710,49 +710,48 @@ Contexto: `docs/specs/validador-fase3.md` (aprobada por Emanuel el 2026-11-07; P
 3. Los empates y casos no cubiertos se resolvieron con las cinco reglas de desempate de Emanuel (más abajo). Resultado: lumbar alta en 4 ejercicios (sentadilla trasera, peso muerto rumano, remo con barra, búlgara con énfasis en cadera); hombro alta en 5; rodilla alta en 6.
 
 ### Ejercicios ambiguos: resueltos por Emanuel (2026-11-07)
-Los 21 ejercicios ambiguos (27 celdas) se resolvieron con reglas de desempate, que pasaron a la sección de criterio de la spec (`docs/specs/validador-fase3.md`, E4). El CSV ya no tiene celdas `ambiguo: si`; cada celda resuelta lleva en `notes` la regla aplicada. Las reglas: (1) variantes mezcladas: la más exigente; (2) bisagra con carga incluye torso inclinado sin apoyo con carga, y la carga axial sin bisagra ni flexión profunda es lumbar media; (3) lumbar media exige carga relevante, los aislamientos ligeros de pie son lumbar baja; (4) hombro por mecanismo, y nunca se clasifica un ejercicio para conservar su función de sustituto; (5) si dos reglas chocan, gana el nivel más alto.
+Los 21 ejercicios ambiguos (27 celdas) se resolvieron con reglas de desempate, que pasaron a la sección de criterio de la spec (`docs/specs/validador-fase3.md`, E4). El CSV ya no tiene celdas `ambiguo: si`; cada celda resuelta lleva en `notes` la regla aplicada. Las reglas: (1) variantes mezcladas: la más exigente; (2) bisagra con carga incluye la **bisagra sostenida** (torso inclinado más de 45° con carga externa), y la carga axial sin bisagra ni flexión profunda es lumbar media; (3) lumbar media exige carga relevante, los aislamientos ligeros de pie son lumbar baja; (4) hombro por mecanismo, y nunca se clasifica un ejercicio para conservar su función de sustituto; (5) si dos reglas chocan, gana el nivel más alto, **solo en conflictos reales entre reglas**: una regla específica (1 a 4) gana sobre la lectura literal del criterio.
 
-Celdas que **cambiaron** respecto del valor provisional (9): `chest.fly_cable_pecdeck` lumbar media→baja; `back.pullover_cable` lumbar media→baja; `biceps.curl_barbell` lumbar media→baja; `triceps.pushdown_cable` lumbar media→baja; `biceps.curl_incline` hombro baja→media; `glutes.kickback_cable` lumbar media→baja y rodilla media→baja; `abs.crunch_or_wheel` hombro baja→media; `glutes.bulgarian_hip` lumbar media→**alta**. El resto de las 27 celdas conserva su valor.
+Celdas que **cambiaron** respecto del valor provisional (8): `chest.fly_cable_pecdeck` lumbar media→baja (motivo: tronco apoyado); `back.pullover_cable` lumbar media→baja; `biceps.curl_barbell` lumbar media→baja; `triceps.pushdown_cable` lumbar media→baja; `biceps.curl_incline` hombro baja→media; `glutes.kickback_cable` lumbar media→baja y rodilla media→baja; `abs.crunch_or_wheel` hombro baja→media. Además, `shoulders.rear_delt_facepull` lumbar quedó en **baja** (la regla 3 gana sobre la lectura literal) y `glutes.bulgarian_hip` lumbar en **media** (no llega a bisagra sostenida), como indica la tabla de la spec. El resto de las 27 celdas conserva su valor.
 
-Quedan en el backlog: separar las variantes que cambian el nivel lumbar (B-031) y la prensa de piernas (lumbar baja hasta leer el texto completo, B-032).
+**Celdas decididas por la regla 5, revisadas tras acotarla a conflictos reales:** `glutes.hip_thrust` lumbar sigue en media (conflicto real entre carga en la cadera y tronco apoyado); `functional.step_up` rodilla sigue en alta, pero la regla 5 no la cubre (es la altura del cajón, no un conflicto entre reglas): el nivel lo fijó Emanuel de forma explícita; `glutes.bulgarian_hip` lumbar pasó de alta a media (por mecánica, regla 2); `shoulders.rear_delt_facepull` lumbar pasó de media a baja (regla 3).
+
+Quedan en el backlog: separar las variantes que cambian el nivel lumbar (B-031), la prensa de piernas (lumbar baja hasta leer el texto completo, B-032) y cómo clasificar ejercicios con peso corporal y palanca larga (rueda abdominal, B-033).
 
 ### Casos que Emanuel debe revisar: donde lo decidido y lo escrito en este DEC no coinciden del todo
-1. **`glutes.bulgarian_hip` lumbar = alta.** Las reglas 1, 2 y 5 llevan a alta (torso inclinado sin apoyo con carga), pero la tabla inicial de la spec da **media** a la sentadilla búlgara con mancuernas, y el motivo anterior de este DEC la dejaba en media. Es la celda que más pesa: con ella en media, A1 baja del 94 % al 25 % de los planes.
-2. **`chest.fly_cable_pecdeck` lumbar = baja.** La regla 3 nombra elevaciones laterales, curl, tríceps en polea y pullover, no las aperturas; el agente las trató como el mismo caso (aislamiento ligero de pie). Por la regla 1 (variante más exigente: polea de pie) o por la regla 5 (gana el nivel más alto) habría quedado en media.
-3. **`shoulders.rear_delt_facepull` lumbar = media.** La regla 1 lleva a los pájaros con el torso inclinado sin apoyo, pero la regla 3 pide carga relevante y la carga es ligera (con la regla 3 sería baja). Se dejó en media, sostenida por la regla 5 (gana el nivel más alto).
-4. **`abs.crunch_or_wheel` lumbar = media y hombro = media.** La regla 1 manda a la rueda abdominal, pero no tiene carga externa: se la trató como la elevación de piernas colgado (media). El motivo anterior hablaba de lumbar y hombro **alta** para la rueda.
-5. **`shoulders.press_landmine_neutral` hombro = media.** El motivo anterior de este DEC se apoyaba en su función de sustituto del press ante lesión de hombro (DEC-011); esa razón queda **descartada** por la regla 4 de Emanuel. Hoy es media solo por su mecánica. Consecuencia para A7: queda disponible como sustituto porque no es alta, pero no por ser sustituto.
-6. **Regla "primera variante nombrada o lectura literal".** El texto anterior de este DEC usaba esa regla de desempate. Queda **reemplazada** por las cinco reglas; los valores que seguían la regla vieja y contradicen las nuevas son los de los puntos 1 a 4 y los 9 cambios de arriba.
-7. **Fuente y nivel.** `squat_back_or_hack` lumbar y `row_barbell` lumbar tienen una fuente candidata, pero su nivel viene de una regla de desempate: quedan `a_verificar` y no pasan a `probable`.
+1. **`chest.fly_cable_pecdeck` lumbar = baja por tronco apoyado.** Es el motivo que fijó Emanuel; queda en tensión con la regla 1 (variante más exigente), que apuntaría a la polea de pie (media).
+2. **`abs.crunch_or_wheel` lumbar y hombro = media.** La regla 1 manda a la rueda abdominal; no tiene carga externa y se la trató como la elevación de piernas colgado. Queda en media y abierta como B-033.
+3. **`shoulders.press_landmine_neutral` hombro = media.** El motivo anterior de este DEC se apoyaba en su función de sustituto del press ante lesión de hombro (DEC-011); esa razón queda **descartada** por la regla 4. Hoy es media solo por su mecánica. Consecuencia para A7: queda disponible como sustituto porque no es alta, pero no por ser sustituto.
+4. **Regla "primera variante nombrada o lectura literal".** El texto anterior de este DEC usaba esa regla de desempate. Queda **reemplazada** por las cinco reglas.
+5. **Fuente y nivel.** `squat_back_or_hack` lumbar y `row_barbell` lumbar tienen una fuente candidata, pero su nivel viene de una regla de desempate: quedan `a_verificar` y no pasan a `probable`.
 
 ### `probable` en las articulaciones (decisión de Emanuel, 2026-11-07)
 Se extiende la etiqueta. Pasan a **`probable`** las celdas con fuente leída (resumen) que respalda su nivel y que no salieron de un desempate: `chest.bench_press_barbell` hombro, `back.vertical_pull` hombro, `quads.squat_back_or_hack` rodilla, `quads.leg_extension` rodilla y `hamstrings.rdl` lumbar (5 celdas). Siguen `a_verificar` las otras 5 celdas con fuente: `press_overhead` hombro (confirmación indirecta), `quads.leg_press` rodilla (la fuente advierte que la etiqueta pierde la diferencia con la sentadilla), `functional.bulgarian_db` rodilla (la fuente sugiere media), y las dos de arriba cuyo nivel salió de un desempate. `verificado` sigue sin usarse.
 
 ### Simulación de A1, A2 y A4 (sin aplicarlas)
-`node scripts/simular-reglas-articulares.js`, tabla vigente, barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días), con el orden actual del generador:
+`node scripts/simular-reglas-articulares.js`, tabla vigente, barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días), con el orden actual del generador. **La simulación midió planes sin A1 ni A3 aplicados.**
 
 | Regla | Planes en que se dispara | Sesiones |
 | --- | --- | --- |
-| A1 (lumbar alta después de dos o más de lumbar media o alta) | 339 de 360 (94,2 %) | 28,4 % |
-| A2 (más de un ejercicio de lumbar alta por sesión) | 360 de 360 (100 %) | 27,6 % |
+| A1 (lumbar alta después de dos o más de lumbar media o alta) | 90 de 360 (25,0 %) | 7,6 % |
+| A2 (más de un ejercicio de lumbar alta por sesión) | 360 de 360 (100 %) | 24,3 % |
 | A4 (más de dos ejercicios de hombro alta por sesión) | 256 de 360 (71,1 %) | 17,5 % |
 
-**Las tres superan el 30 %: ninguna se implementa** (según el criterio de Emanuel, el umbral estaría mal). Por qué:
-- **A2:** el generador pone siempre la sentadilla y el peso muerto rumano en el mismo día de pierna (el caso de la sesión del 5 nov de la spec lo prevé como advertencia). Con ese reparto, A2 se dispara en todos los planes, sea cual sea el resto de la tabla.
-- **A1:** lo impulsa sobre todo la búlgara con énfasis en cadera en alta (con la búlgara en media baja a 25 %). A1 pide además reordenar al generar, que no se hizo; como advertencia sobre el orden actual, mide el estado antes de reordenar.
-- **A4:** cinco ejercicios tienen hombro alta (banca, inclinado, fondos, press de hombro y fondos de tríceps) y un día de empuje los junta; el 71 % sale del reparto del generador, no de la tabla.
+(Con la búlgara en lumbar alta, antes de la decisión de Emanuel, A1 saltaba en el 94 % de los planes.)
 
-Antes de implementar, hay que decidir qué cambia: el reparto del generador (A3 ya prevé separar sentadilla y bisagra), el tope (más de uno, más de dos) o los niveles.
+- **A2** saltaba en el 100 % porque el generador junta sentadilla y peso muerto rumano en el mismo día de pierna. Se vuelve a medir con A1 y A3 implementados (DEC-022).
+- **A4** deja de ser una advertencia general: solo se activa si A6 registró dolor de hombro. La versión anterior saltaba en el 71 % de los planes y no tenía fuente. No se implementa en este paso.
+- **A1** y **A3** se implementan como restricciones del generador en el Paso 2 (DEC-022, rama aparte).
 
 ### Pruebas
-- Unitarias en `engine.test.js`: catálogo completo (35 × 3) con niveles válidos; el parser rechaza datos inválidos y exige perfil completo; módulo igual al CSV; la tabla de la spec se transcribe tal cual (un test lee la spec) y las variantes unidas se clasifican por la más exigente; `probable` solo con fuente y exactamente en las 5 celdas decididas; ninguna celda queda ambigua y las 27 resueltas llevan su regla en la nota; las nueve celdas que cambiaron valen lo decidido; la spec contiene las reglas de desempate; el plan no cambia y un ejercicio sin perfil avisa.
+- Unitarias en `engine.test.js`: catálogo completo (35 × 3) con niveles válidos; el parser rechaza datos inválidos y exige perfil completo; módulo igual al CSV; la tabla de la spec se transcribe tal cual (un test lee la spec) y las variantes unidas se clasifican por la más exigente; `probable` solo con fuente y exactamente en las 5 celdas decididas; ninguna celda queda ambigua y las 27 resueltas llevan su regla en la nota; las celdas que cambiaron valen lo decidido; la spec contiene las reglas de desempate; el plan no cambia y un ejercicio sin perfil avisa.
 - **Prueba de que el plan no cambia:** 30 planes de referencia y 360 planes del barrido (90 perfiles × 4 splits), comparados en vivo contra el motor de `main`: **0 distintos**. Las huellas (`plan-hashes.json`) no cambian.
 - Simulación de A1, A2 y A4: ver arriba (`scripts/simular-reglas-articulares.js`); no cambia el plan.
 - Mutaciones: aceptar `verificado` falla 1 test; quitar el aviso de ejercicio sin perfil, 1; quitar una fila del CSV, 4 (el módulo desactualizado también); cambiar un nivel de la spec, 1.
 - E2E (`e2e.js`, `e2e-aceptacion.js`) pasan.
 
 ### Fuera de alcance
-Las reglas A1 a A7 (A1, A2 y A4 quedan sin implementar hasta revisar sus umbrales, ver la simulación), el orden de ejercicios del generador, el dolor por serie (A6) y mostrar el perfil en la interfaz. Anclar el criterio con datos biomecánicos es B-026 (PR aparte).
+Las reglas A1 a A7 (A1 y A3 se implementan en el Paso 2, DEC-022; A4 solo con dolor de hombro de A6; A2 se vuelve a medir con A1 y A3), el orden de ejercicios del generador, el dolor por serie (A6) y mostrar el perfil en la interfaz. Anclar el criterio con datos biomecánicos es B-026 (PR aparte).
 
 **Estado: implementada (capa de datos), pendiente de aceptación.**
 

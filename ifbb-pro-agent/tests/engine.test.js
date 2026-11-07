@@ -2664,7 +2664,7 @@ test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálog
   assert.equal(Object.keys(specRows).length, 18, 'la spec tiene 18 ejercicios iniciales');
   const equal = {
     'Sentadilla trasera': ['quads.squat_back_or_hack'], 'Peso muerto rumano': ['hamstrings.rdl'], 'Remo con barra inclinado': ['back.row_barbell'],
-    'Sentadilla búlgara con mancuernas': ['functional.bulgarian_db', 'quads.lunge_or_bulgarian'], 'Hip thrust con barra': ['glutes.hip_thrust'],
+    'Sentadilla búlgara con mancuernas': ['functional.bulgarian_db', 'quads.lunge_or_bulgarian', 'glutes.bulgarian_hip'], 'Hip thrust con barra': ['glutes.hip_thrust'],
     'Press militar de pie': ['shoulders.press_overhead'], 'Prensa de piernas': ['quads.leg_press'], 'Extensión de cuádriceps': ['quads.leg_extension'],
     'Curl femoral tumbado o sentado': ['hamstrings.leg_curl'], 'Press de banca': ['chest.bench_press_barbell'], 'Press inclinado': ['chest.incline_press_db'],
     'Fondos en paralelas': ['chest.dip_or_machine_press', 'triceps.close_grip_or_dips'], 'Jalón al pecho': ['back.vertical_pull'], 'Dominadas': ['back.vertical_pull'],
@@ -2673,10 +2673,6 @@ test('DEC-021: la tabla inicial de la spec se transcribe tal cual en el catálog
   Object.entries(equal).forEach(([name, ids]) => ids.forEach(id => {
     K.JOINTS.forEach((j, k) => { assert.equal(K.JOINT_PROFILE[id][j].nivel, specRows[name][k], `${name} → ${id} / ${j}`); assert.equal(K.JOINT_PROFILE[id][j].origen, 'spec_inicial', `${id}/${j}: origen`); });
   }));
-  // La búlgara con énfasis en cadera se aparta de la tabla de la spec a propósito (reglas 1, 2 y 5): lumbar alta, y su origen ya no es la tabla inicial.
-  assert.equal(specRows['Sentadilla búlgara con mancuernas'][0], 'media');
-  assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].lumbar.nivel, 'alta'); assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].lumbar.origen, 'criterio_e4');
-  assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].hombro.nivel, specRows['Sentadilla búlgara con mancuernas'][1]); assert.equal(K.JOINT_PROFILE['glutes.bulgarian_hip'].rodilla.nivel, specRows['Sentadilla búlgara con mancuernas'][2]);
   // Hack squat, press militar sentado y remo con apoyo de pecho son variantes dentro de una entrada del catálogo: gana la más exigente (regla 1 de desempate).
   const cell = (id, j) => K.JOINT_PROFILE[id][j];
   assert.deepEqual(specRows['Hack squat (máquina)'], ['media', 'baja', 'alta']);
@@ -2712,7 +2708,7 @@ test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambigua
   assert.equal(rows.filter(r => r.ambiguo === 'si').length, 0, 'ninguna celda queda ambigua');
   const spec = fsMuscles.readFileSync(pathMuscles.join(__dirname, '../../docs/specs/validador-fase3.md'), 'utf8');
   assert.match(spec, /Reglas de desempate/);
-  ['variante más exigente', 'torso inclinado sin apoyo', 'carga axial sin bisagra', 'Lumbar media exige carga relevante', 'Nunca se clasifica un ejercicio para conservar su función de sustituto', 'gana el nivel más alto'].forEach(t => assert.ok(spec.includes(t), `la spec dice: ${t}`));
+  ['variante más exigente', 'torso inclinado más de 45° con carga externa', 'conflictos reales entre reglas', 'gana sobre la lectura literal', 'carga axial sin bisagra', 'Lumbar media exige carga relevante', 'Nunca se clasifica un ejercicio para conservar su función de sustituto', 'torso inclinado más de 45° con carga externa', 'conflictos reales', 'gana sobre la lectura literal'].forEach(t => assert.ok(spec.includes(t), `la spec dice: ${t}`));
   // Lo decidido, celda por celda (lumbar, hombro, rodilla).
   const decided = {
     'back.row_barbell': ['alta', 'media', 'baja'], 'calves.calf_raise_standing': ['media', 'baja', 'baja'], 'functional.farmer_carry': ['media', 'baja', 'baja'],
@@ -2721,7 +2717,7 @@ test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambigua
     'biceps.curl_incline': ['baja', 'media', 'baja'], 'shoulders.press_landmine_neutral': ['media', 'media', 'baja'], 'glutes.hip_thrust': ['media', 'baja', 'baja'],
     'functional.step_up': ['media', 'baja', 'alta'], 'glutes.kickback_cable': ['baja', 'baja', 'baja'], 'abs.hanging_leg_raise': ['media', 'media', 'baja'],
     'quads.squat_back_or_hack': ['alta', 'media', 'alta'], 'shoulders.press_overhead': ['media', 'alta', 'baja'], 'back.row_cable': ['media', 'media', 'baja'],
-    'glutes.bulgarian_hip': ['alta', 'baja', 'alta'], 'abs.crunch_or_wheel': ['media', 'media', 'baja'], 'shoulders.rear_delt_facepull': ['media', 'media', 'baja'],
+    'glutes.bulgarian_hip': ['media', 'baja', 'alta'], 'abs.crunch_or_wheel': ['media', 'media', 'baja'], 'shoulders.rear_delt_facepull': ['baja', 'media', 'baja'],
   };
   assert.equal(Object.keys(decided).length, 21);
   Object.entries(decided).forEach(([id, lv]) => K.JOINTS.forEach((j, k) => assert.equal(K.JOINT_PROFILE[id][j].nivel, lv[k], `${id}/${j}`)));

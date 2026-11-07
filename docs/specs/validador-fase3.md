@@ -35,10 +35,10 @@ Es un criterio de modelado de la app (nivel E4: criterio propio, sin fuente que 
 Son parte del criterio de modelado: sin fuente, y revisables cuando B-026 lo ancle. Se aplican en este orden de lectura:
 
 1. **Variantes mezcladas.** Si una entrada del catálogo une variantes con niveles distintos, se clasifica por la **variante más exigente**. Separar las variantes que cambian el nivel lumbar (sentadilla trasera/hack, press de pie/sentado, remo en polea/máquina con apoyo) queda en el backlog (B-031).
-2. **Bisagra con carga** incluye mantener el torso inclinado sin apoyo con carga (remo con barra = lumbar alta). La **carga axial sin bisagra ni flexión profunda** (elevación de talones de pie, paseo del granjero) = lumbar media.
+2. **Bisagra con carga** incluye la **bisagra sostenida**: torso inclinado más de 45° con carga externa (remo con barra = lumbar alta). La búlgara con énfasis en cadera no llega a eso: lumbar media por mecánica. La **carga axial sin bisagra ni flexión profunda** (elevación de talones de pie, paseo del granjero) = lumbar media.
 3. **Lumbar media exige carga relevante.** Los aislamientos ligeros de pie (elevaciones laterales, curl con barra, tríceps en polea, pullover) = lumbar baja.
 4. **Hombro por mecanismo.** Alta: multiarticular pesado cerca del final del rango. Media: aislamiento en el final del rango, tracción o elevación. Baja: el hombro no mueve carga. Aperturas, pullover y curl inclinado = media; el press landmine = media por su mecánica (empuja en arco, sin llegar al final del rango). **Nunca se clasifica un ejercicio para conservar su función de sustituto.**
-5. **Si dos reglas chocan, gana el nivel más alto.**
+5. **Si dos reglas chocan, gana el nivel más alto.** Solo aplica a **conflictos reales entre reglas**; una regla específica (1 a 4) gana sobre la lectura literal del criterio (face pull = lumbar baja por la regla 3). Hip thrust: lumbar media (carga en la cadera frente a tronco apoyado).
 
 Anclar este criterio con datos biomecánicos es una tarea abierta (ver Preguntas abiertas).
 
@@ -77,10 +77,10 @@ Siete reglas con prefijo A (articular) para no chocar con la numeración de fase
 
 | Regla | Qué hace | Nivel | Comportamiento |
 | --- | --- | --- | --- |
-| A1 · Orden por demanda | Ordena la sesión: demanda lumbar alta primero, luego multiarticulares, al final aislados | E2 para el costo cero en hipertrofia; E4 para el motivo de seguridad | Orden por defecto al generar; advertencia si el usuario ubica un ejercicio de lumbar alta después de dos o más de lumbar media o alta |
-| A2 · Tope lumbar | Máximo un ejercicio de demanda lumbar alta por sesión | E4 | Advertencia; el usuario decide |
+| A1 · Orden por demanda | Ordena la sesión: demanda lumbar alta primero, luego multiarticulares, al final aislados | E2 para el costo cero en hipertrofia; E4 para el motivo de seguridad | Orden por defecto al generar; advertencia si el usuario ubica un ejercicio de lumbar alta después de dos o más de lumbar media o alta. **Nota de simulación (DEC-021):** midió planes sin A1 ni A3 aplicados (el orden era el del generador), por eso saltaba en el 94 % |
+| A2 · Tope lumbar | Máximo un ejercicio de demanda lumbar alta por sesión | E4 | Advertencia; el usuario decide. **Nota de simulación (DEC-021):** midió planes sin A1 ni A3 aplicados; A2 saltaba en el 100 % de los 360 planes porque el generador junta sentadilla y peso muerto rumano en el mismo día. Se vuelve a medir con A1 y A3 implementados (DEC-022) |
 | A3 · Separación semanal | Con dos o más días de pierna, sentadilla pesada y bisagra pesada van en días distintos, con 48 h o más entre ellos | E4 | Distribución por defecto al generar; advertencia si se rompe |
-| A4 · Tope de hombro | Máximo dos ejercicios de demanda alta de hombro por sesión | E4 | Advertencia; el usuario decide |
+| A4 · Tope de hombro | Máximo dos ejercicios de demanda alta de hombro por sesión | E4 | **Ya no es una advertencia general: solo se activa si A6 registró dolor de hombro.** La versión anterior saltaba en el 71 % de los 360 planes y no tenía fuente |
 | A5 · Back-off válido | Un back-off pesa 90% o menos del top set de esa sesión | Definición, no evidencia | En modo sesión: aviso al registrar; si pesa igual o más, se guarda como serie de trabajo y no como back-off |
 | A6 · Bandera de dolor | Registro opcional de dolor por serie: zona (lumbar, hombro, rodilla) y escala 0–10. Umbral: 5 de 10, el mismo `painFlagThreshold` que ya usa la app (ver la fuente debajo de la tabla) | E4 | Si la sesión cierra con dolor sobre el umbral en una zona, la siguiente sesión que la use propone cambiar ejercicios de demanda alta por baja y pide confirmación |
 | A7 · Exclusión por lesión | Con lesión declarada (DEC-010), excluye ejercicios de demanda alta en esa articulación y las posiciones de riesgo marcadas | Pendiente de fuente certificada | Hasta tener fuente: solo advertencia, sin exclusión automática |
@@ -118,7 +118,7 @@ La fase está cerrada cuando se cumple todo esto:
 - Fuente para las listas de exclusión de A7: tarea para el subagente investigador. Sin fuente, A7 no excluye.
 - Clasificación inicial: el subagente investigador valida o corrige cada fila antes del merge, y clasifica con el criterio de modelado el resto del catálogo.
 - **Tarea abierta:** que el investigador busque datos biomecánicos de carga sobre la columna y el hombro para anclar el criterio de modelado (hoy es E4, sin fuente).
-- **Umbrales de A1, A2 y A4 (abierta, la simulación los desborda):** con la tabla vigente y sin aplicar las reglas, en el barrido de 360 planes A1 se dispararía en el 94 % de los planes, A2 en el 100 % y A4 en el 71 % (`node scripts/simular-reglas-articulares.js`). Ninguna se implementa hasta que Emanuel revise los umbrales (ver DEC-021).
+- **A1, A2 y A4 tras la simulación (DEC-021):** con la tabla vigente y las reglas sin aplicar, en el barrido de 360 planes A1 saltaba en el 94 %, A2 en el 100 % y A4 en el 71 % (`node scripts/simular-reglas-articulares.js`). A4 pasa a activarse solo con dolor de hombro (A6). A1 y A3 se implementan como restricciones del generador (DEC-022, Paso 2) y A2 se vuelve a medir con ellos.
 - Codo y muñeca quedan fuera de esta versión; se reconsideran tras tres meses de registros de dolor.
 
 ## Fuentes
