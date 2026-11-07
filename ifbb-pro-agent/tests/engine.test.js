@@ -2841,3 +2841,12 @@ test('DEC-022: las reglas A1 y A3 están en VALIDATOR_RULES (E4, implementadas) 
     });
   });
 });
+
+test('DEC-022 · A3 solo separa lo de lumbar alta: un hinge de demanda lumbar media no se separa de la sentadilla (ejercicio sintético)', () => {
+  const prof = K.JOINT_PROFILE['hamstrings.rdl'], saved = prof.lumbar.nivel;
+  try {
+    prof.lumbar.nivel = 'media';
+    const joined = plans022().filter(pl => pl.training.sessions.some(s => s.exercises.some(e => e.pattern === 'squat_bilateral') && s.exercises.some(e => e.pattern === 'hinge')));
+    assert.ok(joined.length > 100, `con el rumano en media vuelve a convivir con la sentadilla: ${joined.length}`);
+  } finally { prof.lumbar.nivel = saved; }
+});

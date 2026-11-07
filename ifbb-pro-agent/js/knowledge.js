@@ -544,19 +544,19 @@
     // DEC-005 / DEC-010 · series del ejercicio funcional que no aporta volumen
     // de hipertrofia (paseo del granjero). Se agregan aparte, sin descontar.
     functionalNoVolumeExtraSets: rule(2, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
-    // DEC-003 v2 / DEC-014 · regla E4: tope de series por sesión. Convención de la app, sin fuente externa
-    // (validador.md no fija un valor; ningún framework define un máximo de minutos). El usuario puede aceptar
-    // una sesión más larga de forma explícita.
     // DEC-022 · Fase 3, Paso 2. Restricciones del generador (no numéricas: `value` indica si están activas).
     // A1: orden por demanda dentro de la sesión. El costo cero en hipertrofia tiene respaldo E2 (Nunes et al. 2021); el motivo de seguridad es E4.
     sessionOrderByDemand: rule(true, 'E4', { label: 'Nunes et al. 2021, Eur J Sport Sci (la hipertrofia es similar en cualquier orden; la fuerza mejora más en lo hecho al inicio)', url: 'https://pubmed.ncbi.nlm.nih.gov/32077380/' }, {
       usage: 'Cada sesión se ordena: lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos. Solo reordena.',
       note: 'El orden no cuesta hipertrofia (E2, Nunes 2021, solo resumen); que el motivo sea proteger la espalda es criterio de la app (E4).' }),
     // A3: la sentadilla pesada y la bisagra pesada (lumbar alta) no van el mismo día. El trabajo de isquiotibiales no se separa.
-    hingeSquatSeparation: rule(true, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 y Tung et al. 2024, BMJ Open Sport Exerc Med: dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
+    hingeSquatSeparation: rule(true, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 (PMID 27328853) y Tung et al. 2024, BMJ Open Sport Exerc Med 10(4):e001884 (PMID 39650568): dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
       reviewRequired: true,
       usage: 'El día de la sentadilla pesada, los isquios se cubren con flexión de rodilla (curl femoral); la bisagra pesada va el otro día de isquios. Ningún relleno posterior (piso, mínimo) la vuelve a juntar.',
       note: 'Ninguna fuente prueba que separar estos ejercicios prevenga lesiones (E4). La preferencia por el curl sentado sobre el tumbado se apoya en un estudio (Maeo et al. 2021, MSSE 53(4):825-837): E4 como indicación, no como regla.' }),
+    // DEC-003 v2 / DEC-014 · regla E4: tope de series por sesión. Convención de la app, sin fuente externa
+    // (validador.md no fija un valor; ningún framework define un máximo de minutos). El usuario puede aceptar
+    // una sesión más larga de forma explícita.
     sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
   };
 
