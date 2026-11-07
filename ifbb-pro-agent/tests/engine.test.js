@@ -2722,7 +2722,7 @@ test('DEC-021: las reglas de desempate están en la spec y las 27 celdas ambigua
   assert.equal(Object.keys(decided).length, 21);
   Object.entries(decided).forEach(([id, lv]) => K.JOINTS.forEach((j, k) => assert.equal(K.JOINT_PROFILE[id][j].nivel, lv[k], `${id}/${j}`)));
   // Cada celda resuelta cita su regla; el press landmine no se clasifica por ser sustituto (regla 4).
-  const resolved = rows.filter(r => /^(Desempate|Decidido por Emanuel)/.test(r.notes) || /Desempate, regla/.test(r.notes));
+  const resolved = rows.filter(r => /Emanuel, 2026-11-07|Decidido por Emanuel \(2026-11-07\)/.test(r.notes));
   assert.ok(resolved.length >= 27, `celdas con regla anotada: ${resolved.length}`);
   assert.match(paCell('shoulders.press_landmine_neutral', 'hombro').notes, /No se clasifica por su función de sustituto/);
   assert.ok(!/sustituto del press/i.test(paCell('shoulders.press_landmine_neutral', 'hombro').notes.replace('No se clasifica por su función de sustituto', '')));
