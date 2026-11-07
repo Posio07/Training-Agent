@@ -640,20 +640,20 @@ Contexto: con el tope E4 (DEC-014) y el piso de los grupos mayores, los grupos c
 - **Endurecimiento asociado:** si las exclusiones por lesión dejan a un grupo sin ejercicios, el generador ya no falla: ese grupo queda sin series (`weeklySets` = 0).
 
 ### Resultado en los 10 perfiles de referencia (sin aceptación; antes = `main` `bfef2ae`)
-Series por sesión y minutos máximos por sesión; los grupos chicos en series fraccionadas semanales (abdomen · pantorrillas · bíceps · tríceps). "Igual" = el plan no cambia.
+Series y minutos por sesión; los grupos chicos en series fraccionadas semanales (abdomen · pantorrillas · bíceps · tríceps). "Igual" = el plan no cambia.
 
-| Perfil | Series por sesión | Minutos máx. | Grupos chicos (antes → después) |
+| Perfil | Series por sesión | Minutos por sesión | Grupos chicos (antes → después) |
 | --- | --- | --- | --- |
-| oscar_cut_classic_5d | 25/20/23/22/19, igual | 72 → 72 | 7 · 7 · 13 · 14,5, igual |
-| novice_bulk_physique_4d | 25/9/24/6 → 25/11/24/11 | 70 → 70 | 0 · 4 · 9 · 11 → 5 · 6 · 9 · 11 |
-| wellness_maintain_5d | 21/25/15/15/25, igual | 92 → 92 | 8 · 8 · 9,5 · 8,5, igual |
-| general_cut_3d | 25/24/26 → 25/25/26 | 88 → 88 | 0 · 2 · 8 · 11,5 → **2 · 2** · 8 · 11,5 |
-| bb_bulk_advanced_6d | 25/25/26/25/25/25, igual | 98 → 98 | 11 · 9 · 19 · 21, igual |
-| bikini_cut_lagging_4d | 25/19/25/17 → 25/19/25/19 | 70 → 70 | 4 · 5 · 8,5 · 9 → 6 · 5 · 8,5 · 9 |
-| emanuel_legs_cut_4d | 24/24/24/21 → 25/25/25/25 | 87 → 89 | 0 · 2 · 8,5 · 12 → 6 · 5 · 8,5 · 12 |
-| figure_maintain_novice_3d | 25/25/25, igual | 85 → 83 | 0 · 2 · 8 · 12 → **4 · 2** · 8 · 10 |
-| physique_cut_adv_lag_5d | 25/12/24/25/12, igual | 82 → 82 | 6 · 7 · 10,5 · 18, igual |
-| physique_w_bulk_6d | 20/22/23/20/20/23, igual | 85 → 85 | 8 · 8 · 15 · 16,5, igual |
+| oscar_cut_classic_5d | 25/20/23/22/19, igual | 72/72/55/53/70, igual | 7 · 7 · 13 · 14,5, igual |
+| novice_bulk_physique_4d | 25/9/24/6 → 25/11/24/11 | 70/29/59/24 → 70/33/59/34 | 0 · 4 · 9 · 11 → 5 · 6 · 9 · 11 |
+| wellness_maintain_5d | 21/25/15/15/25, igual | 58/92/36/35/92, igual | 8 · 8 · 9,5 · 8,5, igual |
+| general_cut_3d | 25/24/26 → 25/25/26 | 76/80/88 → 76/82/88 | 0 · 2 · 8 · 11,5 → **2 · 2** · 8 · 11,5 |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25, igual | 69/65/98/64/58/96, igual | 11 · 9 · 19 · 21, igual |
+| bikini_cut_lagging_4d | 25/19/25/17 → 25/19/25/19 | 67/70/60/49 → 67/70/60/53 | 4 · 5 · 8,5 · 9 → 6 · 5 · 8,5 · 9 |
+| emanuel_legs_cut_4d | 24/24/24/21 → 25/25/25/25 | 67/87/61/75 → 69/89/63/83 | 0 · 2 · 8,5 · 12 → 6 · 5 · 8,5 · 12 |
+| figure_maintain_novice_3d | 25/25/25, igual | 75/81/85 → 75/81/83 | 0 · 2 · 8 · 12 → **4 · 2** · 8 · 10 |
+| physique_cut_adv_lag_5d | 25/12/24/25/12, igual | 82/40/57/61/47, igual | 6 · 7 · 10,5 · 18, igual |
+| physique_w_bulk_6d | 20/22/23/20/20/23, igual | 58/55/81/49/46/85, igual | 8 · 8 · 15 · 16,5, igual |
 
 Los dos perfiles de 3 días (**en negrita**) no llegan al mínimo dentro de 25: quedan más cerca (de 0 a 2 o 4, y pantorrillas en 2) y el plan avisa. En estos 10 perfiles las sesiones de más de 90 minutos son las mismas que antes (wellness_maintain_5d 92 y 92; bb_bulk_advanced_6d 98 y 96). En el barrido de 90 perfiles hay un caso nuevo: avanzado, en déficit, `bikini_w`, 4 días y sin rezagados, cuyo "Día 2 · Pierna A" pasa de 89 a 91 minutos (24 a 25 series). DEC-017 limita las series (25), no los minutos, así que no lo viola, pero conviene saberlo (B-010).
 
