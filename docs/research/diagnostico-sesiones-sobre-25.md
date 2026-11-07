@@ -1,6 +1,6 @@
 # Diagnóstico: sesiones de más de 25 series sin aceptación (barrido de 360 planes)
 
-Fecha 2026-11-07, sobre `main` tras el PR #32 (DEC-022). **Solo diagnóstico: ningún código ni dato cambió.** Las distribuciones se calcularon con un script descartable fuera del repo (recorre los mismos 90 perfiles × 3, 4, 5 y 6 días que `scripts/simular-reglas-articulares.js`, que sí da el total de 108); los números de abajo no tienen script propio en el repo.
+Fecha 2026-11-07, sobre `main` tras el PR #32 (DEC-022). **Solo diagnóstico: ningún código ni dato cambió.** Todas las cifras se reproducen con `node scripts/diagnostico-sesiones-sobre-25.js` (recorre los mismos 90 perfiles × 3, 4, 5 y 6 días que `scripts/simular-reglas-articulares.js`, que da el total de 108).
 
 ## 1. ¿El usuario ve un aviso?
 Sí, **en las 108 sesiones** el plan trae un aviso propio ("Día 1 · Full body A: 28 series, por encima de las 25 por sesión (E4 · convención de la app). No se recortó más para no quitar multiarticulares ni bajar un grupo mayor del piso semanal."). Cómo se ve (perfil de referencia de Emanuel, `emanuel_legs_cut_4d` a 3 días, 28/25/25 series, capturas en Chromium móvil):
