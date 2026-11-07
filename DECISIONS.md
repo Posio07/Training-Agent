@@ -863,3 +863,53 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 - No se elimina ningún código en este PR: la limpieza llega con la spec del núcleo nuevo (inventario en `docs/research/inventario-generador.md`).
 
 **Estado: Aceptado por Emanuel el 2026-11-07.**
+
+## DEC-024 · El tope de sesión pasa de 25 series a minutos disponibles
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo** (`docs/specs/nucleo-v2.md`), no antes: hasta entonces el motor actual no se toca.
+
+Contexto: DEC-014 fijó un tope de 25 series por sesión (E4, convención de la app, sin fuente externa). Ese tope cuenta igual una serie de pantorrilla que una de sentadilla y solo puede recortar aislamientos. En el barrido de 360 planes (`docs/research/diagnostico-sesiones-sobre-25.md`) 108 de 1620 sesiones lo superan sin aceptación (72 planes; 29 llegan a 30 series o más; 80 pasan de 90 min; máximo 37 series y 118 min), porque el reparto semanal no mira la capacidad de las sesiones y el tope corrige después.
+
+### Decisión (propuesta)
+1. **La capacidad de una sesión son los minutos disponibles**: el valor general del perfil, o el del día si el usuario lo cambió, **menos el cardio programado ese día**.
+2. **La duración de una serie** es el tiempo de trabajo más el descanso de su variante, con los valores fijos del registro de reglas (los unilaterales cuentan ambos lados). Piso de descanso de 60 a 90 s respaldado (E2 con salvedad); los valores por tipo de ejercicio son criterio de diseño (E4); usar el descanso real registrado queda para después. Ver `docs/research/nucleo-v2-evidencia.md`, punto A.
+3. **Ninguna sesión supera su capacidad en minutos sin la aceptación explícita del usuario** (aceptación por sesión de un plan concreto; guardada en el plan; caduca al regenerarlo o al cambiar tiempo, días u objetivo).
+4. **Se reemplaza solo la cláusula del tope de 25 series de DEC-014** (y la regla `sessionSetCap` del registro). **No cambia la garantía de series reales de los grupos mayores** de DEC-014 ni el piso de DEC-017 ni el mínimo de DEC-020: siguen como demandas del reparto.
+
+### Qué no cambia
+DEC-009 (privacidad), el conteo fraccionado, R1 (lo trata DEC-025) y el resto de DEC-014.
+
+### Alternativas
+- **A. Mantener el tope de 25 series.** Costo: el tope sigue corrigiendo después de repartir (108 sesiones sobre el tope hoy) y pesa igual toda serie.
+- **B. Recomendada: minutos disponibles.** Costo: el usuario tiene que declarar su tiempo (campo nuevo en el perfil); la duración depende de descansos que no tienen respaldo más allá del piso de 60 a 90 s (E4).
+- **C. Ambos topes.** Costo: dos reglas que se corrigen entre sí.
+
+### Evidencia
+Convención de la app (E4): el tope por tiempo es una decisión de diseño, no un hallazgo. Fuente del piso de descanso: Singer et al. 2024 (*Front Sports Act Living* 6:1429789, PMID 39205815) y otras, leídas en resumen.
+
+### Qué toca de otros DEC aceptados (a decidir al aceptar)
+La aceptación por sesión (en lugar de la firma del plan y el máximo de series) **reemplaza una cláusula de DEC-016** que esta decisión no nombra. Emanuel decide si se agrega aquí o va en un DEC aparte.
+
+**Estado: Propuesto.**
+
+## DEC-025 · R1 pasa de aviso a restricción del reparto
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo**, no antes.
+
+Contexto: DEC-014 definió R1 como un **aviso** de rendimiento decreciente (E3: preprint de Remmert et al., punto sin mejora detectable de ~11 series fraccionadas por músculo y sesión) y dice expresamente que no es un tope. El motor actual reparte sin respetarlo y solo avisa: 467 avisos R1 en 165 de 360 planes (981 series fraccionadas por encima del umbral en total; promedio 5,9 por plan afectado; máximo 7 sobre el umbral en una sesión; músculos: glúteos 236, cuádriceps 136, hombros 67, espalda 24, tríceps 4; medido con el motor actual, no con el núcleo nuevo).
+
+### Decisión (propuesta)
+1. **R1 pasa a restricción del reparto:** ningún músculo supera **11 series fraccionadas por sesión** (directa 1, indirecta 0,5).
+2. **Si la necesidad semanal de un músculo no cabe sin superar ese límite, queda sin cubrir** y lo explica el aviso único del reparto (la misma pantalla de DEC-024).
+3. Se reemplaza solo la cláusula de DEC-014 que define R1 como "aviso, no un tope". El nivel de evidencia del umbral sigue siendo E3.
+
+### Riesgo de evidencia (a tener presente)
+Los propios autores del preprint dicen que 11 **no es un límite superior** ("not upper limits") y que el punto se fijó de forma arbitraria; los datos casi no llegan a volúmenes altos y la mayoría de los estudios entrenaban un solo músculo (`docs/research/fraccionado-pelland-remmert.md`). Convertirlo en restricción dura es **más firme que la fuente**: lo asume Emanuel como decisión de diseño.
+
+### Alternativas
+- **A. Dejar R1 como aviso (estado actual).** Costo: 467 avisos informativos y sesiones con más de 11 series de un músculo.
+- **B. Recomendada por Emanuel: restricción.** Costo: algunos músculos (sobre todo glúteos y cuádriceps en los splits de pocos días) pueden quedar con menos series que su necesidad, explicado en el aviso.
+- **C. Restricción solo cuando hay días disponibles para repartir en otra sesión.** Costo: dos comportamientos distintos según el split.
+
+### Qué no cambia
+El conteo fraccionado (E2 con salvedad; el valor 0,5 es criterio de diseño) y el resto de DEC-014.
+
+**Estado: Propuesto.**

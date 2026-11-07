@@ -2,6 +2,8 @@
 
 7 nov 2026 · Emanuel Miranda
 
+*Revisión del 7 nov 2026: se aplican las decisiones de Emanuel sobre los huecos de la trazabilidad (`docs/research/trazabilidad-nucleo-v2.md`) y los dos DEC de nivel 3 propuestos, DEC-024 (tope por minutos) y DEC-025 (R1 como restricción), que siguen en estado Propuesto: hasta que Emanuel los acepte, esas dos reglas no valen.*
+
 ## Por qué se reconstruye
 
 El generador actual reparte el volumen semanal sin mirar cuánto cabe en los días del split y después lo corrige con pasos sucesivos: el tope de 25 recorta, el piso completa, el mínimo de grupos chicos vuelve a mover series y los avisos informan lo que quedó. Además, elige ejercicios rotando por el catálogo de cada grupo, sin saber qué función tiene el día. El inventario del generador (19 pasos) y el diagnóstico de las 108 sesiones de más de 25 series muestran los efectos:
@@ -64,15 +66,17 @@ Los patrones obligatorios son un criterio de diseño (E4). El investigador debe 
 
 Un solo paso, en este orden. Ningún paso posterior corrige a uno anterior.
 
-1. **Capacidad.** Cada sesión tiene como capacidad los minutos disponibles del perfil, o los del día si el usuario los cambió. La duración de una serie es el tiempo de trabajo más el descanso de esa variante, ambos tomados del registro de reglas.
+1. **Capacidad (DEC-024).** Cada sesión tiene como capacidad los minutos disponibles del perfil, o los del día si el usuario los cambió, **menos el cardio programado ese día**. La duración de una serie es el tiempo de trabajo más el descanso de esa variante, ambos tomados del registro de reglas; los unilaterales cuentan ambos lados (DEC-007). Esto reemplaza el tope de 25 series.
 2. **Restricciones de seguridad.** Se aplican las lesiones declaradas (A7, cuando tenga fuente), las banderas de dolor activas (A6) y las variantes habilitadas por el perfil.
 3. **Estructura.** Se ubican los patrones obligatorios de cada tipo de sesión y los ejercicios prioritarios del usuario.
-4. **Demandas mínimas.** La garantía de series reales de los grupos mayores (DEC-014), el piso de mantenimiento (DEC-017) y el mínimo de grupos chicos (DEC-020) entran como demandas que el reparto debe cubrir, no como correcciones posteriores.
-5. **Relleno por cobertura marginal.** Mientras quede capacidad, entra la serie candidata con más necesidad no cubierta por minuto. La necesidad se mide en series fraccionadas, así que un ejercicio redundante aporta poco: si el press de banca ya cubrió deltoide anterior y tríceps, el press militar suma menos que las elevaciones laterales, que cubren el deltoide lateral con pocos músculos adicionales. Ningún músculo supera el umbral de R1 (11 series por sesión).
+4. **Necesidad semanal y demandas mínimas.** La **necesidad semanal por grupo** sale del registro: 18, 14 o 10 series semanales según el nivel (avanzado, intermedio, novato; criterio de diseño E4), y los modificadores 0,85 (definición) y 1,25 (grupos rezagados y énfasis de la división) **se aplican una sola vez, sobre la necesidad**, nunca como pesos dentro de la cobertura marginal. La garantía de series reales de los grupos mayores (DEC-014), el piso de mantenimiento (DEC-017) y el mínimo de grupos chicos (DEC-020) entran como demandas que el reparto debe cubrir, no como correcciones posteriores.
+5. **Relleno por cobertura marginal.** Mientras quede capacidad, entra la serie candidata con más necesidad no cubierta por minuto. La necesidad se mide en series fraccionadas, así que un ejercicio redundante aporta poco: si el press de banca ya cubrió deltoide anterior y tríceps, el press militar suma menos que las elevaciones laterales, que cubren el deltoide lateral con pocos músculos adicionales. Ningún músculo supera el umbral de R1: **11 series fraccionadas por músculo y sesión** (DEC-025). Si la necesidad semanal de un músculo no cabe sin superarlo, queda sin cubrir y el aviso único lo explica.
 6. **Orden y top set.** Se aplica A1 (lumbar alta primero, luego multiarticulares, al final aislamientos) y el top set va al patrón principal del tipo de sesión.
-7. **Si no alcanza.** Si las demandas mínimas no entran en la capacidad, la app muestra un solo aviso con tres salidas: más tiempo ese día, más días o aceptar el plan con esas demandas sin cubrir.
+7. **Si no alcanza.** Si las demandas mínimas no entran en la capacidad (o la necesidad de un músculo no cabe bajo R1), la app muestra un solo aviso con tres salidas: más tiempo ese día, más días o aceptar la sesión con esas demandas sin cubrir.
 
-**Quién cede cuando no entra todo.** La cobertura marginal decide qué ejercicio cede: sale primero el que menos necesidad no cubierta aporta por minuto. La prioridad de los grupos pondera esa necesidad: los rezagados pesan más y los de énfasis reducido pesan menos. Los patrones obligatorios y las demandas mínimas no ceden.
+   **Aceptación.** Se acepta **una sesión concreta de un plan concreto** y se guarda **en el plan, no en el perfil**. Caduca al regenerar el plan y al cambiar el tiempo disponible, los días o el objetivo del perfil.
+
+**Quién cede cuando no entra todo.** La cobertura marginal decide qué ejercicio cede: sale primero el que menos necesidad no cubierta aporta por minuto. El énfasis ya está en la necesidad (0,85 y 1,25, una sola vez): la cobertura marginal no agrega pesos propios. Los patrones obligatorios y las demandas mínimas no ceden.
 
 **Límite conocido.** El paso 5 elige la mejor serie en cada momento, no el plan óptimo global. Se acepta porque cada decisión se puede explicar: la app puede mostrar por qué está cada ejercicio.
 
@@ -87,12 +91,18 @@ Todas las reglas y todos los números del núcleo viven en un solo registro (hoy
 
 Ningún número puede quedar escrito dentro del código. El inventario encontró varios fuera del registro (18/14/10, 0,85, 1,25, los descansos y otros): cada uno entra al registro con su fuente, se justifica como E4 o se elimina.
 
-**Tareas para el investigador antes de implementar**
+**Evidencia ya investigada** (`docs/research/nucleo-v2-evidencia.md`)
 
-- Descansos por tipo de ejercicio, porque ahora definen la duración de la sesión y por lo tanto su capacidad.
-- Tiempo de trabajo por serie según el rango de repeticiones.
-- Respaldo para la cobertura mínima por tipo de sesión.
-- Fuente para los números 18/14/10, 0,85 y 1,25.
+- **Conteo fraccionado** (directa 1, indirecta 0,5, ninguna 0): que el fraccionado prediga mejor que contar todo o solo lo directo es **E2 con salvedad** (Pelland et al. 2026, *Sports Med* 56(2):481-505, doi 10.1007/s40279-025-02344-w, revisado por pares; leído solo en resumen). El valor 0,5 es **criterio de diseño** (convención de los autores).
+- **Descansos:** fijos, tomados del registro. Hay un piso de 60 a 90 s respaldado (E2 con salvedad); los valores por tipo de ejercicio son criterio de diseño (E4). Usar el descanso real registrado en las sesiones queda para después.
+- **Cobertura mínima por tipo de sesión:** sin evidencia directa; sigue siendo criterio de diseño (E4).
+- **18/14/10, 0,85 y 1,25:** ningún estudio los respalda; se mantienen en el registro como criterio de diseño (E4). Los identificadores de fuente `SCHOENFELD_VOL` y `HELMS_TRAIN` se renombran (primer paso de la construcción) para que no sugieran un respaldo que no existe: `SCHOENFELD_2017_DOSIS_RESPUESTA` (respalda la forma de la curva de volumen, no los números) y `HELMS_2015_PREPARACION_CULTURISMO` (revisión narrativa de preparación de competencia). Los números 18/14/10, 0,85 y 1,25 se citan como "criterio de diseño", sin esas etiquetas.
+
+## Fuera del núcleo v2
+
+- **Cardio, intensidad, progresión, descarga y poses** siguen como están, con sus números movidos al registro (con su nivel de evidencia o como criterio de diseño). **Única excepción:** el cardio programado en un día se descuenta del tiempo disponible de esa sesión (paso 1). El cardio solo se asigna a un día si el usuario lo programa ahí.
+- **Bandera salud/funcional (DEC-005):** se conserva igual y pasa al registro. Hoy: en definición mantiene el cardio en 150 min por semana (3 sesiones de 50 min a intensidad moderada) en vez de recortarlo, y en los días de pierna suma búlgara con mancuernas, step-up con carga y paseo del granjero (este último aparte, 2 series y sin contar como volumen), financiando las series con un aislamiento del mismo grupo.
+- Nutrición, metas, tamizaje de salud y registro de sesiones (DEC-015) no cambian, salvo el selector de variante y la rutina corta como modo de capacidad.
 
 ## El corte
 
@@ -102,6 +112,8 @@ Ningún número puede quedar escrito dentro del código. El inventario encontró
 | Los 120 tests de comportamiento | El catálogo, migrado a patrón y variante | El motor de reparto actual y sus pasos correctivos |
 | El barrido de 360 planes y el caso del 5 nov como referencias | El registro de reglas, con todos los números dentro | El código muerto del inventario y el camino legado de aceptación de sesiones largas |
 | La interfaz de sesión, con selector de variante agregado | La rutina corta, como modo de capacidad | El código de las cláusulas de DEC-015, DEC-016 y DEC-018 que DEC-023 reemplaza |
+
+Desde el corte (y solo si Emanuel los acepta) también quedan reemplazadas la cláusula del tope de 25 series de DEC-014 (por DEC-024) y la de R1 como aviso de DEC-014 (por DEC-025).
 
 **Pasos del corte, en orden**
 
@@ -122,15 +134,20 @@ El núcleo está listo para el corte cuando, en el barrido de 360 planes:
 - [ ] Ninguna sesión tiene el top set fuera del patrón principal de su tipo.
 - [ ] La rutina corta tiene de 3 a 4 ejercicios y cabe en el tiempo fijado.
 - [ ] Ninguna sesión por defecto tiene dos ejercicios de lumbar alta.
-- [ ] Ningún músculo supera 11 series por sesión.
+- [ ] Ningún músculo supera 11 series fraccionadas por sesión (DEC-025), o queda sin cubrir con el aviso único.
+- [ ] La aceptación de una sesión se guarda en el plan y caduca al regenerarlo o al cambiar tiempo, días u objetivo del perfil.
 - [ ] La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único.
 - [ ] Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada.
 - [ ] No queda ningún número fuera del registro ni código muerto.
 - [ ] El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos.
 
+**Decisiones tomadas por Emanuel (7 nov 2026)**
+
+- Los rezagados y los de énfasis reducido no llevan peso extra en la cobertura marginal: el énfasis (0,85 y 1,25) se aplica una sola vez, sobre la necesidad.
+- Límite de ejercicios prioritarios: **3**.
+- Descansos fijos desde el registro, con piso de 60 a 90 s respaldado y valores por tipo como criterio de diseño; usar el descanso real registrado queda para después.
+- Orden de la construcción: **catálogo y registro, después el reparto, después la interfaz**.
+
 **Decisiones abiertas (de Emanuel)**
 
-- Cuánto pesan los rezagados y los de énfasis reducido en la cobertura marginal. Propuesta: arrancar con 1,5 y 0,5, y ajustarlo con datos propios.
-- Límite de ejercicios prioritarios: propuesta de tres.
-- Si la duración estimada usa descansos fijos por tipo de ejercicio o el descanso real registrado en las sesiones.
-- Orden de la construcción: propuesta de catálogo y registro primero, después el reparto y por último la interfaz.
+Ver la sección "Valores por defecto propuestos" de `docs/research/trazabilidad-nucleo-v2.md`: de los pasos parciales, solo quedan abiertas las decisiones reales de diseño que esa sección escala.
