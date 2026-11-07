@@ -648,6 +648,15 @@
         <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de ${x.floor}${x.floor < 10 ? ' (mantenimiento: énfasis reducido por la división)' : ''}${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
         <div class="btn-row">${canAccept ? acceptBtn : ''}${splitBtn}</div></div>`;
     }
+    // DEC-020: mínimo semanal por grupo. Si no cabe dentro del tope, solo se cumple con la aceptación explícita.
+    const unmetMin = sl.minimum ? sl.minimum.groups.filter(g => !g.met && !g.excludedByInjury) : [];
+    if (unmetMin.length) {
+      out += `<div class="card"><h3>Mínimo semanal por grupo</h3>
+        <p>La app exige al menos ${sl.minimum.value} series fraccionadas por semana en cada grupo (convención de la app, ${evTag('E4')}). No cabe dentro del tope de ${sl.cap} series por sesión en:</p>
+        <ul>${unmetMin.map(g => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[g.muscle])}</b>: ${n1(g.after)} de ${g.minimum}</li>`).join('')}</ul>
+        <p>${sl.accepted ? 'Ni con tu aceptación cabe: prueba con más días por semana.' : 'Para cumplirlo una sesión tendría que pasarse del tope: puedes aceptarlo de forma explícita o cambiar de split.'}</p>
+        <div class="btn-row">${sl.accepted ? '' : acceptBtn}${splitBtn}</div></div>`;
+    }
     return out;
   }
 

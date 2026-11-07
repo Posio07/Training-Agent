@@ -612,3 +612,79 @@ El plan generado y las huellas de los 30 planes (es solo texto); la cifra de agu
 - Mutaciones: volver a la tarjeta anterior hace fallar 5 comprobaciones del E2E; volver al texto anterior de la fuente, 1 test; cambiar la cifra, 3 tests. `sw.js` pasa a la caché v12.
 
 **Estado: implementada, pendiente de aceptación.**
+
+## DEC-020 · Mínimo semanal por grupo dentro del tope E4 (grupos chicos)
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-07). Lo creó el agente como Propuesto; aceptado por Emanuel en el chat el 2026-11-07, después de ver el efecto de la restricción del último ejercicio directo (bíceps con 0 series directas a los 3 días: de 65 a 50 de 90 perfiles). Las decisiones de diseño de abajo también las tomó Emanuel.
+
+Contexto: con el tope E4 (DEC-014) y el piso de los grupos mayores, los grupos chicos (abdomen, pantorrillas, bíceps, tríceps) quedaban en 0 series directas en la mayoría de los perfiles de 3 y 4 días. DEC-016 solo los avisa y DEC-017 dejó fuera forzar un mínimo en ellos ("Fuera de alcance"). Esta decisión lo hace.
+
+### Decisiones de Emanuel (2026-11-07)
+1. **Valor (1-A):** el mínimo es el piso de mantenimiento de DEC-017, **5 series fraccionadas por semana**. No se inventa otro número: la regla `groupMinimumWeeklySets` se **deriva** de `minWeeklySetsPerMuscle × maintenanceFloorFactor`.
+2. **Unidad (2-A):** series fraccionadas, **contando el aporte indirecto de los compuestos** (directa 1, indirecta 0,5; DEC-014). Consecuencia: el bíceps puede cumplir con 0 series directas si los remos le aportan. Ver "Costos".
+3. **Lesiones (3-A):** un grupo no recibe mínimo solo si, tras las exclusiones por las zonas declaradas, **no le queda ningún ejercicio posible**. Si le quedan ejercicios, el mínimo aplica con ellos (DEC-011).
+4. **Pecho y filas `a_verificar` (4-A):** se da por resuelto con DEC-016 (el músculo del bucket cuenta siempre directo); lo que queda de verificación sigue en B-003.
+5. **Garantía de series reales de los grupos mayores (DEC-014): se conserva (decisión tomada, 2026-11-07).** El mínimo no puede bajar a un grupo mayor de su piso en series reales aunque sume de más en fraccionadas. **Límite conocido:** a los 3 días, 57 de 90 perfiles de prueba (63 %) necesitan la aceptación explícita de una sesión más larga para cumplir el mínimo; relajar la garantía lo bajaría a unos 37 de 90 (~41 %) a costa de dejar a un grupo mayor con menos series reales (por ejemplo, hombros con 7). Reabrir esa decisión es de Emanuel.
+6. **Nunca se quita el último ejercicio directo de un grupo (2026-11-07):** al sacar series de aislamientos para cumplir mínimos, un grupo puede ceder series, pero el ejercicio queda si es su último ejercicio directo de la semana (con 2 series, que es el piso de un ejercicio). Efecto medido: el bíceps con 0 series directas a los 3 días vuelve de 65 a 50 de 90 perfiles (los 50 ya existían en `main`: los causa el recorte del tope E4, no esta regla). Costo: un perfil más necesita aceptación a los 3 días (56 → 57).
+
+### Regla
+- **Nivel y respaldo:** E4, convención de la app (`convention: true`, `reviewRequired`). Respaldo **parcial**: Spiering et al. 2021 (revisión narrativa, PMID 33629972; solo se leyó el resumen), que respalda el concepto de mantener con poco volumen si se conserva la intensidad, no la cifra. El objetivo de 10 series del ACSM (DEC-016) sigue como aviso.
+- **Quién:** los grupos chicos. Los mayores llegan a su piso con `completeToFloor` (DEC-017), que corre antes.
+- **Cómo (`ensureGroupMinimum` en `engine.js`, después del recorte E4 y del completado de DEC-017):** para cada grupo chico bajo 5, el de mayor déficit primero:
+  1. se agregan series en una sesión **compatible con el grupo** (la misma tabla de compatibilidad por día de DEC-003 v2) que tenga espacio bajo el techo: primero series extra de un ejercicio directo que ya está en la sesión; si no, un ejercicio nuevo de 2 series del catálogo ya filtrado por lesiones;
+  2. si ninguna sesión tiene espacio, **las series se sacan de aislamientos de la misma sesión**, empezando por el **grupo con más volumen fraccionado acumulado** (contando el indirecto). **Nunca de un multiarticular;**
+  3. **Nunca se baja a un grupo de su propio mínimo o piso, ni se le quita su último ejercicio directo de la semana:** los mayores conservan su piso (10, o 5 si son "down", DEC-017) en series fraccionadas **y** en series reales (la garantía de DEC-014), un grupo mayor no desaparece de una sesión (frecuencia semanal, R2) y un grupo chico no baja de 5 ni de lo que ya ganó en esta misma pasada (así no hay ciclos). Una donación nunca deja a un grupo sin avance neto;
+  4. si tampoco se puede, el grupo queda como está y se avisa.
+- **Techo:** sin aceptación, el tope de 25. **Con la aceptación explícita vigente (DEC-016), el máximo que el usuario aceptó** (nunca más). La sesión solo puede pasarse del tope con esa aceptación; el máximo propuesto para aceptar sigue siendo la sesión más larga sin recortar, y un barrido comprueba que aceptarlo cumple el mínimo en todos los casos que no cabían.
+- **R1:** no lleva a ningún músculo por encima de 11 fraccionadas por sesión.
+- **Avisos** (todos con `evidence: 'E4'`): `minimo_grupo` (qué se agregó y de dónde salió), `minimo_no_cabe` (el mínimo no cabe dentro del tope; ofrece aceptar sesiones más largas y cambiar de split; con aceptación vigente solo cambiar de split) y `minimo_sin_ejercicios` (el grupo sin ejercicios posibles por lesión). La interfaz suma la tarjeta "Mínimo semanal por grupo" con el botón de aceptar. `plan.training.sessionLimit.minimum` = `{ value, level, limit, groups, filled }`.
+- **Endurecimiento asociado:** si las exclusiones por lesión dejan a un grupo sin ejercicios, el generador ya no falla: ese grupo queda sin series (`weeklySets` = 0).
+
+### Resultado en los 10 perfiles de referencia (sin aceptación; antes = `main` `bfef2ae`)
+Series y minutos por sesión; los grupos chicos en series fraccionadas semanales (abdomen · pantorrillas · bíceps · tríceps). "Igual" = el plan no cambia.
+
+| Perfil | Series por sesión | Minutos por sesión | Grupos chicos (antes → después) |
+| --- | --- | --- | --- |
+| oscar_cut_classic_5d | 25/20/23/22/19, igual | 72/72/55/53/70, igual | 7 · 7 · 13 · 14,5, igual |
+| novice_bulk_physique_4d | 25/9/24/6 → 25/11/24/11 | 70/29/59/24 → 70/33/59/34 | 0 · 4 · 9 · 11 → 5 · 6 · 9 · 11 |
+| wellness_maintain_5d | 21/25/15/15/25, igual | 58/92/36/35/92, igual | 8 · 8 · 9,5 · 8,5, igual |
+| general_cut_3d | 25/24/26 → 25/25/26 | 76/80/88 → 76/82/88 | 0 · 2 · 8 · 11,5 → **2 · 2** · 8 · 11,5 |
+| bb_bulk_advanced_6d | 25/25/26/25/25/25, igual | 69/65/98/64/58/96, igual | 11 · 9 · 19 · 21, igual |
+| bikini_cut_lagging_4d | 25/19/25/17 → 25/19/25/19 | 67/70/60/49 → 67/70/60/53 | 4 · 5 · 8,5 · 9 → 6 · 5 · 8,5 · 9 |
+| emanuel_legs_cut_4d | 24/24/24/21 → 25/25/25/25 | 67/87/61/75 → 69/89/63/83 | 0 · 2 · 8,5 · 12 → 6 · 5 · 8,5 · 12 |
+| figure_maintain_novice_3d | 25/25/25, igual | 75/81/85 → 75/81/83 | 0 · 2 · 8 · 12 → **4 · 2** · 8 · 10 |
+| physique_cut_adv_lag_5d | 25/12/24/25/12, igual | 82/40/57/61/47, igual | 6 · 7 · 10,5 · 18, igual |
+| physique_w_bulk_6d | 20/22/23/20/20/23, igual | 58/55/81/49/46/85, igual | 8 · 8 · 15 · 16,5, igual |
+
+Los dos perfiles de 3 días (**en negrita**) no llegan al mínimo dentro de 25: quedan más cerca (de 0 a 2 o 4, y pantorrillas en 2) y el plan avisa. En estos 10 perfiles las sesiones de más de 90 minutos son las mismas que antes (wellness_maintain_5d 92 y 92; bb_bulk_advanced_6d 98 y 96). En el barrido de 90 perfiles hay un caso nuevo: avanzado, en déficit, `bikini_w`, 4 días y sin rezagados, cuyo "Día 2 · Pierna A" pasa de 89 a 91 minutos (24 a 25 series). DEC-017 limita las series (25), no los minutos, así que no lo viola, pero conviene saberlo (B-010).
+
+Barrido de 90 perfiles (3 niveles × 3 objetivos × 5 divisiones × con y sin rezagados) por split:
+
+| Split | Abdomen bajo 5 | Pantorrillas bajo 5 | Perfiles que necesitan aceptación | Con la aceptación |
+| --- | --- | --- | --- | --- |
+| 3 días | 83 → 51 | 76 → 57 | **57 de 90 (63 %)** | cumplen los 57; ninguna sesión pasa del máximo aceptado |
+| 4 días | 70 → 0 | 62 → 0 | 0 | — |
+| 5 días | 14 → 0 | 8 → 0 | 0 | — |
+| 6 días | 0 → 0 | 0 → 0 | 0 | — |
+
+Grupos en 0 series reales: abdomen y pantorrillas, de 69 y 57 perfiles de 3 días a 16 y 28 (y a 0 en 4, 5 y 6 días). Los que quedan en 0 a los 3 días son planes de énfasis en piernas, de nivel avanzado, hechos casi solo de multiarticulares, con sesiones ya de 30 a 40 series: no hay de dónde sacar sin tocar un multiarticular.
+
+### Costos y alternativas (para decidir)
+- **A los 3 días, 57 de 90 perfiles piden la aceptación explícita (63 %).** Mi estimación previa era de ~15 de 90: era demasiado optimista. La causa es la garantía de series reales de los grupos mayores (DEC-014) y la de frecuencia; **Emanuel decidió conservarla (decisión 5).** Sin proteger las series reales de los mayores serían unos 37 de 90, pero un grupo mayor podría quedar con menos de 10 series reales aunque sume 10 fraccionadas (por ejemplo, hombros con 7).
+- **Causa de fondo:** el tope de 25 series cuenta igual una serie de pantorrilla que una de sentadilla, y por eso genera tantas aceptaciones. Evaluar un tope por duración estimada está en el backlog como propuesto (B-028).
+- **El bíceps puede quedar sin series directas** y cumplir el mínimo con lo que le aportan los remos: 50 de 90 perfiles de 3 días y 34 de 90 de 4 días, **igual que en `main`**. Con la restricción de no quitar el último ejercicio directo (decisión 6) la regla no agrega casos (antes de la restricción eran 65 a los 3 días); esos 50 y 34 vienen del recorte del tope E4 (DEC-014) y de contar el indirecto (2-A). Exigir al menos un ejercicio directo queda fuera de alcance.
+- **Quien ya aceptó sesiones más largas verá cambiar su plan al actualizar:** con la aceptación vigente el mínimo también sube las series de los grupos chicos que estén bajo 5, hasta el máximo que aceptó (nunca más). En el barrido, ninguna sesión pasó de lo que ya tenía ni alargó su duración con aceptación. La app no avisa de este cambio en la actualización (B-029).
+- **Límites conocidos de la cobertura:** el techo con aceptación vigente (`max(25, máximo aceptado)`), el filtro de compatibilidad por día y el límite de R1 dentro de `ensureGroupMinimum` no cambian ningún plan del barrido de 720 (90 perfiles × 4 splits × con y sin aceptación), así que ningún test los distingue: son protecciones. Aparte, 13 sesiones con aceptación vigente ya superaban el máximo aceptado antes de este PR (viene de `main`, no lo causa esta regla).
+- **Las sesiones pueden quedar con otra composición:** el mínimo mueve series de aislamiento (a veces enteras, un ejercicio de 2 series) hacia abdomen y pantorrillas.
+- El mínimo no es una cifra del estudio; se etiqueta convención.
+
+### Pruebas
+- Unitarias y de barrido en `engine.test.js`: la regla es derivada y está implementada; **4 días** con los 90 perfiles (ningún grupo bajo 5 ni en 0, sin aceptación, dentro del tope, sin bajar a los mayores de su piso ni de lo que tenían sin tope); 5 y 6 días; **3 días**: o cabe o hay aviso exacto del grupo, con aceptación siempre se cumple y no se pasa de lo aceptado; **caso de aceptación** (full body, 3 días, lesión de hombro autorizada) sigue dentro de E4 y sin press de hombro; **caso donde el mínimo no cabe** (advanced / bulk / wellness_w de 3 días, casi todo multiarticulares) que dispara la aceptación y la resuelve; planes que ya cumplían (5 perfiles de referencia) sin cambios; donante = el grupo con más volumen acumulado; nadie baja de su propio mínimo (sin donantes la sesión no cambia, y con techo mayor sí cabe sin sacar nada); DEC-011 (grupo sin ejercicios posibles, y exclusión por tobillo respetada); avisos con E4 y sin R1 nuevos.
+- E2E en navegador: la tarjeta "Mínimo semanal por grupo" aparece a los 3 días sin aceptación, ofrece aceptar y desaparece al aceptar.
+- Pruebas de mutación (las del autor, sobre el motor; sin la restricción del último ejercicio directo fallan 2 tests nuevos): apagar la regla hace fallar 14 tests; techo infinito, 16; donar sin proteger el mínimo del donante, 6; elegir al donante con menos volumen, 3 (2 son las referencias, 1 es la regla); ignorar la exclusión por lesión, 1. El revisor, con mutaciones propias en una copia, midió 16 (regla apagada), 12 (techo infinito), 12 (permitir donar multiarticulares), 6 (sin proteger las series reales de los mayores) y 10 (mínimo de 4 en vez de 5). Quitar la garantía de frecuencia no hacía fallar nada; se agregó un test ("un grupo mayor no desaparece de una sesión").
+- **Referencias actualizadas a propósito** (la salida del plan cambió): `plan-hashes.json` (30 planes) y `despues_dec020` en `dec016-referencia.json` y `dec017-referencia.json`; los tests de DEC-016 (pecho y espalda de los splits genéricos, texto del aviso) y de DEC-017 (series y minutos por perfil, tres perfiles de ejemplo) leen los valores vigentes, y el test de "la regla no quita series" pasó a "no pasa del tope". Se conservan los valores históricos (`despues`) de DEC-017. `sw.js` pasa a la caché v13.
+
+### Fuera de alcance
+Los pesos o niveles de las relaciones; relajar la garantía de series reales de los grupos mayores (alternativa de arriba); un mínimo directo (exigir al menos un ejercicio directo); tocar el tope de 25.
+
+**Estado: implementada.**
+

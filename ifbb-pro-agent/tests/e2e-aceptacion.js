@@ -25,6 +25,16 @@ const ok = (c, m) => { if (!c) { console.error('FALLA:', m); process.exitCode = 
   ok(await page.locator('text=hasta 35 series por sesión').count() === 1, 'dice el máximo aceptado');
   ok(await page.locator('[data-accept-long]').count() === 0, 'sin botón de aceptar mientras vale');
   ok(await page.locator('[data-change-split]').count() === 1, 'grupos chicos bajo el mínimo: ofrece cambiar de split (hay aviso)');
+  // DEC-020: sin aceptación, en 3 días el mínimo semanal de los grupos chicos no cabe dentro de 25; la tarjeta lo dice y aceptar lo resuelve.
+  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 0, 'con la aceptación vigente no hay tarjeta de mínimo que no cabe');
+  await page.locator('[data-revoke-long]').first().click();
+  d = await stored(); ok(d.longSessionAcceptance === null, 'revertir quita la aceptación (3 días)');
+  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 1, 'sin aceptación, 3 días: la tarjeta avisa que el mínimo no cabe');
+  ok(await page.locator('text=No cabe dentro del tope de 25 series por sesión').count() === 1, 'la tarjeta dice que no cabe dentro del tope');
+  ok(await page.locator('.card:has(h3:has-text("Mínimo semanal por grupo")) [data-accept-long]').count() === 1, 'la tarjeta ofrece aceptar sesiones más largas');
+  await page.locator('.card:has(h3:has-text("Mínimo semanal por grupo")) [data-accept-long]').click();
+  d = await stored(); ok(d.longSessionAcceptance && d.longSessionAcceptance.maxSets === 35, 'aceptar guarda el máximo (35) y el mínimo pasa a cumplirse');
+  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 0, 'con la aceptación la tarjeta desaparece');
   // Editar el perfil: 3 → 4 días. La firma cambia y la aceptación deja de valer.
   await page.click('[data-tab=profiles]'); await page.click('#btn-edit');
   await page.selectOption('select[name=daysPerWeek]', '4');
