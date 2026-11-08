@@ -843,7 +843,7 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 
 ### Decisión
 1. **Durante el año de prueba, la retrocompatibilidad de datos no es requisito.** El formato del almacenamiento y del plan puede cambiar sin migración. El año de prueba dura hasta que Emanuel lo cierre por escrito (DEC o `docs/VISION.md`).
-2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie.
+2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie. **Reemplazado por DEC-030 (Aceptado el 2026-11-08):** el reset del corte es completo y sin exportación; `scripts/exportar-historial.js` se eliminó.
 3. **El código que una decisión deja muerto se elimina en el mismo PR** que la implementa: migraciones, campos legados, caminos que ya nadie recorre, datos y tests que solo ejercitaban ese código. Un test de comportamiento se conserva; un test que solo fija un detalle interno del código eliminado se elimina con él. Quien revisa el PR comprueba que no queda nada muerto.
 
 ### Qué no cambia
@@ -1013,6 +1013,26 @@ Contexto: la vista previa del paso 2 (`docs/research/vista-previa-reparto.md`) m
 
 ### Qué no cambia
 R1 sigue siendo restricción (DEC-025), el top set va al patrón principal (DEC-028), el conteo fraccionado y los pisos de DEC-014, DEC-017 y DEC-020.
+
+**Estado: Aceptado por Emanuel el 2026-11-08.**
+
+## DEC-030 · El reset del corte es completo y sin exportación del historial
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel con un comentario en el PR #44 (https://github.com/Posio07/Training-Agent/pull/44#issuecomment-6723923228: "acepto DEC-030 y DEC-031 - Emanuel").
+
+Contexto: DEC-023 (punto 2) exige exportar el historial completo con `scripts/exportar-historial.js` antes de cada reset de datos, y la spec del núcleo v2 (B-039) incluía un paso de exportación validado contra los conteos de la app. Emanuel lleva su propio registro de entrenamiento fuera de la app, así que la exportación no le sirve y el script se vuelve código muerto.
+
+### Decisión (propuesta)
+1. **Se reemplaza el punto 2 de DEC-023:** ya no se exige exportar el historial antes de un reset. **El reset del corte al núcleo nuevo es completo, sin exportación**, y los perfiles se recrean después del corte.
+2. **Se elimina `scripts/exportar-historial.js` y sus tests** (código muerto, DEC-023 punto 3). Se quita el paso de exportación validada de B-039 y de la spec del núcleo v2, y se actualizan `CLAUDE.md` y la checklist del revisor.
+3. **Qué sigue igual:** DEC-023 puntos 1 (sin retrocompatibilidad de datos durante el año de prueba) y 3 (el código muerto sale en el mismo PR). El botón "Exportar JSON" de cada perfil en la app es otra función y no cambia. **DEC-009 (privacidad) no cambia:** la salud y el dolor por serie siguen sin salir del dispositivo.
+
+### Alternativas
+- **A. Mantener la exportación obligatoria (DEC-023 tal cual).** Costo: una herramienta y un paso de validación que Emanuel no usa.
+- **B. Recomendada (la que pidió Emanuel): reset completo sin exportación.** Revierte de forma explícita la Alternativa C que DEC-023 había descartado ("el historial es el único dato que no se puede regenerar"): el argumento deja de valer porque Emanuel lleva su propio registro fuera de la app (afirmación de Emanuel, que el repo no puede verificar). Costo: el historial que vive solo en la app se pierde en el corte; Emanuel acepta ese riesgo. Quien use la app más adelante (versión pública) tendría que decidir otra vez.
+- **C. Exportación opcional.** Costo: mantener el script y sus tests sin que nadie los use.
+
+### Qué no cambia
+DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. La nota "reemplazado por DEC-030" se agregó al punto 2 de DEC-023 al aceptarse este DEC (pedido de Emanuel).
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
