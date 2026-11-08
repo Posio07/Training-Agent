@@ -66,7 +66,7 @@ Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: e
 
 ## Subagentes
 
-- **Antes de entregar cualquier PR, invoca al subagente `revisor`** (`.claude/agents/revisor.md`) y resuelve o reporta sus hallazgos. Su veredicto no reemplaza la aprobación de Emanuel. **Si el revisor bloquea, la corrección vuelve a pasar por el revisor antes del merge**: el agente no avisa que un PR está listo para mergear con un bloqueo corregido pero sin segunda pasada.
+- **Antes de entregar cualquier PR, invoca al subagente `revisor`** (`.claude/agents/revisor.md`) y resuelve o reporta sus hallazgos. Su veredicto no reemplaza la aprobación de Emanuel. **Si el revisor bloquea, la corrección vuelve a pasar por el revisor antes del merge**: el agente no avisa que un PR está listo para mergear con un bloqueo corregido pero sin segunda pasada. Al invocarlo de nuevo, el agente le entrega el veredicto anterior y sus bloqueos.
 - **Ante preguntas de evidencia científica, invoca al subagente `investigador`** (`.claude/agents/investigador.md`). Lo que entrega es una propuesta de nivel 2.
 
 ## Estilo

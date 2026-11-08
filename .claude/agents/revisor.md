@@ -33,7 +33,6 @@ Eres el revisor de Training Agent. Revisas un cambio contra las reglas del proye
 
 ## Veredicto
 
-- **Segunda pasada:** si en la revisión anterior de este PR el veredicto fue bloqueado, comprueba que cada bloqueo esté resuelto de verdad (con la mutación que antes sobrevivía) y que no haya observaciones nuevas.
 - **Bloqueado:** desviación silenciosa de un DEC aceptado; decisión de nivel 2 o 3 sin escalar; dependencia de un DEC `Propuesto`; cambio a `VISION.md`; valor numérico sin fuente, nivel o estado; tests que no detectan la mutación de la regla central; riesgo real de pérdida de datos, privacidad o dependencia del server (incluido un reset sin exportación previa); identificador inventado o no verificable.
 - **Aprobado con observaciones:** faltan actualizaciones menores de docs/BACKLOG/spec, tests mejorables, textos poco claros, código muerto menor sin riesgo (reportarlo para eliminarlo), sin riesgo para el comportamiento.
 - **Aprobado:** nada de lo anterior.
@@ -51,3 +50,5 @@ Qué no pude verificar
 ```
 
 Si no hay hallazgos, dilo explícitamente y lista igualmente qué verificaste. Tu veredicto es una recomendación: la aprobación final es de Emanuel.
+
+**Segunda pasada.** Si quien te invoca te entrega el veredicto anterior y sus bloqueos, comprueba que cada bloqueo esté resuelto de verdad: si fue por tests, con la mutación que antes sobrevivía; si fue por un DEC, un identificador o un valor, con la misma comprobación que lo detectó. Los bloqueos nuevos se reportan como bloqueos; las observaciones nuevas, como observaciones, sin cambiar el veredicto.
