@@ -223,7 +223,7 @@
       if (tieneDirecto(m)) return;
       let mejorOpcion = null;
       [false, true].forEach(permitir => {
-      if (mejorOpcion) return;
+        if (mejorOpcion) return;
         sesiones.forEach(ses => {
           if (!ses.spec.grupos.includes(m)) return;
           if (GRUPOS_CHICOS.includes(m) && !diasGrupo[m].has(ses.indice) && diasGrupo[m].size >= valor('MAX_DIAS_GRUPO_CHICO')) return;
@@ -236,7 +236,7 @@
             if (!mejorOpcion || mayor(clave, mejorOpcion.clave)) mejorOpcion = { ses, v, clave, excede: Object.keys(w).filter(x => (ses.frac[x] || 0) + w[x] * minDirecto > R1 + EPS) };
           });
         });
-        });
+      });
       if (mejorOpcion) {
         if (mejorOpcion.excede.length) avisos.r1Excedido.push({ sesion: mejorOpcion.ses.nombre, varianteId: mejorOpcion.v.id, musculos: mejorOpcion.excede.map(x => ({ musculo: x, cubiertoAntes: Math.round(cubierto[x] * 100) / 100, piso: dem[x].piso, directasAntes: directas[x] })), motivo: 'una demanda mínima gana sobre R1 (DEC-025)' });
         agregar(mejorOpcion.ses, mejorOpcion.v, minDirecto, false);
