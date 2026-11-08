@@ -69,6 +69,21 @@ test('con poco tiempo el funcional no entra y el aviso lo dice, y la sesión nun
   justo.sesiones.forEach(s => assert.ok(s.minutos <= s.capacidadMin + 1e-9));
 });
 
+test('los funcionales respetan las lesiones: con cadera, rodilla o tobillo no entra la búlgara con mancuernas; el step-up y el paseo siguen', () => {
+  const ids = z => R.generarPlan(base({ healthGoal: true, injuryZones: z })).sesiones.flatMap(s => s.ejercicios.map(e => e.varianteId));
+  assert.ok(ids([]).includes('functional.bulgarian_db'));
+  ['hip', 'knee', 'ankle'].forEach(z => {
+    const x = ids([z]);
+    assert.ok(!x.includes('functional.bulgarian_db'), z);
+    assert.ok(x.includes('functional.step_up') || x.includes('functional.farmer_carry'), z);
+  });
+});
+
+test('con tobillo lesionado en 3 días de cuerpo completo no hay búlgara y el paseo del granjero sigue', () => {
+  const x = R.generarPlan(base({ daysPerWeek: 3, healthGoal: true, injuryZones: ['ankle'] })).sesiones.flatMap(s => s.ejercicios.map(e => e.varianteId));
+  assert.ok(x.includes('functional.farmer_carry') && !x.includes('functional.bulgarian_db'));
+});
+
 /* ---------- Cardio ---------- */
 
 test('cardio: en definición con la bandera son 3 × 50 = 150 min (el piso de la OMS) y cumple; sin la bandera no', () => {
