@@ -452,7 +452,7 @@
     const body = $('#plan-body');
     if (ui.planTab === 'summary') { body.innerHTML = htmlSummary(plan, p); wireCounts(body, 'summary:' + p.id); }
     else if (ui.planTab === 'nutrition') body.innerHTML = htmlNutrition(plan);
-    else if (ui.planTab === 'training') body.innerHTML = htmlTraining(plan);
+    else if (ui.planTab === 'training') body.innerHTML = htmlTraining(plan, p);
     else if (ui.planTab === 'targets') body.innerHTML = htmlTargets(plan);
     else body.innerHTML = htmlSupps(plan);
     const share = $('#btn-share');
@@ -662,11 +662,12 @@
     return out;
   }
 
-  function htmlTraining(plan) {
+  function htmlTraining(plan, profile) {
     const tr = plan.training, t = plan.targets;
     const setsRows = Object.entries(tr.weeklySets).map(([mu, s]) => `<tr><td>${esc(KNOWLEDGE.MUSCLE_LABELS[mu])}${tr.laggingApplied[mu] ? ' <span class="cite" title="Grupo rezagado: +25 % de series, anula el énfasis de la división">rezagado</span>' : ''}</td><td class="num">${s}</td></tr>`).join('');
-    // "Día actual": lunes = sesión 0, se repite cada semana según los días del split.
-    const todayIdx = ((new Date().getDay() + 6) % 7) % tr.daysPerWeek;
+    // "Siguiente": el día que sigue a la última sesión registrada del perfil, en el orden del split (no depende
+    // de la fecha); sin sesiones registradas, el Día 1. Si cambia el split, vuelve al Día 1.
+    const nextIdx = SS.siguienteDia((profile && profile.workouts) || [], (profile && profile.sessions) || [], tr.sessions.map(s => s.name));
     return `
       <div class="card accent">
         <h2>Entrenamiento · ${esc(tr.splitName)}</h2>
@@ -680,7 +681,7 @@
         <div class="src">Fuentes: ${cite(tr.sources)}</div>
       </div>
       ${htmlSessionLimit(tr.sessionLimit)}
-      ${tr.sessions.map((s, i) => htmlSessionCard(s, i, i === todayIdx)).join('')}
+      ${tr.sessions.map((s, i) => htmlSessionCard(s, i, i === nextIdx)).join('')}
       <div class="card">
         <h3>Cardio</h3>
         <p><b>${tr.cardio.sessions} sesiones × ${tr.cardio.minutes} min</b> · ${esc(tr.cardio.type)}</p>
@@ -728,8 +729,8 @@
     return `<div class="ex-group">${htmlExRow(e, e.type === 'compound' ? 'type-compound' : 'type-isolation', e.name, e.reps, e.sets, false)}</div>`;
   }
 
-  function htmlSessionCard(s, i, isToday) {
-    const open = isToday;
+  function htmlSessionCard(s, i, isNext) {
+    const open = isNext;
     // Composición del día por tipo de serie: el top set de cada ejercicio
     // con top set cuenta como 1 (rojo); el resto de sus series (back-off)
     // y las series de los ejercicios sin top set cuentan como azul
@@ -745,7 +746,7 @@
     return `<div class="session">
       <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${open}" aria-controls="day-body-${i}">
         <div class="session-head-main">
-          <h4>${esc(s.name)}${isToday ? ' <span class="day-tag">hoy</span>' : ''}</h4>
+          <h4>${esc(s.name)}${isNext ? ' <span class="day-tag">Siguiente</span>' : ''}</h4>
           <div class="session-metrics">
             <span class="metric"><b>${s.totalSets}</b> series</span>
             <span class="metric">${icon('clock')} ~${s.durationMin} min</span>

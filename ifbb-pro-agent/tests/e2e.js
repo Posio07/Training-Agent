@@ -63,7 +63,11 @@ const server = http.createServer((req, res) => {
   const training = await page.$$eval('[data-toggle-day]', els => els.length);
   if (training !== 5) throw new Error(`expected 5 training days, got ${training}`);
 
-  // Modo sesión (Fase 4): abrir el día de hoy, registrar una serie, saltar
+  // Indicador "Siguiente" (orden del split, no la fecha): sin sesiones registradas marca el Día 1 y es el único.
+  const tagsAntes = await page.$$eval('.day-tag', els => els.map(e => e.closest('.session').querySelector('[data-toggle-day]').dataset.toggleDay + ':' + e.textContent.trim()));
+  if (tagsAntes.join() !== '0:Siguiente') throw new Error('sin sesiones, "Siguiente" debía marcar solo el Día 1: ' + tagsAntes.join());
+
+  // Modo sesión (Fase 4): abrir el día marcado, registrar una serie, saltar
   // el descanso, terminar temprano y verificar el resumen + el guardado.
   await page.waitForSelector('.session-body:not([inert]) [data-start-session]');
   await page.click('.session-body:not([inert]) [data-start-session]');
@@ -87,10 +91,16 @@ const server = http.createServer((req, res) => {
   await page.click('#sm-back-to-plan');
   await page.waitForSelector('#session-mode-root', { state: 'detached' });
   await page.waitForSelector('.subtabs');
+  // Con el Día 1 registrado (aunque haya terminado temprano), "Siguiente" pasa al Día 2.
+  await page.click('[data-pt=training]');
+  const tagsDespues = await page.$$eval('.day-tag', els => els.map(e => e.closest('.session').querySelector('[data-toggle-day]').dataset.toggleDay + ':' + e.textContent.trim()));
+  if (tagsDespues.join() !== '1:Siguiente') throw new Error('tras registrar el Día 1, "Siguiente" debía marcar solo el Día 2: ' + tagsDespues.join());
+  // Elegir otro día a mano: se abre el Día 1 y se empieza ese (la segunda sesión necesita el mismo ejercicio).
+  await page.click('[data-toggle-day="0"]');
 
   // Fase 5: segunda sesión del mismo ejercicio ya con un "última vez" real
   // -> la barra cargada debe dibujar discos en vez del aviso "sin historial".
-  await page.click('.session-body:not([inert]) [data-start-session]');
+  await page.click('#day-body-0 [data-start-session]');
   await page.waitForSelector('.session-mode');
   // Solo logueamos el top set en la sesión anterior, así que el back-off
   // puede seguir sin historial propio: lo que importa es que el top set

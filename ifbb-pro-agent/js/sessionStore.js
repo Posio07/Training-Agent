@@ -224,6 +224,36 @@
     }).sort((a, b) => (b.date.localeCompare(a.date)) || (b.startedAt - a.startedAt));
   }
 
+  // Día que sigue en el split (indicador "Siguiente"). Cuenta el ORDEN de las sesiones, no el reloj (T5b de la
+  // spec del núcleo v2): marca el día que sigue a la última sesión registrada y, después del último día, vuelve al
+  // Día 1. Una sesión registrada aunque esté incompleta cuenta como hecha (basta una serie, o su entrada en
+  // `sessions`). `workouts` y `sessions` son los del perfil, así que el cálculo es por perfil. `dayNames` son los
+  // nombres de las sesiones del plan actual: el nombre incluye el número y el tipo del día y es distinto en cada
+  // split (3, 4, 5 y 6 días), así que si el nombre guardado ya no coincide con el del plan actual, el split cambió
+  // y se vuelve al Día 1. Sin sesiones registradas marca el Día 1.
+  function siguienteDia(workouts, sessions, dayNames) {
+    if (!Array.isArray(dayNames) || !dayNames.length) return 0;
+    const porId = {};
+    (workouts || []).forEach(w => {
+      const t = w.editedAt || w.savedAt || Date.parse(w.date) || 0;
+      const x = porId[w.sessionId] || (porId[w.sessionId] = { dayIndex: w.dayIndex, dayName: w.dayName, date: w.date || '', t: 0 });
+      if (t >= x.t) { x.t = t; }
+    });
+    (sessions || []).forEach(m => {
+      const x = porId[m.sessionId] || (porId[m.sessionId] = { t: 0 });
+      x.dayIndex = m.dayIndex; x.dayName = m.dayName; x.date = m.date || x.date || '';
+      x.t = Math.max(x.t, m.finishedAt || m.startedAt || 0);
+    });
+    let ultima = null;
+    Object.keys(porId).forEach(id => {
+      const x = porId[id];
+      if (!Number.isInteger(x.dayIndex)) return;
+      if (!ultima || (x.date || '').localeCompare(ultima.date || '') > 0 || ((x.date || '') === (ultima.date || '') && x.t >= ultima.t)) ultima = x;
+    });
+    if (!ultima || dayNames[ultima.dayIndex] !== ultima.dayName) return 0;
+    return (ultima.dayIndex + 1) % dayNames.length;
+  }
+
   /* ---------- Cronómetro de descanso (DEC-015, Paso 3) ----------
    * El descanso se guarda como un TIMESTAMP DE FIN (`endAt` = ahora + duración), no como un número que
    * se resta en cada tick: lo que falta se recalcula siempre como `endAt - ahora`, así que no importa
@@ -249,5 +279,5 @@
   // Cuántas series ya tiene hechas una sesión (para el texto de "Reanudar").
   const progress = rec => ({ done: rec.values.flat().filter(v => v.done).length, total: rec.values.flat().length });
 
-  return { startRest, restRemaining, extendRest, clearRest, STORAGE_KEY, VERSION, STATUS, setKey, validateSetValues, editActiveSet, deleteActiveSet, syncRow, removeRow, rowId, editRow, deleteRow, listSessions, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
+  return { startRest, restRemaining, extendRest, clearRest, STORAGE_KEY, VERSION, STATUS, setKey, validateSetValues, editActiveSet, deleteActiveSet, syncRow, removeRow, rowId, editRow, deleteRow, listSessions, siguienteDia, newSession, isValid, loadActive, peekCorrupt, saveActive, clearActive, upsertWorkout, workoutRow, markDone, reconcile, complete, discard, progress };
 });
