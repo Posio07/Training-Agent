@@ -1057,3 +1057,24 @@ La necesidad semanal, R1, los pisos y el volumen total: el traspaso mueve series
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
+## DEC-032 · El reset del corte cambia la clave de almacenamiento y conserva los datos viejos dos semanas
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (precisa una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **Efecto desde el corte al núcleo nuevo**, no antes.
+
+Contexto: DEC-030 dice que el reset del corte es completo y sin exportación. Emanuel pidió que "completo" se implemente cambiando la clave de almacenamiento sin borrar los datos viejos, para poder volver atrás si el núcleo nuevo falla.
+
+### Decisión (propuesta)
+1. **El reset del corte cambia la clave de almacenamiento.** La app nueva no lee los datos viejos: arranca vacía, y los perfiles se recrean (DEC-030). No hay migración (DEC-023).
+2. **Los datos viejos no se borran durante dos semanas.** Quedan en el dispositivo, ignorados, como vía de vuelta atrás: revertir el PR del corte devuelve la app vieja con sus datos.
+3. **Pasado ese plazo, un PR aparte borra los datos viejos** (B-046).
+4. DEC-030 sigue valiendo: no hay exportación ni importación de los datos viejos.
+
+### Alternativas
+- **A. Borrar los datos en el corte (lectura estricta de DEC-030).** Costo: sin vuelta atrás si el núcleo nuevo falla.
+- **B. Recomendada (la que pidió Emanuel): cambiar la clave y conservar dos semanas.** Costo: dos semanas con datos de salud y de entrenamiento viejos guardados sin usar en el dispositivo (la misma privacidad de hoy: no salen del dispositivo, DEC-009) y un PR de limpieza después.
+- **C. Conservarlos sin plazo.** Costo: datos huérfanos para siempre.
+
+### Qué no cambia
+DEC-030 (sin exportación), DEC-023 (sin migraciones), DEC-009 (privacidad).
+
+**Estado: Propuesto.**
+

@@ -129,9 +129,11 @@ Desde el corte también quedan reemplazadas la cláusula del tope de 25 series d
 **Pasos del corte, en orden**
 
 1. Terminar o descartar la sesión en curso.
-2. Mergear el PR del corte, que conecta `core-v2` a la interfaz y borra el motor viejo y su código muerto.
-3. Resetear los datos por completo, sin exportación (DEC-030): Emanuel lleva su propio registro fuera de la app.
+2. Mergear el PR del corte, que es **mecánico (sin lógica nueva)**: conecta `core-v2` a la app, borra el motor viejo de entrenamiento y su código muerto, y cambia la clave del almacenamiento.
+3. **Reset: la clave de almacenamiento cambia y los datos viejos no se borran** (DEC-032): quedan ignorados durante dos semanas como vía de vuelta atrás (revertir el PR del corte devuelve la app vieja con sus datos). Pasado ese plazo, un PR aparte los borra (B-046). Sin exportación (DEC-030): Emanuel lleva su propio registro fuera de la app.
 4. Recrear los perfiles después del corte, con los campos nuevos.
+
+**Qué queda y qué se va en el corte.** La nutrición, las métricas y el tamizaje de salud se quedan en `engine.js`; reorganizar ese archivo es un ítem aparte para después del corte (B-047). Todo lo que haya que reescribir de `app.js` se hace **antes del corte**, en el PR de pantallas, y se prueba en una página de prueba bajo `ifbb-pro-agent/tests/`; esa página **se borra en el corte** y las pruebas de punta a punta pasan a correr sobre la app real.
 
 **Estrategia de construcción (decidida por Emanuel el 2026-11-08).** Reemplaza la idea de una rama larga con un solo PR:
 
