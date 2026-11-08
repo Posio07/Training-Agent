@@ -129,10 +129,9 @@ Desde el corte también quedan reemplazadas la cláusula del tope de 25 series d
 **Pasos del corte, en orden**
 
 1. Terminar o descartar la sesión en curso.
-2. Exportar el historial de los dos perfiles con `scripts/exportar-historial.js` y validar que la cantidad de sesiones y series exportadas sea igual a la que muestra la app. Sin esta validación no hay reset.
-3. Archivar la exportación fuera de la app.
-4. Mergear el PR del corte, que conecta `core-v2` a la interfaz y borra el motor viejo y su código muerto.
-5. Resetear los datos y crear los perfiles de nuevo, con los campos nuevos.
+2. Mergear el PR del corte, que conecta `core-v2` a la interfaz y borra el motor viejo y su código muerto.
+3. Resetear los datos por completo, sin exportación (DEC-030): Emanuel lleva su propio registro fuera de la app.
+4. Recrear los perfiles después del corte, con los campos nuevos.
 
 **Estrategia de construcción (decidida por Emanuel el 2026-11-08).** Reemplaza la idea de una rama larga con un solo PR:
 

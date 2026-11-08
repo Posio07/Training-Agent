@@ -1016,3 +1016,23 @@ R1 sigue siendo restricción (DEC-025), el top set va al patrón principal (DEC-
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
+## DEC-030 · El reset del corte es completo y sin exportación del historial
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR.
+
+Contexto: DEC-023 (punto 2) exige exportar el historial completo con `scripts/exportar-historial.js` antes de cada reset de datos, y la spec del núcleo v2 (B-039) incluía un paso de exportación validado contra los conteos de la app. Emanuel lleva su propio registro de entrenamiento fuera de la app, así que la exportación no le sirve y el script se vuelve código muerto.
+
+### Decisión (propuesta)
+1. **Se reemplaza el punto 2 de DEC-023:** ya no se exige exportar el historial antes de un reset. **El reset del corte al núcleo nuevo es completo, sin exportación**, y los perfiles se recrean después del corte.
+2. **Se elimina `scripts/exportar-historial.js` y sus tests** (código muerto, DEC-023 punto 3). Se quita el paso de exportación validada de B-039 y de la spec del núcleo v2, y se actualizan `CLAUDE.md` y la checklist del revisor.
+3. **Qué sigue igual:** DEC-023 puntos 1 (sin retrocompatibilidad de datos durante el año de prueba) y 3 (el código muerto sale en el mismo PR). El botón "Exportar JSON" de cada perfil en la app es otra función y no cambia. **DEC-009 (privacidad) no cambia:** la salud y el dolor por serie siguen sin salir del dispositivo.
+
+### Alternativas
+- **A. Mantener la exportación obligatoria (DEC-023 tal cual).** Costo: una herramienta y un paso de validación que Emanuel no usa.
+- **B. Recomendada (la que pidió Emanuel): reset completo sin exportación.** Costo: el historial que vive solo en la app se pierde en el corte; Emanuel acepta ese riesgo porque lo registra por su cuenta. Quien use la app más adelante (versión pública) tendría que decidir otra vez.
+- **C. Exportación opcional.** Costo: mantener el script y sus tests sin que nadie los use.
+
+### Qué no cambia
+DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión.
+
+**Estado: Propuesto.**
+
