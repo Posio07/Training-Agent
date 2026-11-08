@@ -630,3 +630,49 @@ test('DEC-029: un ejercicio con una sola serie no cuenta como el ejercicio direc
     assert.ok(mejor >= 2, `${m}: su mejor ejercicio tiene ${mejor} serie`);
   });
 });
+
+/* ---------- DEC-031 · tope de series por ejercicio y sesión ---------- */
+const sinTope = [];
+[3, 4, 5, 6].forEach(d => PERFILES_BARRIDO.forEach(p => sinTope.push({ d, p, plan: REP.generarPlan(Object.assign({}, p, { daysPerWeek: d }), { sinTopePorEjercicio: true }) })));
+
+test('DEC-031: ningún ejercicio pasa de 5 series en una sesión, salvo que el aviso diga que su patrón no tiene otra variante que quepa (360 planes)', () => {
+  const tope = R.valor('MAX_SERIES_POR_EJERCICIO');
+  assert.equal(tope, 5);
+  barrido.forEach(({ d, plan }) => plan.sesiones.forEach(s => s.ejercicios.filter(e => e.series > tope).forEach(e => {
+    assert.ok(plan.avisos.topeExcedido.some(x => x.sesion === s.nombre && x.varianteId === e.varianteId), `${d} días ${s.nombre}: ${e.nombre} ×${e.series} sin aviso`);
+  })));
+  // Sin el tope hay ejercicios que pasan de 5: la regla hace algo.
+  assert.ok(sinTope.some(({ plan }) => plan.sesiones.some(s => s.ejercicios.some(e => e.series > tope))));
+});
+
+test('DEC-031: el volumen no se recorta: mismas series por sesión con y sin el tope, y el excedente va a otra variante del mismo patrón con 2 series o más', () => {
+  barrido.forEach(({ d, plan }, i) => {
+    const antes = sinTope[i].plan;
+    plan.sesiones.forEach((s, k) => {
+      assert.equal(s.series, antes.sesiones[k].series, `${d} días ${s.nombre}: cambió el total de series`);
+      const porPatron = {};
+      s.ejercicios.forEach(e => { (porPatron[e.patron] = porPatron[e.patron] || []).push(e); });
+      Object.values(porPatron).filter(l => l.length > 1).forEach(l => {
+        assert.equal(new Set(l.map(e => e.grupo)).size, 1, `${s.nombre}: el traspaso debe quedar en el mismo grupo`);
+        l.forEach(e => assert.ok(e.series >= R.valor('SERIES_MIN_POR_EJERCICIO'), `${s.nombre}: ${e.nombre} ×${e.series}`));
+        assert.equal(l.filter(e => e.topSet).length <= 1, true);
+      });
+    });
+  });
+});
+
+test('DEC-031: el excedente no lleva top set, ni rompe R1, ni la capacidad, ni A2', () => {
+  barrido.forEach(({ d, plan }) => plan.sesiones.forEach(s => {
+    assert.ok(s.minutos <= s.capacidadMin, `${d} días ${s.nombre}`);
+    assert.ok(s.ejercicios.filter(e => e.topSet).length <= 1);
+    assert.ok(s.lumbarAltaEnSesion <= R.valor('MAX_LUMBAR_ALTA_POR_SESION'), `${d} días ${s.nombre}: A2`);
+    Object.values(s.fraccionado).forEach(v => assert.ok(v <= 11 + 1e-9 || plan.avisos.r1Excedido.length > 0, `${d} días ${s.nombre}: R1`));
+  }));
+});
+
+test('DEC-031: si el patrón tiene una sola variante (pullover), el ejercicio se queda con sus series y el aviso lo dice', () => {
+  const aviso = barrido.flatMap(({ plan }) => plan.avisos.topeExcedido);
+  const solo = aviso.filter(x => C.variantesDePatron(C.variantePorId(x.varianteId).patron).filter(v => v.id !== x.varianteId).length === 0);
+  assert.ok(aviso.every(x => x.series > 5));
+  assert.ok(solo.length === 0 || solo.every(x => /no hay otra variante/.test(x.motivo)));
+});
