@@ -180,7 +180,7 @@
     WHO_PA: {
       id: 'WHO_PA',
       short: 'OMS 2020: actividad física y sedentarismo',
-      title: 'World Health Organization. WHO guidelines on physical activity and sedentary behaviour. 2020. Recomienda ≥150-300 min/semana de actividad aeróbica moderada para la salud cardiovascular, incluso durante fases de entrenamiento centradas en otro objetivo.',
+      title: 'World Health Organization. WHO guidelines on physical activity and sedentary behaviour. 2020. Recomienda ≥150-300 min/semana de actividad aeróbica moderada para la salud cardiovascular.',
       url: 'https://www.who.int/publications/i/item/9789240015128',
       type: 'Organismo regulatorio internacional',
     },

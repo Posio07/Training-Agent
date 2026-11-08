@@ -133,7 +133,7 @@ Fecha 2026-11-07. Investigación hecha por el subagente `investigador`; **solo l
 
 **Conclusión (propuesta de nivel 2).** El piso de 150 min por semana moderados es **E1** (postura de un organismo oficial); la extrapolación a un plan de definición y las 3 sesiones de 50 min, el 60–70 % de la frecuencia cardíaca máxima y la distribución son **E4**. Confianza alta en la cifra y la cita; media en cuánto puede afirmar la app sobre el plan completo (la OMS no considera la interferencia con la fuerza ni la definición).
 
-**Hallazgos del repo (no se corrigieron: nivel 2).**
+**Hallazgos del repo (corregidos el 2026-11-08 por decisión de Emanuel: se borró la frase de `WHO_PA` y el cardio de mantenimiento y volumen pasó a criterio de diseño E4 sin cita de la OMS; el mínimo de 150 min para todas las fases quedó en B-040).**
 - `WHO_PA` dice "incluso durante fases de entrenamiento centradas en otro objetivo": **no sale de la fuente**; es una interpretación del repo. Le falta la cita de Bull et al. con DOI y PMID, y su tipo "Organismo regulatorio internacional" sería mejor "Guía oficial de organismo internacional".
 - `ACSM_CARDIO` (Garber CE et al., Med Sci Sports Exerc 2011;43(7):1334-59, PMID 21694556, doi 10.1249/MSS.0b013e318213fefb) coincide con PubMed; solo se leyeron metadatos, no el contenido de "150 min".
 - **Contradicción en el motor:** en mantenimiento o volumen el cardio es 2 × 25 = 50 min por semana con el texto "150 min/semana moderado como referencia general". Aclarar el texto o ajustar el plan cambia comportamiento (nivel 2). DEC-005 (aceptado) dice "ACSM 2011 / OMS 2020" y "piso de 150 min"; no se toca.

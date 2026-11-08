@@ -2,7 +2,7 @@
 
 7 nov 2026 · Emanuel Miranda
 
-*Revisión del 7 nov 2026: se aplican las decisiones de Emanuel sobre los huecos de la trazabilidad (`docs/research/trazabilidad-nucleo-v2.md`) y los dos DEC de nivel 3 propuestos, DEC-024 (tope por minutos) y DEC-025 (R1 como restricción), que siguen en estado Propuesto: hasta que Emanuel los acepte, esas dos reglas no valen y **el corte no puede empezar**.*
+*Revisión del 7 nov 2026: se aplican las decisiones de Emanuel sobre los huecos de la trazabilidad (`docs/research/trazabilidad-nucleo-v2.md`) y los dos DEC de nivel 3, DEC-024 (tope por minutos) y DEC-025 (R1 como restricción), **aceptados por Emanuel el 8 nov 2026**. Ese día también se decidieron el top set fuera del torso, la rotación de cuerpo completo y la estrategia de construcción (sección "El corte").*
 
 ## Por qué se reconstruye
 
@@ -61,9 +61,10 @@ Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y 
 | Pierna con sentadilla | Sentadilla y flexión de rodilla | Sentadilla |
 | Pierna con bisagra | Bisagra y flexión de rodilla | Bisagra |
 | Torso | Un empuje y un tirón | Alternancia semanal (criterio de diseño, E4): el primer torso de la semana, empuje horizontal; el segundo, tirón vertical |
-| Cuerpo completo | Un patrón de pierna, un empuje y un tirón | Según la rotación semanal; nunca dos de lumbar alta en la misma sesión |
+| Cuerpo completo | Un patrón de pierna, un empuje y un tirón | Rotación de cuerpo completo ×3 (criterio de diseño, E4): sentadilla el día 1, empuje horizontal el día 2 y bisagra el día 3; nunca dos de lumbar alta en la misma sesión |
 
 - El top set va siempre al patrón principal del tipo, nunca al primer ejercicio de la lista.
+- **El top set existe solo en definición** (DEC-002 y DEC-008), como hoy. Sus números (4–6 repeticiones, RIR 1–2, back-offs al −10 %, y los descansos de 180 y 150 s) pasan al registro como criterio de diseño (E4). Fuera de definición no hay top set y la tabla anterior solo fija el orden del patrón principal.
 - A3 queda expresada aquí: en splits con dos días de pierna, uno es con sentadilla y otro con bisagra, separados por 48 h o más. Sin calendario, se garantiza el **orden de las sesiones** (los dos días de pierna no son consecutivos en el split) y no el reloj; no se agrega un campo de días de la semana.
 - **Tres días (cuerpo completo ×3):** sentadilla el día 1, bisagra el día 3 y pierna sin lumbar alta (prensa, zancada o flexión de rodilla) el día 2.
 - **Splits por defecto:** 4 días, torso, pierna con sentadilla, torso, pierna con bisagra; 5 días, torso, pierna con sentadilla, empuje, tirón, pierna con bisagra; 6 días, empuje, tirón, pierna con sentadilla, empuje, tirón, pierna con bisagra.
@@ -111,6 +112,7 @@ Ningún número puede quedar escrito dentro del código. El inventario encontró
 
 - **Cardio, intensidad, progresión, descarga y poses** siguen como están, con sus números movidos al registro (con su nivel de evidencia o como criterio de diseño). **Única excepción:** el cardio programado en un día se descuenta del tiempo disponible de esa sesión (paso 1). El cardio solo se asigna a un día si el usuario lo programa ahí.
 - **Bandera salud/funcional (DEC-005):** se conserva igual y pasa al registro. Entrada del cardio mínimo (`CARDIO_MINIMO_SALUD`): **150 min por semana de actividad aeróbica moderada, E1**, fuente: directrices de la OMS 2020 (Bull FC et al., *Br J Sports Med* 2020;54(24):1451-1462, doi 10.1136/bjsports-2020-102955, PMID 33239350; ISBN 9789240015128), que lo plantean como el extremo inferior del rango de 150 a 300 min por semana para adultos de 18 a 64 años, como mínimo de salud para la población general (no como recomendación de composición corporal ni de rendimiento: aplicarlo a un plan de definición es una extrapolación). Las 3 sesiones de 50 min, el 60–70 % de la frecuencia cardíaca máxima y su distribución son criterio de diseño (E4). Verificado por el investigador (texto completo parcial del artículo; ver `docs/research/nucleo-v2-evidencia.md`, punto E). Hoy: en definición mantiene el cardio en 150 min por semana (3 sesiones de 50 min a intensidad moderada) en vez de recortarlo, y en los días de pierna suma búlgara con mancuernas, step-up con carga y paseo del granjero (este último aparte, 2 series y sin contar como volumen), financiando las series con un aislamiento del mismo grupo.
+- **Cardio de mantenimiento y volumen (decidido el 2026-11-08):** los 50 min por semana (2 sesiones de 25 min) son criterio de diseño (E4) y **no llevan la cita de la OMS**; la OMS solo respalda el piso de 150 min de la bandera salud/funcional. Si ese mínimo aplica a todas las fases queda abierto en B-040. Con el núcleo nuevo, el cardio programado se descuenta de la capacidad de la sesión (paso 1).
 - Nutrición, metas, tamizaje de salud y registro de sesiones (DEC-015) no cambian, salvo el selector de variante y la rutina corta como modo de capacidad.
 
 ## El corte
@@ -122,17 +124,24 @@ Ningún número puede quedar escrito dentro del código. El inventario encontró
 | El barrido de 360 planes y el caso del 5 nov como referencias | El registro de reglas, con todos los números dentro | El código muerto del inventario y el camino legado de aceptación de sesiones largas |
 | La interfaz de sesión, con selector de variante agregado | La rutina corta, como modo de capacidad | El código de las cláusulas de DEC-015, DEC-016 y DEC-018 que DEC-023 reemplaza |
 
-Desde el corte (y solo si Emanuel los acepta) también quedan reemplazadas la cláusula del tope de 25 series de DEC-014 (por DEC-024) y la de R1 como aviso de DEC-014 (por DEC-025).
+Desde el corte también quedan reemplazadas la cláusula del tope de 25 series de DEC-014 (por DEC-024, Aceptado) y la de R1 como aviso de DEC-014 (por DEC-025, Aceptado).
 
 **Pasos del corte, en orden**
 
 1. Terminar o descartar la sesión en curso.
 2. Exportar el historial de los dos perfiles con `scripts/exportar-historial.js` y validar que la cantidad de sesiones y series exportadas sea igual a la que muestra la app. Sin esta validación no hay reset.
 3. Archivar la exportación fuera de la app.
-4. Mergear el núcleo nuevo en un solo PR, que incluye el borrado del código muerto.
+4. Mergear el PR del corte, que conecta `core-v2` a la interfaz y borra el motor viejo y su código muerto.
 5. Resetear los datos y crear los perfiles de nuevo, con los campos nuevos.
 
-El núcleo nuevo se construye en una rama mientras la app actual sigue en uso, sin parches al motor viejo. Mientras tanto, la rutina corta no se usa y el día de tirón se ajusta a mano.
+**Estrategia de construcción (decidida por Emanuel el 2026-11-08).** Reemplaza la idea de una rama larga con un solo PR:
+
+- El núcleo se construye en `ifbb-pro-agent/js/core-v2/` y **se mergea a `main` paso a paso** (primero catálogo y registro, después reparto), **sin conectarlo a la interfaz**. La app actual sigue usando el motor viejo, sin parches.
+- **Cada paso es un PR con base `main`, con sus tests.**
+- El módulo lleva una **marca de "en construcción"** (comentario al inicio de cada archivo) y la entrada **B-039** del backlog como referencia.
+- **El PR del corte** conecta `core-v2`, borra el motor viejo y su código muerto, y hace el reset según los pasos anteriores. Los pasos 4 y 5 de la lista se leen en ese orden: el código del núcleo ya está en `main`, y el PR del corte es el que lo conecta y borra lo viejo.
+
+Mientras tanto, la rutina corta no se usa y el día de tirón se ajusta a mano.
 
 ## Criterios de aceptación
 

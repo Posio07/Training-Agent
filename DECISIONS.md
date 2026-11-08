@@ -865,7 +865,7 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 **Estado: Aceptado por Emanuel el 2026-11-07.**
 
 ## DEC-024 · El tope de sesión pasa de 25 series a minutos disponibles
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo** (`docs/specs/nucleo-v2.md`), no antes: hasta entonces el motor actual no se toca.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-07); aceptado por Emanuel en el chat el 2026-11-08, después de revisar el PR #37. **Efecto desde el corte al núcleo nuevo** (`docs/specs/nucleo-v2.md`), no antes: hasta entonces el motor actual no se toca.
 
 Contexto: DEC-014 fijó un tope de 25 series por sesión (E4, convención de la app, sin fuente externa). Ese tope cuenta igual una serie de pantorrilla que una de sentadilla y solo puede recortar aislamientos. En el barrido de 360 planes (`docs/research/diagnostico-sesiones-sobre-25.md`) 108 de 1620 sesiones lo superan sin aceptación (72 planes; 29 llegan a 30 series o más; 80 pasan de 90 min; máximo 37 series y 118 min), porque el reparto semanal no mira la capacidad de las sesiones y el tope corrige después.
 
@@ -890,10 +890,10 @@ Convención de la app (E4): el tope por tiempo es una decisión de diseño, no u
 ### Qué toca de otros DEC aceptados
 Dos cláusulas, ambas **desde el corte al núcleo nuevo**: el tope de 25 series de DEC-014 y la aceptación acotada de DEC-016 (decisión de Emanuel del 2026-11-07: la aceptación va dentro de esta decisión).
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-025 · R1 pasa de aviso a restricción del reparto
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-07). No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo**, no antes.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-07); aceptado por Emanuel en el chat el 2026-11-08, después de revisar el PR #37. **Efecto desde el corte al núcleo nuevo**, no antes.
 
 Contexto: DEC-014 definió R1 como un **aviso** de rendimiento decreciente (E3: preprint de Remmert et al., punto sin mejora detectable de ~11 series fraccionadas por músculo y sesión) y dice expresamente que no es un tope. El motor actual reparte sin respetarlo y solo avisa: 467 avisos R1 en 165 de 360 planes (981 series fraccionadas por encima del umbral en total; promedio 5,9 por plan afectado; máximo 7 sobre el umbral en una sesión; músculos: glúteos 236, cuádriceps 136, hombros 67, espalda 24, tríceps 4; medido con el motor actual, no con el núcleo nuevo).
 
@@ -915,4 +915,4 @@ Los propios autores del preprint dicen que 11 **no es un límite superior** ("no
 ### Qué no cambia
 El conteo fraccionado (E2 con salvedad; el valor 0,5 es criterio de diseño) y el resto de DEC-014.
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**

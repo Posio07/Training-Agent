@@ -1171,7 +1171,7 @@
       ? (p.healthGoal
         ? { sessions: 3, minutes: 50, type: 'Cardio moderado (caminata, bici, elíptica) al 60-70 % FC máx.', rule: 'Objetivo "salud/funcional" activo: el cardio no se recorta por estar en definición; se mantiene el piso de 150 min/semana recomendado para la salud cardiovascular, aunque interfiera algo más con la ganancia de fuerza.' }
         : { sessions: p.level === 'advanced' ? 3 : 2, minutes: 25, type: 'LISS (caminata inclinada, bici, elíptica) al 60-70 % FC máx.; opcional 1 sesión HIIT de 10-15 min', rule: 'La mínima cantidad necesaria para mantener el ritmo de pérdida; añade 10 min/sesión solo si el peso se estanca 2 semanas. Sepáralo del entrenamiento de fuerza o hazlo después.' })
-      : { sessions: 2, minutes: 25, type: 'Cardio moderado por salud cardiovascular', rule: 'Sin objetivo de gasto: mantiene la capacidad aeróbica y la salud (150 min/semana moderado como referencia general). No interfiere con la hipertrofia a este volumen.' };
+      : { sessions: 2, minutes: 25, type: 'Cardio moderado por salud cardiovascular', rule: 'Sin objetivo de gasto: 2 sesiones de 25 min (50 min por semana) para mantener la capacidad aeróbica. Es un criterio de diseño de la app (E4), no una recomendación de la OMS. No interfiere con la hipertrofia a este volumen.' };
 
     return {
       splitName: split.name, daysPerWeek: days, weeklySets, laggingApplied, sessions, sessionLimit,

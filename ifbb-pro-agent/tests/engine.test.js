@@ -594,6 +594,8 @@ test('DEC-010: perfiles sin healthGoal ni lesiones generan el mismo plan que ant
     // DEC-014 y DEC-016: los avisos nuevos (E4, R1 y grupos bajo el mínimo) hacen que la lista cambie de largo en todos los perfiles.
     'plan.training.warnings.length': 'DEC-014 / DEC-016: avisos nuevos (E4, R1, grupos bajo el mínimo)',
     'plan.warnings.length': 'DEC-014 / DEC-016: ídem, en la lista combinada',
+    // Texto del cardio de mantenimiento y volumen: criterio de diseño E4, sin cita de la OMS (decisión de Emanuel, 2026-11-08, B-040). Sesiones y minutos no cambian.
+    'plan.training.cardio.rule': 'Cardio de mantenimiento: texto E4 sin cita de la OMS',
   };
   assert.ok(Object.keys(fx.cases).length >= 10);
   const seen = new Set();
