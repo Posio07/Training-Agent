@@ -76,7 +76,9 @@ test('B-039: una fuente aparece solo cuando la regla que respalda está activa',
   assert.ok(R.fuentesActivas({ goal: 'cut' }).includes('BICKEL_2011'));
   assert.ok(!R.fuentesActivas({ goal: 'bulk' }).includes('BICKEL_2011'));
   // Las etiquetas viejas de volumen no vuelven por la puerta de atrás.
-  ['cut', 'bulk', 'maintain'].forEach(goal => ['SCHOENFELD_VOL', 'HELMS_TRAIN'].forEach(f => assert.ok(!R.fuentesActivas({ goal, healthGoal: true }).includes(f), f)));
+  ['cut', 'bulk', 'maintain'].forEach(goal => assert.ok(!R.fuentesActivas({ goal, healthGoal: true }).includes('SCHOENFELD_VOL'), 'SCHOENFELD_VOL'));
+  // HELMS_TRAIN respalda hoy la intensidad (paso 3.5), no el volumen: solo la citan reglas de INTENSIDAD_.
+  R.REGLAS.filter(r => r.fuentes.includes('HELMS_TRAIN')).forEach(r => assert.ok(/^INTENSIDAD_/.test(r.id), `${r.id} no debería citar HELMS_TRAIN`));
 });
 
 test('hasta el corte: los valores del registro coinciden con VALIDATOR_RULES del motor actual', () => {
