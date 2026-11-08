@@ -11,6 +11,10 @@
  * trasera y hack, B-031) la herencia es un supuesto que Emanuel revisa; `heredado` lo deja a la vista.
  * En el PR del corte las filas heredadas se materializan en los CSV de data/.
  *
+ * Los rangos de repeticiones son datos del catálogo (como en el motor actual), no reglas del registro.
+ * Pendientes del corte: el campo `cue` del curl femoral (cita de Maeo 2021, hoy solo `preferida: true`) y
+ * `defaultOnly` del remo con apoyo de pecho (DEC-022, hoy lo cubre `habilitaPor` del remo con barra).
+ *
  * Los números (descansos, tiempo de ejecución, factor de unilaterales) salen del registro de reglas. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('../exerciseMuscles.js'), require('../perfilArticular.js'));

@@ -9,6 +9,7 @@ const C = require('../js/core-v2/catalogo.js');
 const K = require('../js/knowledge.js');
 
 const DIR = path.join(__dirname, '..', 'js', 'core-v2');
+const DECS = new Set([...fs.readFileSync(path.join(__dirname, '..', '..', 'DECISIONS.md'), 'utf8').matchAll(/^## (DEC-\d+)/gm)].map(m => m[1]));
 
 /* ---------- Registro ---------- */
 
@@ -24,7 +25,8 @@ test('registro: cada regla lleva id, valor, nivel E1 a E4, fuente, tipo, paso, e
     assert.ok(['estricta', 'aviso'].includes(r.tipo), `${r.id}: tipo ${r.tipo}`);
     assert.ok([1, 2, 3, 4, 5, 6, 7, 'fuera'].includes(r.paso), `${r.id}: paso ${r.paso}`);
     assert.ok(['implementada', 'pendiente'].includes(r.estado), `${r.id}: estado ${r.estado}`);
-    assert.ok(typeof r.dec === 'string' && r.dec.length > 0, `${r.id}: sin DEC de origen`);
+    // El DEC de origen no se inventa: es 'sin DEC', 'spec núcleo v2' o un DEC que existe en DECISIONS.md.
+    assert.ok(['sin DEC', 'spec núcleo v2'].includes(r.dec) || DECS.has(r.dec), `${r.id}: DEC de origen inexistente (${r.dec})`);
     assert.ok(typeof r.origen === 'string' && r.origen.length > 0, `${r.id}: sin origen`);
     assert.ok(Array.isArray(r.fuentes), `${r.id}: fuentes no es lista`);
   });
@@ -159,14 +161,44 @@ test('registro: los números aprobados por Emanuel (spec y trazabilidad, 2026-11
   const aprobados = {
     NECESIDAD_SEMANAL_POR_NIVEL: { advanced: 18, intermediate: 14, novice: 10 },
     FACTOR_NECESIDAD_DEFINICION: 0.85, FACTOR_NECESIDAD_ENFASIS: 1.25, FACTOR_NECESIDAD_ENFASIS_REDUCIDO: 0.5, FACTOR_NECESIDAD_GRUPO_CHICO: 0.6,
-    REZAGADOS_TOPE_SERIES: 20, REZAGADOS_MINIMO_SERIES: 4, MAX_SERIES_FRACCIONADAS_MUSCULO_SESION: 11, MAX_EJERCICIOS_PRIORITARIOS: 3,
+    REZAGADOS_TOPE_SERIES: 20, NECESIDAD_MINIMA_SERIES: 4, MAX_SERIES_FRACCIONADAS_MUSCULO_SESION: 11, MAX_EJERCICIOS_PRIORITARIOS: 3,
     DESCANSO_MULTIARTICULAR_S: 150, DESCANSO_AISLAMIENTO_S: 75, DESCANSO_TOP_SET_S: 180, DESCANSO_BACKOFF_S: 150, FACTOR_UNILATERAL: 2,
     TOP_SET_REPETICIONES: [4, 6], TOP_SET_RIR: [1, 2], BACKOFF_REDUCCION_PORCENTAJE: 10, MAX_DIAS_GRUPO_CHICO: 2,
-    CARDIO_MINIMO_SALUD_MIN: 150, CARDIO_SALUD_SESIONES: 3, CARDIO_SALUD_MINUTOS: 50, CARDIO_INTENSIDAD_PORCENTAJE_FCMAX: [60, 70],
+    CARDIO_MINIMO_SALUD: 150, CARDIO_SALUD_SESIONES: 3, CARDIO_SALUD_MINUTOS: 50, CARDIO_INTENSIDAD_PORCENTAJE_FCMAX: [60, 70],
     CARDIO_MANTENIMIENTO_SESIONES: 2, CARDIO_MANTENIMIENTO_MINUTOS: 25,
   };
   Object.entries(aprobados).forEach(([id, v]) => assert.deepEqual(R.valor(id), v, id));
-  assert.equal(R.regla('CARDIO_MINIMO_SALUD_MIN').nivel, 'E1');
+  assert.equal(R.regla('CARDIO_MINIMO_SALUD').nivel, 'E1');
   assert.equal(R.regla('CARDIO_MANTENIMIENTO_SESIONES').nivel, 'E4');
   assert.deepEqual(R.regla('CARDIO_MANTENIMIENTO_SESIONES').fuentes, [], 'el cardio de mantenimiento no cita a la OMS (2026-11-08)');
+});
+
+test('catálogo: cada ejercicio con "o" del motor actual se parte en una variante por opción (ninguna se pierde)', () => {
+  const partidos = {
+    'chest.dip_or_machine_press': ['chest.dip_parallel', 'chest.press_machine'],
+    'chest.fly_cable_pecdeck': ['chest.fly_cable', 'chest.fly_pecdeck'],
+    'back.vertical_pull': ['back.pull_up', 'back.lat_pulldown'],
+    'back.row_barbell': ['back.row_barbell', 'back.row_pendlay'],
+    'back.row_chest_supported': ['back.row_chest_supported_machine', 'back.row_chest_supported_bench'],
+    'back.row_cable': ['back.row_cable', 'back.row_machine'],
+    'shoulders.press_overhead': ['shoulders.press_overhead_barbell', 'shoulders.press_overhead_db'],
+    'shoulders.rear_delt_facepull': ['shoulders.face_pull', 'shoulders.rear_delt_fly'],
+    'shoulders.press_landmine_neutral': ['shoulders.press_landmine', 'shoulders.press_neutral_grip'],
+    'quads.squat_back_or_hack': ['quads.squat_back', 'quads.squat_hack'],
+    'quads.lunge_or_bulgarian': ['quads.lunge', 'quads.bulgarian_split_squat'],
+    'hamstrings.leg_curl': ['hamstrings.leg_curl_lying', 'hamstrings.leg_curl_seated'],
+    'biceps.curl_barbell': ['biceps.curl_barbell', 'biceps.curl_ez'],
+    'triceps.close_grip_or_dips': ['triceps.close_grip_press', 'triceps.dips'],
+    'abs.crunch_or_wheel': ['abs.crunch_cable', 'abs.ab_wheel'],
+  };
+  const viejos = {};
+  [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.values(g).forEach(l => l.forEach(e => { viejos[e.id] = e; })));
+  Object.entries(partidos).forEach(([viejo, nuevos]) => {
+    assert.ok(viejos[viejo], `${viejo} no existe en el motor actual`);
+    const reales = C.VARIANTES.filter(x => x.hereda === viejo).map(x => x.id).sort();
+    assert.deepEqual(reales, [...nuevos].sort(), `${viejo}: las variantes no coinciden`);
+  });
+  // Un ejercicio del motor actual cuyo nombre junta opciones tiene que estar en la tabla.
+  Object.values(viejos).filter(e => /\s[oó]\s|\//.test(e.name) && !/Vacuum/.test(e.name)).forEach(e => assert.ok(partidos[e.id], `${e.id} ("${e.name}") junta opciones y no está partido`));
+  assert.equal(Object.values(partidos).flat().length, 30);
 });
