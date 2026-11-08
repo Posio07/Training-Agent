@@ -302,6 +302,42 @@
       permitirExceso = false; // tras un movimiento vuelve la restricción estricta
     }
 
+    // Paso 5 (cierre) · tope de series por ejercicio y sesión (DEC-031). El excedente pasa a otra variante del mismo patrón si existe y cabe
+    // (tiempo, R1, A2 y A3); si no existe, se queda en el mismo ejercicio. El volumen no se recorta: solo cambia entre qué variantes se reparte.
+    // Es el único caso en que una sesión lleva dos variantes del mismo patrón (cláusula de DEC-006 que DEC-031 reemplaza desde el corte).
+    avisos.topeExcedido = [];
+    if (!(opciones && opciones.sinTopePorEjercicio)) {
+      const TOPE = valor('MAX_SERIES_POR_EJERCICIO'), MIN = valor('SERIES_MIN_POR_EJERCICIO');
+      sesiones.forEach(ses => {
+        ses.ejercicios.slice().forEach(ex => {
+          if (ex.series <= TOPE) return;
+          const g = cat.grupoDe(ex.v.id);
+          const alternativas = candidatas.filter(v => v.patron === ex.v.patron && v.id !== ex.v.id && cat.grupoDe(v.id) === g && !ses.ejercicios.some(e => e.v.id === v.id)
+            && !excluyeA3(ses, v.patron) && !bloqueaA2(ses, v))
+            .sort((a, b) => (uso[a.id] || 0) - (uso[b.id] || 0) || (b.preferida ? 1 : 0) - (a.preferida ? 1 : 0));
+          for (const v of alternativas) {
+            if (ex.series <= TOPE) break;
+            const nuevas = Math.min(TOPE, Math.max(ex.series - TOPE, MIN));
+            if (ex.series - nuevas < MIN) continue;
+            const dSeg = nuevas * (segSerie(v) - segSerie(ex.v));
+            if (ses.seg + dSeg > ses.capacidadSeg + EPS) continue;
+            const wo = ex.pesos, wn = pesos[v.id], delta = {};
+            Object.keys(wo).forEach(m => { delta[m] = (delta[m] || 0) - wo[m] * nuevas; });
+            Object.keys(wn).forEach(m => { delta[m] = (delta[m] || 0) + wn[m] * nuevas; });
+            if (Object.keys(delta).some(m => delta[m] > EPS && (ses.frac[m] || 0) + delta[m] > Math.max(R1, ses.frac[m] || 0) + EPS)) continue; // R1: no se sube un músculo por encima del tope
+            ex.series -= nuevas;
+            Object.keys(delta).forEach(m => { ses.frac[m] = (ses.frac[m] || 0) + delta[m]; cubierto[m] += delta[m]; });
+            ses.seg += dSeg;
+            const nuevo = { v, series: nuevas, topSet: false, pesos: wn };
+            ses.ejercicios.splice(ses.ejercicios.indexOf(ex) + 1, 0, nuevo);
+            if (lumbarAlta(v.id)) ses.nLumbarAlta++;
+            uso[v.id] = (uso[v.id] || 0) + 1;
+          }
+          if (ex.series > TOPE) avisos.topeExcedido.push({ sesion: ses.nombre, varianteId: ex.v.id, series: ex.series, motivo: 'no hay otra variante del patrón que quepa (tiempo, R1, A2 o A3)' });
+        });
+      });
+    }
+
     // Paso 7 · qué quedó sin cubrir y por qué (aviso único).
     const semanal = {};
     MUSCULOS.forEach(m => {

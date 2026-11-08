@@ -1036,3 +1036,24 @@ DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. La no
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
+## DEC-031 · Tope de 5 series por ejercicio y sesión; el excedente pasa a otra variante del mismo patrón
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel con un comentario en el PR #44 (https://github.com/Posio07/Training-Agent/pull/44#issuecomment-6723923228: "acepto DEC-030 y DEC-031 - Emanuel"); Emanuel dijo haberlo repetido en este PR (#46), donde no hay comentario visible todavía. **Efecto desde el corte al núcleo nuevo**, no antes.
+
+Contexto: la vista previa del reparto nuevo (`docs/research/vista-previa-reparto.md`, sección "Series por ejercicio aislado") mostró que sin tope por ejercicio un aislamiento puede sumar hasta 11 series en una sesión: 1075 de 1620 sesiones tenían algún aislado con 6 series o más. Emanuel había decidido el 2026-11-07 que no había tope por ejercicio; decidió el 2026-11-08, con esa distribución a la vista, ponerlo.
+
+### Decisión (propuesta)
+1. **Máximo de 5 series por ejercicio y sesión** (E4, criterio de diseño, en el registro: `MAX_SERIES_POR_EJERCICIO`).
+2. **El excedente pasa a otra variante del mismo patrón** si existe y cabe en la sesión (tiempo, R1, A2 y A3). Si no existe, **se queda en el mismo ejercicio**: el volumen no se recorta. Ningún ejercicio nuevo queda con menos de 2 series, así que el traspaso mínimo es de 2.
+3. **Se reemplaza la cláusula de DEC-006** ("un mismo ejercicio base, incluidas sus variantes, aparece como máximo una vez por sesión") únicamente para este traspaso: una sesión puede llevar dos variantes del mismo patrón cuando una pasa el tope.
+4. El top set sigue en la variante del patrón principal; el excedente nunca lleva top set.
+
+### Alternativas
+- **A. Sin tope (estado actual del reparto nuevo).** Costo: ejercicios con 7 a 11 series y sesiones monótonas.
+- **B. Recomendada (la que pidió Emanuel): tope de 5 con traspaso a otra variante.** Costo: dos variantes del mismo patrón en una sesión (cambia una cláusula de DEC-006) y, donde el patrón solo tiene una variante, el tope no se cumple.
+- **C. Tope duro que recorta el volumen.** Descartada: baja la cobertura de la necesidad semanal.
+
+### Qué no cambia
+La necesidad semanal, R1, los pisos y el volumen total: el traspaso mueve series entre variantes, no las quita.
+
+**Estado: Aceptado por Emanuel el 2026-11-08.**
+

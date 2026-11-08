@@ -87,6 +87,7 @@
 
     /* ---- Paso 2b de la construcción · estructura del reparto (pedido por Emanuel, 2026-11-08; DEC-029) ---- */
     e('SERIES_MIN_PATRON_PRINCIPAL', 4, 'series de trabajo', 'DEC-029', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'pedido de Emanuel (2026-11-08)', nota: 'Mínimo de series de trabajo del patrón principal de cada sesión (el top set más sus back-offs): recibe su volumen en la estructura, antes del relleno.' }),
+    e('MAX_SERIES_POR_EJERCICIO', 5, 'series por ejercicio y sesión', 'DEC-031', 'E4', CRITERIO, { paso: 5, estado: 'implementada', origen: 'pedido de Emanuel (2026-11-08), a partir de la distribución de series por ejercicio aislado de la vista previa', nota: 'Tope por ejercicio y sesión: el excedente pasa a otra variante del mismo patrón si existe; si no existe, se queda (el volumen no se recorta).' }),
     e('EJERCICIO_DIRECTO_SEMANAL_MIN_SERIES', 2, 'series', 'DEC-029', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'DEC-020, punto 6 (nunca se quita el último ejercicio directo de un grupo)', nota: 'Todo grupo del perfil lleva por semana al menos un ejercicio directo (de ese grupo) con este mínimo de series. Equivalente en core-v2 de la regla de DEC-020.' }),
 
     /* ---- Paso 2 de la construcción · reparto: entradas nuevas (propuestas, nivel 2) ---- */

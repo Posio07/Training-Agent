@@ -49,17 +49,17 @@ Generada con `node scripts/vista-previa-reparto.js --md`. A = motor actual · B 
 **Día 2 · Pierna**
 - A: ★Sentadilla trasera o sentadilla en hack ×4 · Prensa de piernas ×4 · Sentadilla búlgara con énfasis en cadera ×4 · Hip thrust con barra ×4 · Curl femoral tumbado o sentado ×8
 - B: Día 2 · Pierna (sentadilla): ★Sentadilla trasera o sentadilla en hack ×4 · Curl femoral tumbado o sentado ×6 · Abducción de cadera en máquina ×9 · Extensión de cuádriceps ×3
-- C: Día 2 · Pierna (sentadilla): ★Sentadilla trasera ×4 · Curl femoral sentado ×6 · Abducción de cadera en máquina ×9 · Extensión de cuádriceps ×3
+- C: Día 2 · Pierna (sentadilla): ★Sentadilla trasera ×4 · Curl femoral sentado ×4 · Curl femoral tumbado ×2 · Abducción de cadera en máquina ×9 · Extensión de cuádriceps ×3
 
 **Día 3 · Empuje**
 - A: Fondos en paralelas o press en máquina ×3 · Press cerrado o fondos ×4 · Aperturas en polea o pec-deck ×3 · Elevaciones laterales en polea ×3 · Face pull / pájaros (deltoides posterior) ×2 · Crunch en polea o rueda abdominal ×3 · Elevaciones de piernas colgado ×2 · Elevación de talones de pie ×4
-- B: Día 3 · Empuje: ★Press banca con barra ×4 · Press militar con barra o mancuernas ×2 · Extensión de tríceps en polea ×2 · Elevaciones laterales con mancuerna ×6 · Elevación de talones de pie ×4
-- C: Día 3 · Empuje: ★Press banca con barra ×4 · Press militar con barra de pie ×2 · Extensión de tríceps en polea ×2 · Elevaciones laterales con mancuerna ×6 · Elevación de talones de pie ×4
+- B: Día 3 · Empuje: ★Press banca con barra ×4 · Press militar con barra o mancuernas ×2 · Extensión de tríceps en polea ×2 · Elevaciones laterales con mancuerna ×4 · Elevaciones laterales en polea ×2 · Elevación de talones de pie ×4
+- C: Día 3 · Empuje: ★Press banca con barra ×4 · Press militar con barra de pie ×2 · Extensión de tríceps en polea ×2 · Elevaciones laterales con mancuerna ×4 · Elevaciones laterales en polea ×2 · Elevación de talones de pie ×4
 
 **Día 4 · Tirón**
 - A: ★Press militar con barra o mancuernas ×3 · Remo en polea baja o máquina ×4 · Pullover en polea ×3 · Elevaciones laterales con mancuerna ×2 · Vacuum abdominal (Classic / Physique) ×4 · Elevación de talones sentado ×3 · Curl inclinado con mancuernas ×3
 - B: Día 4 · Tirón: ★Dominadas o jalón al pecho ×4 · Remo en polea baja o máquina ×2 · Crunch en polea o rueda abdominal ×9 · Pullover en polea ×3
-- C: Día 4 · Tirón: ★Dominadas ×4 · Remo con apoyo de pecho en banco inclinado ×2 · Crunch en polea ×9 · Pullover en polea ×3
+- C: Día 4 · Tirón: ★Dominadas ×4 · Remo con apoyo de pecho en banco inclinado ×2 · Crunch en polea ×5 · Rueda abdominal ×4 · Pullover en polea ×3
 
 **Día 5 · Pierna**
 - A: ★Peso muerto rumano ×4 · Zancadas o sentadilla búlgara ×4 · Prensa de piernas ×3 · Abducción de cadera en máquina ×4 · Patada de glúteo en polea ×3 · Curl femoral tumbado o sentado ×3
@@ -118,7 +118,7 @@ Generada con `node scripts/vista-previa-reparto.js --md`. A = motor actual · B 
 **Día 2 · Pierna**
 - A: ★Sentadilla trasera o sentadilla en hack ×3 · Sentadilla búlgara con énfasis en cadera ×4 · Hip thrust con barra ×4 · Curl femoral tumbado o sentado ×8
 - B: Día 2 · Pierna (sentadilla): ★Sentadilla trasera o sentadilla en hack ×6 · Curl femoral tumbado o sentado ×5 · Abducción de cadera en máquina ×7
-- C: Día 2 · Pierna (sentadilla): ★Sentadilla trasera ×6 · Curl femoral sentado ×5 · Abducción de cadera en máquina ×7
+- C: Día 2 · Pierna (sentadilla): ★Sentadilla trasera ×4 · Sentadilla en hack ×2 · Curl femoral sentado ×5 · Abducción de cadera en máquina ×7
 
 **Día 3 · Empuje**
 - A: Press inclinado con mancuernas ×3 · Press cerrado o fondos ×2 · Elevaciones laterales en polea ×3 · Face pull / pájaros (deltoides posterior) ×2 · Crunch en polea o rueda abdominal ×4 · Elevación de talones de pie ×4
@@ -128,12 +128,12 @@ Generada con `node scripts/vista-previa-reparto.js --md`. A = motor actual · B 
 **Día 4 · Tirón**
 - A: ★Press militar con barra o mancuernas ×3 · Remo en polea baja o máquina ×3 · Pullover en polea ×3 · Elevaciones laterales con mancuerna ×2 · Elevaciones de piernas colgado ×3 · Curl con barra o barra Z ×2
 - B: Día 4 · Tirón: ★Dominadas o jalón al pecho ×4 · Remo en polea baja o máquina ×2 · Crunch en polea o rueda abdominal ×7 · Elevaciones laterales con mancuerna ×2
-- C: Día 4 · Tirón: ★Dominadas ×4 · Remo con apoyo de pecho en banco inclinado ×2 · Crunch en polea ×7 · Elevaciones laterales con mancuerna ×2
+- C: Día 4 · Tirón: ★Dominadas ×4 · Remo con apoyo de pecho en banco inclinado ×2 · Crunch en polea ×5 · Rueda abdominal ×2 · Elevaciones laterales con mancuerna ×2
 
 **Día 5 · Pierna**
 - A: ★Peso muerto rumano ×4 · Prensa de piernas ×3 · Abducción de cadera en máquina ×4 · Patada de glúteo en polea ×3 · Curl femoral tumbado o sentado ×3
 - B: Día 5 · Pierna (bisagra): ★Peso muerto rumano ×4 · Curl femoral tumbado o sentado ×6 · Elevación de talones de pie ×3 · Abducción de cadera en máquina ×5
-- C: Día 5 · Pierna (bisagra): ★Peso muerto rumano ×4 · Curl femoral tumbado ×6 · Elevación de talones de pie ×3 · Abducción de cadera en máquina ×5
+- C: Día 5 · Pierna (bisagra): ★Peso muerto rumano ×4 · Curl femoral tumbado ×4 · Curl femoral sentado ×2 · Elevación de talones de pie ×3 · Abducción de cadera en máquina ×5
 
 ### Sensibilidad al tiempo disponible (C)
 - 60 min por sesión: 14s/36m · 18s/44m · 16s/40m · 15s/38m · 18s/42m · sin cubrir: nada
@@ -165,7 +165,7 @@ Músculos sin cubrir por causa (en grupo-planes): {"tiempo":257,"R1":71}.
 
 ## Indicadores del paso 2b (patrón principal, ejercicio directo, hip thrust, R1 por días, minutos)
 
-- **Series del patrón principal** (1620 sesiones): 4 series: 1490 (92 %) · 5 series: 97 (6 %) · 6 series: 17 (1 %) · 7 series: 16 (1 %). Con la mínima en 4, las sesiones que no llegan son las que no caben en el tiempo.
+- **Series del patrón principal** (1620 sesiones): 4 series: 1507 (93 %) · 5 series: 113 (7 %). Con la mínima en 4, las sesiones que no llegan son las que no caben en el tiempo.
 - **Cobertura directa de Bíceps**: 360 de 360 planes (100 %) con al menos un ejercicio directo de 2 series o más; series directas por semana (promedio / mínimo / máximo): 3 / 2 / 8; fraccionadas (promedio): 7.3.
 - **Cobertura directa de Tríceps**: 360 de 360 planes (100 %) con al menos un ejercicio directo de 2 series o más; series directas por semana (promedio / mínimo / máximo): 3 / 2 / 8; fraccionadas (promedio): 7.6.
 - **Cobertura directa de Pantorrillas**: 360 de 360 planes (100 %) con al menos un ejercicio directo de 2 series o más; series directas por semana (promedio / mínimo / máximo): 7.7 / 4 / 11; fraccionadas (promedio): 7.7.
@@ -190,11 +190,48 @@ Planes con la espalda sin cubrir por R1: 16. Necesidad de espalda de esos planes
 Por días: {"5":8,"6":8}.
 - **Hipótesis (no está en el código)**: si el día de empuje de los splits de 5 y 6 días también pudiera alojar espalda, la espalda quedaría sin cubrir por R1 en 0 planes (hoy 16).
 
-### Series por ejercicio aislado en una sesión (para decidir el tope por ejercicio)
+### Series por ejercicio en una sesión, antes y después del tope de 5 (DEC-031)
 
-- Ejercicios aislados en las 1620 sesiones: 5693. Distribución por número de series: 2: 1864 · 3: 726 · 4: 850 · 5: 549 · 6: 439 · 7: 409 · 8: 236 · 9: 443 · 10: 56 · 11: 121.
-- **Máximo:** 11 series (Curl femoral tumbado, plan de 3 días). **Sesiones con algún aislado de 6 series o más:** 1075 de 1620 (66.4 %); ejercicios aislados con 6 o más series: 1704 de 5693 (29.9 %).
-- Los que más aparecen con 6 o más: Abducción de cadera en máquina 428 · Extensión de cuádriceps 258 · Elevación de talones de pie 215 · Crunch en polea 208 · Curl femoral tumbado 166 · Curl femoral sentado 141.
+**Ejercicios aislados** (1620 sesiones):
+
+| | Antes (sin tope) | Después (tope de 5) |
+| --- | --- | --- |
+| Ejercicios | 5693 | 6574 |
+| con 2 series | 1864 | 2428 |
+| con 3 series | 726 | 878 |
+| con 4 series | 850 | 1262 |
+| con 5 series | 549 | 1113 |
+| con 6 series | 439 | 188 |
+| con 7 series | 409 | 166 |
+| con 8 series | 236 | 84 |
+| con 9 series | 443 | 352 |
+| con 10 series | 56 | 52 |
+| con 11 series | 121 | 51 |
+| **Máximo de series en un ejercicio** | 11 (Curl femoral tumbado) | 11 (Extensión de cuádriceps) |
+| **Ejercicios con 6 series o más** | 1704 (29.9 %) | 893 (13.6 %) |
+| **Sesiones con algún ejercicio de 6 o más** | 1075 (66.4 %) | 712 (44 %) |
+
+**Ejercicios todos** (1620 sesiones):
+
+| | Antes (sin tope) | Después (tope de 5) |
+| --- | --- | --- |
+| Ejercicios | 8691 | 9605 |
+| con 2 series | 3170 | 3767 |
+| con 3 series | 774 | 926 |
+| con 4 series | 2340 | 2769 |
+| con 5 series | 670 | 1250 |
+| con 6 series | 456 | 188 |
+| con 7 series | 425 | 166 |
+| con 8 series | 236 | 84 |
+| con 9 series | 443 | 352 |
+| con 10 series | 56 | 52 |
+| con 11 series | 121 | 51 |
+| **Máximo de series en un ejercicio** | 11 (Curl femoral tumbado) | 11 (Extensión de cuádriceps) |
+| **Ejercicios con 6 series o más** | 1737 (20 %) | 893 (9.3 %) |
+| **Sesiones con algún ejercicio de 6 o más** | 1079 (66.6 %) | 712 (44 %) |
+
+- **Volumen:** series totales de los 360 planes antes 34849 y después 34849 (el volumen no se recorta); minutos antes 82241 y después 82241; músculos cuya cobertura fraccionada cambia: ninguno.
+- **Ejercicios que se quedan con más de 5 series**: 893; de ellos 823 son de un patrón con una sola variante (no hay a dónde traspasar) y 70 tienen otra variante que no cupo por tiempo, R1, A2 o A3. Casos en 335 planes; los más frecuentes: glutes.hip_abduction_machine 428 · quads.leg_extension 258 · back.pullover_cable 101 · triceps.pushdown_cable 36 · abs.crunch_cable 34 · calves.calf_raise_standing 20.
 
 ### Hip thrust: por qué no se elige
 
