@@ -384,12 +384,20 @@ test('paso 5: R1 es una restricción: ningún músculo pasa de 11 series fraccio
 });
 
 test('DEC-025 punto 4: ganan las demandas mínimas: R1 solo se pasa mientras el piso (fraccionado o de series reales) del músculo está sin cubrir', () => {
-  const eventos = barrido.flatMap(({ plan }) => plan.avisos.r1Excedido);
-  assert.ok(eventos.length > 0, 'el barrido debería tener al menos un caso donde un mínimo gana sobre R1');
-  eventos.forEach(ev => ev.musculos.forEach(x => {
+  const chequear = eventos => eventos.forEach(ev => ev.musculos.forEach(x => {
     const grupoMayor = REP.GRUPOS_MAYORES.includes(x.musculo);
     assert.ok(x.cubiertoAntes < x.piso || (grupoMayor && x.directasAntes < x.piso), `${ev.sesion} ${x.musculo}: R1 se pasó con el mínimo ya cubierto`);
   }));
+  chequear(barrido.flatMap(({ plan }) => plan.avisos.r1Excedido));
+  // Con R1 de 11, el reparto estricto alcanza para casi todos los planes: el choque se fuerza bajando R1 a 3 solo dentro de la prueba.
+  const r1 = R.regla('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION'), original = r1.valor;
+  try {
+    r1.valor = 3;
+    const plan = REP.generarPlan(emanuelRef);
+    assert.ok(plan.avisos.r1Excedido.length > 0, 'con R1 de 3 los pisos solo se cubren pasando R1');
+    chequear(plan.avisos.r1Excedido);
+    REP.GRUPOS_MAYORES.forEach(m => assert.ok(plan.semanal[m].cubierto >= plan.semanal[m].piso && plan.semanal[m].directas >= plan.semanal[m].piso, `${m}: el mínimo debe ganar sobre R1`));
+  } finally { r1.valor = original; }
 });
 
 test('DEC-014: la garantía de series reales: cada grupo mayor tiene al menos su piso en series directas, o el aviso único lo dice (360 planes)', () => {
@@ -566,4 +574,36 @@ test('DEC-014: en el perfil de referencia cada grupo mayor llega a su piso en se
   const plan = REP.generarPlan(emanuelRef);
   REP.GRUPOS_MAYORES.forEach(m => assert.ok(plan.semanal[m].directas >= plan.semanal[m].piso, `${m}: ${plan.semanal[m].directas} directas < piso ${plan.semanal[m].piso}`));
   assert.equal(plan.avisoUnico, null);
+});
+
+/* ---------- Paso 2b · estructura: patrón principal con volumen propio y ejercicio directo semanal (DEC-029) ---------- */
+test('DEC-029: el patrón principal de cada sesión lleva al menos 4 series de trabajo, o el aviso único dice que no cupo (360 planes)', () => {
+  barrido.forEach(({ d, plan }) => plan.sesiones.forEach(s => {
+    const principal = s.ejercicios.find(e => e.patron === s.principal);
+    const reducido = plan.avisos.principalReducido.some(x => x.sesion === s.nombre) || plan.avisos.obligatoriosSinLugar.some(x => x.sesion === s.nombre && x.patron === s.principal);
+    if (!principal) return assert.ok(reducido, `${d} días ${s.nombre}: sin patrón principal y sin aviso`);
+    assert.ok(principal.series >= R.valor('SERIES_MIN_PATRON_PRINCIPAL') || reducido, `${d} días ${s.nombre}: el principal tiene ${principal.series} series`);
+  }));
+  const hay = barrido.filter(({ plan }) => plan.sesiones.every(s => (s.ejercicios.find(e => e.patron === s.principal) || { series: 0 }).series >= 4));
+  assert.ok(hay.length > barrido.length * 0.8, 'la mayoría de los planes debería llevar el principal con 4 series o más en todas sus sesiones');
+});
+
+test('DEC-029: todo grupo del perfil lleva por semana al menos un ejercicio directo con 2 series o más, o el aviso único lo dice (360 planes)', () => {
+  barrido.forEach(({ d, plan }) => REP.MUSCULOS.forEach(m => {
+    const directos = plan.sesiones.flatMap(s => s.ejercicios).filter(e => e.grupo === m && e.series >= R.valor('EJERCICIO_DIRECTO_SEMANAL_MIN_SERIES'));
+    if (directos.length) return;
+    assert.ok(plan.avisos.sinDirecto.some(x => x.musculo === m), `${d} días ${m}: sin ejercicio directo y sin aviso`);
+  }));
+  // Antes bíceps y tríceps podían quedar solo con series indirectas: en el perfil de referencia ahora tienen su ejercicio.
+  const plan = REP.generarPlan(emanuelRef);
+  ['biceps', 'triceps', 'calves', 'abs'].forEach(m => assert.ok(plan.sesiones.flatMap(s => s.ejercicios).some(e => e.grupo === m && e.series >= 2), m));
+  assert.equal(plan.avisoUnico, null);
+});
+
+test('DEC-029: sin variantes ni sesión donde ubicar un grupo, el ejercicio directo se avisa (la seguridad gana)', () => {
+  // Una lesión de codo y muñeca deja a los bíceps sin variantes directas (curl con barra, barra Z; el inclinado sigue): se fuerza excluyéndolas todas.
+  const sinBiceps = Object.assign({}, C, { excluidaPorLesion: (id, z) => /^biceps\./.test(id) || C.excluidaPorLesion(id, z) });
+  const plan = REP.generarPlan(emanuelRef, { catalogo: sinBiceps });
+  assert.ok(plan.avisos.sinDirecto.some(x => x.musculo === 'biceps'));
+  assert.ok(plan.avisoUnico && plan.avisoUnico.sinDirecto.some(x => x.musculo === 'biceps'));
 });

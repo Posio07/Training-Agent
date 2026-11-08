@@ -46,7 +46,7 @@ function viejo(p) {
   };
 }
 function nuevo(p, cat, extra) {
-  const pl = REP.generarPlan(Object.assign({}, p, extra || {}), { catalogo: cat, seriesPrincipal: extra && extra.__sp });
+  const pl = REP.generarPlan(Object.assign({}, p, extra || {}), { catalogo: cat });
   return {
     sesiones: pl.sesiones.map(s => ({ nombre: s.nombre, series: s.series, minutos: s.minutos, ej: s.ejercicios.map(e => `${e.topSet ? '★' : ''}${e.nombre} ×${e.series}`) })),
     semanal: Object.fromEntries(Object.entries(pl.semanal).map(([m, x]) => [m, x.cubierto])), directas: Object.fromEntries(Object.entries(pl.semanal).map(([m, x]) => [m, x.directas])), plan: pl,
@@ -66,13 +66,17 @@ lista.forEach(p => {
   P(`${md ? '## ' : '== '}${p.name || 'Perfil'} · ${p.daysPerWeek} días · ${p.division} · ${p.goal} · ${p.level}${(p.laggingMuscles || []).length ? ' · rezagados: ' + p.laggingMuscles.map(m => ETQ[m]).join(', ') : ''}`);
   P('');
   P(md ? '### Sesiones (series y minutos)' : '-- Sesiones');
-  P(md ? '| Sesión | A series | A min | B series | B min | C series | C min |\n| --- | --- | --- | --- | --- | --- | --- |' : '');
+  P(md ? '| Sesión | A series | A min | B series | B min | C series | C min usados | C min disponibles | C usado |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |' : '');
   A.sesiones.forEach((sa, i) => {
     const sb = B.sesiones[i], sc = C.sesiones[i];
-    P(md ? `| ${sa.nombre} → ${sc.nombre} | ${sa.series} | ${sa.minutos} | ${sb.series} | ${sb.minutos} | ${sc.series} | ${sc.minutos} |` : `${linea(sa.nombre, 28)} A ${sa.series}s/${sa.minutos}m · B ${sb.series}s/${sb.minutos}m · C ${sc.series}s/${sc.minutos}m`);
+    const cap = pl.sesiones[i].capacidadMin;
+    P(md ? `| ${sa.nombre} → ${sc.nombre} | ${sa.series} | ${sa.minutos} | ${sb.series} | ${sb.minutos} | ${sc.series} | ${sc.minutos} | ${cap} | ${Math.round(sc.minutos / cap * 100)} % |` : `${linea(sa.nombre, 28)} A ${sa.series}s/${sa.minutos}m · B ${sb.series}s/${sb.minutos}m · C ${sc.series}s/${sc.minutos}m`);
   });
   const sum = (arr, k) => arr.reduce((a, s) => a + s[k], 0);
-  P(md ? `| **Total semana** | ${sum(A.sesiones, 'series')} | ${sum(A.sesiones, 'minutos')} | ${sum(B.sesiones, 'series')} | ${sum(B.sesiones, 'minutos')} | ${sum(C.sesiones, 'series')} | ${sum(C.sesiones, 'minutos')} |` : '');
+  const capTotal = pl.sesiones.reduce((a, x) => a + x.capacidadMin, 0);
+  P(md ? `| **Total semana** | ${sum(A.sesiones, 'series')} | ${sum(A.sesiones, 'minutos')} | ${sum(B.sesiones, 'series')} | ${sum(B.sesiones, 'minutos')} | ${sum(C.sesiones, 'series')} | ${sum(C.sesiones, 'minutos')} | ${capTotal} | ${Math.round(sum(C.sesiones, 'minutos') / capTotal * 100)} % |` : '');
+  P('');
+  P(`**Cómo leer los totales:** A es el motor actual (${sum(A.sesiones, 'series')} series y ${sum(A.sesiones, 'minutos')} min por semana); B y C son el reparto nuevo (${sum(C.sesiones, 'series')} series y ${sum(C.sesiones, 'minutos')} min por semana). Los minutos de A son los que estima el motor actual con sus descansos; los de B y C, con los descansos del registro.`);
   P('');
   P(md ? '### Series fraccionadas por semana y músculo' : '-- Series fraccionadas por semana');
   P(md ? '| Músculo | Necesidad | Piso | A | B | C | A→B (reparto) | B→C (catálogo) | Falta en C |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |' : '');
@@ -100,9 +104,6 @@ lista.forEach(p => {
     const c = nuevo(p, CAT, { tiempoDisponibleMin: min });
     P(`${md ? '- ' : '  '}${min} min por sesión: ${c.sesiones.map(s => `${s.series}s/${s.minutos}m`).join(' · ')} · sin cubrir: ${Object.entries(c.plan.semanal).filter(([, x]) => x.falta > 0).map(([m, x]) => `${ETQ[m]} ${r1(x.falta)} (${x.causa})`).join(', ') || 'nada'}`);
   });
-  const sp = nuevo(p, CAT, { __sp: 4 });
-  P(`${md ? '- ' : '  '}Hipótesis (no es regla): patrón principal con 4 series como mínimo: ${sp.sesiones.map(s => `${s.series}s/${s.minutos}m`).join(' · ')}`);
-  sp.sesiones.forEach(s => P(`${md ? '  - ' : '    '}${s.nombre}: ${s.ej.join(' · ')}`));
   P('');
 });
 
@@ -131,4 +132,48 @@ P('');
 const causas = {};
 filas.forEach(f => Object.entries(f.pl.semanal).forEach(([m, x]) => { if (x.causa) causas[x.causa] = (causas[x.causa] || 0) + 1; }));
 P(`Músculos sin cubrir por causa (en grupo-planes): ${JSON.stringify(causas)}.`);
+
+/* ---------- Indicadores del paso 2b ---------- */
+P('');
+P(md ? '## Indicadores del paso 2b (patrón principal, ejercicio directo, hip thrust, R1 por días, minutos)' : '== Indicadores del paso 2b');
+P('');
+const sesAll = filas.flatMap(f => f.pl.sesiones.map(x => ({ d: f.d, p: f.p, s: x })));
+const principalDe = x => (x.s.ejercicios.find(e => e.patron === x.s.principal) || { series: 0 }).series;
+const dist = {};
+sesAll.forEach(x => { const n = principalDe(x); dist[n] = (dist[n] || 0) + 1; });
+P(`- **Series del patrón principal** (1620 sesiones): ${Object.keys(dist).sort((a, b) => a - b).map(k => `${k} series: ${dist[k]} (${pct(dist[k], sesAll.length)})`).join(' · ')}. Con la mínima en 4, las sesiones que no llegan son las que no caben en el tiempo.`);
+const prom = ms => r1(ms.reduce((a, b) => a + b, 0) / (ms.length || 1));
+['biceps', 'triceps', 'calves', 'abs'].forEach(m => {
+  const conDirecto = filas.filter(f => f.pl.sesiones.some(x => x.ejercicios.some(e => e.grupo === m && e.series >= 2))).length;
+  P(`- **Cobertura directa de ${ETQ[m]}**: ${conDirecto} de ${filas.length} planes (${pct(conDirecto, filas.length)}) con al menos un ejercicio directo de 2 series o más; series directas por semana (promedio / mínimo / máximo): ${prom(filas.map(f => f.pl.semanal[m].directas))} / ${Math.min(...filas.map(f => f.pl.semanal[m].directas))} / ${Math.max(...filas.map(f => f.pl.semanal[m].directas))}; fraccionadas (promedio): ${prom(filas.map(f => f.pl.semanal[m].cubierto))}.`);
+});
+const hip = f => f.pl.sesiones.reduce((a, x) => a + x.ejercicios.filter(e => e.varianteId === 'glutes.hip_thrust').length, 0);
+const enfGlu = p => ['bikini_w', 'wellness_w', 'figure_w'].includes(p.division) || (p.laggingMuscles || []).includes('glutes');
+P(`- **Hip thrust**: aparece en ${filas.reduce((a, f) => a + hip(f), 0)} de ${sesAll.length} sesiones; en los ${filas.filter(f => f.p.division === 'bikini_w').length} planes de bikini: ${filas.filter(f => f.p.division === 'bikini_w').reduce((a, f) => a + hip(f), 0)}; en los ${filas.filter(f => enfGlu(f.p)).length} planes con énfasis en glúteos (bikini, wellness, figure o glúteos rezagados): ${filas.filter(f => enfGlu(f.p)).reduce((a, f) => a + hip(f), 0)}. En los dos perfiles de referencia: ${lista.map(p => `${(p.name || 'Perfil').split(' (')[0]}: ${REP.generarPlan(p).sesiones.reduce((a, x) => a + x.ejercicios.filter(e => e.varianteId === 'glutes.hip_thrust').length, 0)}`).join(' · ')}.`);
+P('');
+P(md ? '| Días | Planes | R1 deja necesidad sin cubrir | Con algún aviso único | Minutos usados por sesión (promedio / máximo) | Capacidad usada (promedio) | Sesiones al 90 % o más del tiempo |\n| --- | --- | --- | --- | --- | --- | --- |' : 'Por número de días:');
+[3, 4, 5, 6].forEach(d => {
+  const fd = filas.filter(f => f.d === d), sd = sesAll.filter(x => x.d === d);
+  const fila = [d, fd.length, `${fd.filter(f => Object.values(f.pl.semanal).some(x => x.causa === 'R1')).length} (${pct(fd.filter(f => Object.values(f.pl.semanal).some(x => x.causa === 'R1')).length, fd.length)})`, `${fd.filter(f => f.pl.avisoUnico).length} (${pct(fd.filter(f => f.pl.avisoUnico).length, fd.length)})`, `${prom(sd.map(x => x.s.minutos))} / ${Math.max(...sd.map(x => x.s.minutos))}`, pct(sd.reduce((a, x) => a + x.s.minutos, 0), sd.reduce((a, x) => a + x.s.capacidadMin, 0)), sd.filter(x => x.s.minutos >= 0.9 * x.s.capacidadMin).length];
+  P(md ? `| ${fila.join(' | ')} |` : fila.join(' · '));
+});
+P('');
+/* Espalda sin cubrir por R1 a 5 y 6 días: dónde aparece la espalda y qué pasaría si el split la alojara en más sesiones. */
+P(md ? '### Espalda y R1 a 5 y 6 días' : '-- Espalda y R1');
+P('');
+[3, 4, 5, 6].forEach(d => {
+  const tipos = REP.SPLITS[d].map(([n, k]) => ({ n, k, back: REP.TIPOS[k].grupos.includes('back') }));
+  P(`- ${d} días: la espalda puede entrar en ${tipos.filter(t => t.back).length} de ${d} sesiones (${tipos.filter(t => t.back).map(t => t.n).join('; ')}). Con R1 en 11 series fraccionadas por sesión, el techo semanal de la espalda es ${tipos.filter(t => t.back).length * 11}.`);
+});
+const espaldaR1 = filas.filter(f => f.pl.semanal.back.causa === 'R1');
+P('');
+P(`Planes con la espalda sin cubrir por R1: ${espaldaR1.length}. Necesidad de espalda de esos planes: ${[...new Set(espaldaR1.map(f => f.pl.semanal.back.necesidad))].join(', ')} series; cubierto: ${[...new Set(espaldaR1.map(f => f.pl.semanal.back.cubierto))].join(', ')}. Perfiles: ${[...new Set(espaldaR1.map(f => `${f.p.level}/${f.p.division}/${f.p.goal}${(f.p.laggingMuscles || []).includes('back') ? '/espalda rezagada' : ''}`))].join(', ')}.`);
+const quien = {}; espaldaR1.forEach(f => { quien[f.d] = (quien[f.d] || 0) + 1; });
+P(`Por días: ${JSON.stringify(quien)}.`);
+const empuje = REP.TIPOS.empuje, torsoA = REP.TIPOS.torsoA;
+empuje.grupos.push('back');
+const conBack = [];
+[3, 4, 5, 6].forEach(d => profiles.forEach(p => conBack.push({ d, pl: REP.generarPlan(Object.assign({}, p, { daysPerWeek: d })) })));
+empuje.grupos.pop();
+P(`- **Hipótesis (no está en el código)**: si el día de empuje de los splits de 5 y 6 días también pudiera alojar espalda, la espalda quedaría sin cubrir por R1 en ${conBack.filter(f => f.pl.semanal.back.causa === 'R1').length} planes (hoy ${espaldaR1.length}).`);
 console.log(out.join('\n'));
