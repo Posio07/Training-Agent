@@ -137,6 +137,13 @@
   VARIANTES.forEach(x => { comparten[x.hereda] = (comparten[x.hereda] || 0) + 1; });
   VARIANTES.forEach(x => { x.heredado = comparten[x.hereda] > 1; });
 
+  // DEC-008: el top set solo va a multiarticulares bilaterales con carga libre o guiada pesada. Lista cerrada a propósito:
+  // sentadilla trasera y hack, press banca, press militar (barra y mancuernas), peso muerto rumano, remo con barra y
+  // pendlay, dominadas y jalón. Nunca unilaterales ni máquinas de press (por eso la prensa y los fondos no están).
+  const TOPSET_ELEGIBLES = ['quads.squat_back', 'quads.squat_hack', 'chest.bench_press_barbell', 'shoulders.press_overhead_barbell', 'shoulders.press_overhead_db',
+    'shoulders.press_overhead_db_seated', 'hamstrings.rdl', 'back.row_barbell', 'back.row_pendlay', 'back.pull_up', 'back.lat_pulldown'];
+  VARIANTES.forEach(x => { x.topSetElegible = TOPSET_ELEGIBLES.includes(x.id); });
+
   const PATRON_POR_ID = {};
   PATRONES.forEach(p => { PATRON_POR_ID[p.id] = p; });
   const VARIANTE_POR_ID = {};
@@ -183,5 +190,48 @@
     return lados * (descanso + REGISTRO.valor('SEGUNDOS_EJECUCION_SERIE'));
   }
 
-  return { PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, perfilArticularDe, segundosPorSerie };
+  // Variante excluida por alguna de las zonas de lesión declaradas (DEC-009, capa 3; mapa del registro).
+  const excluidaPorLesion = (id, zonas) => {
+    const mapa = REGISTRO.valor('EXCLUSIONES_POR_LESION');
+    return (zonas || []).some(z => (mapa[z] || []).includes(id));
+  };
+
+  /* Catálogo viejo emulado (solo para la vista previa del reparto, hasta el corte): cada ejercicio del motor actual
+   * como UNA entrada, con los datos del original (músculos, perfil articular de la variante más exigente) y los
+   * mismos indicadores (remo con barra opcional, remo con apoyo solo sin esa casilla, sustitutos por lesión,
+   * funcionales). Permite separar en la comparación lo que cambia por el reparto de lo que cambia por el catálogo. */
+  function catalogoViejoEmulado(K) {
+    const viejos = [];
+    [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.keys(g).forEach(m => g[m].forEach(e => viejos.push(e))));
+    const variantes = viejos.map(o => {
+      const rep = VARIANTES.find(x => x.hereda === o.id);
+      const v = Object.assign({}, rep, { id: o.id, nombre: o.name, hereda: o.id, heredado: false, reps: o.reps, tipo: o.type === 'compound' ? M : A, unilateral: !!o.unilateral, viejo: true });
+      delete v.habilitaPor; delete v.soloConLesion; delete v.sinTopSet; delete v.preferida;
+      if (o.optIn) v.habilitaPor = 'remoConBarra';
+      if (o.defaultOnly) v.soloSinRemoConBarra = true;
+      if (o.injuryOnly) { v.soloConLesion = o.injuryOnly; v.sinTopSet = true; }
+      if (K.FUNCTIONAL_EXERCISES && Object.keys(K.FUNCTIONAL_EXERCISES).some(m => K.FUNCTIONAL_EXERCISES[m].some(f => f.id === o.id))) v.habilitaPor = 'healthGoal';
+      if (o.cue) v.preferida = false;
+      return v;
+    });
+    const porId = {};
+    variantes.forEach(v => { porId[v.id] = v; });
+    const repDe = id => VARIANTES.find(x => x.hereda === id);
+    return {
+      nombre: 'viejo', PATRONES, VARIANTES: variantes,
+      patronPorId: id => PATRON_POR_ID[id] || null,
+      variantePorId: id => porId[id] || null,
+      aportesDe: id => EXERCISE_MUSCLES.rows.filter(r => r.exerciseId === id).map(r => Object.assign({}, r)),
+      grupoDe: id => EXERCISE_MUSCLES.buckets[id] || null,
+      perfilArticularDe: id => { const out = {}; PERFIL_ARTICULAR.rows.filter(r => r.exerciseId === id).forEach(r => { out[r.articulacion] = r; }); return out; },
+      segundosPorSerie: id => {
+        const x = porId[id];
+        const descanso = x.tipo === M ? REGISTRO.valor('DESCANSO_MULTIARTICULAR_S') : REGISTRO.valor('DESCANSO_AISLAMIENTO_S');
+        return (x.unilateral ? REGISTRO.valor('FACTOR_UNILATERAL') : 1) * (descanso + REGISTRO.valor('SEGUNDOS_EJECUCION_SERIE'));
+      },
+      excluidaPorLesion: (id, zonas) => excluidaPorLesion(repDe(id).id, zonas),
+    };
+  }
+
+  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, perfilArticularDe, segundosPorSerie, excluidaPorLesion, catalogoViejoEmulado };
 });

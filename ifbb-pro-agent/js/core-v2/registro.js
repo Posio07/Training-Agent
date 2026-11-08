@@ -46,44 +46,67 @@
     e('FACTOR_UNILATERAL', 2, '×', 'DEC-007', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'engine.js (unilateralFactor)', nota: 'Los unilaterales cuentan ambos lados.' }),
 
     /* ---- Paso 2 · restricciones de seguridad ---- */
-    e('MAX_LUMBAR_ALTA_POR_SESION', 1, 'ejercicios', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, tipo: 'aviso', origen: 'VALIDATOR_RULES.maxLumbarHighPerSession', nota: 'A2. Ninguna fuente prueba que el tope prevenga lesiones.' }),
-    e('SEPARACION_SENTADILLA_BISAGRA', true, 'regla', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, origen: 'VALIDATOR_RULES.hingeSquatSeparation', nota: 'A3. Pasa a propiedad del tipo de sesión (pierna con sentadilla y pierna con bisagra).' }),
+    e('MAX_LUMBAR_ALTA_POR_SESION', 1, 'ejercicios', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, estado: 'implementada', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxLumbarHighPerSession', nota: 'A2. Ninguna fuente prueba que el tope prevenga lesiones.' }),
+    e('SEPARACION_SENTADILLA_BISAGRA', true, 'regla', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, estado: 'implementada', origen: 'VALIDATOR_RULES.hingeSquatSeparation', nota: 'A3. Pasa a propiedad del tipo de sesión (pierna con sentadilla y pierna con bisagra).' }),
     e('UMBRAL_DOLOR_BANDERA', 5, '0-10', 'DEC-011', 'E4', 'Pain-Monitoring Model (Thomeé 1997; adaptado en Silbernagel et al. 2007, Am J Sports Med 35(6):897-906, PMID 17307888). Umbral verificado en una fuente secundaria (Sprague et al. 2021)', { paso: 2, fuentes: ['SILBERNAGEL_2007'], origen: 'VALIDATOR_RULES.painFlagThreshold', nota: 'A6. Marcado para revisión en el motor actual.' }),
     e('DOLOR_SESIONES_MINIMAS', 2, 'sesiones', 'DEC-011', 'E4', CRITERIO, { paso: 2, origen: 'VALIDATOR_RULES.painAdviceMinSessions', nota: 'Sesiones distintas con dolor sobre el umbral en el mismo patrón.' }),
     e('DOLOR_VENTANA_DIAS', 28, 'días', 'DEC-011', 'E4', CRITERIO, { paso: 2, origen: 'VALIDATOR_RULES.painAdviceWindowDays', nota: 'Últimas 4 semanas, contadas hacia atrás.' }),
 
     /* ---- Paso 3 · estructura ---- */
-    e('MAX_EJERCICIOS_PRIORITARIOS', 3, 'variantes', 'spec núcleo v2', 'E4', CRITERIO, { paso: 3, origen: 'docs/specs/nucleo-v2.md', nota: 'Decidido por Emanuel (2026-11-07).' }),
-    e('MAX_DIAS_GRUPO_CHICO', 2, 'días por semana', 'DEC-026', 'E4', CRITERIO, { paso: 3, origen: 'engine.js (máximo de días de un grupo chico)', nota: 'Se conserva como compatibilidad de grupos chicos (T6, aprobado el 2026-11-07).' }),
-    e('SERIES_MIN_POR_EJERCICIO', 2, 'series', 'DEC-026', 'E4', CRITERIO, { paso: 5, origen: 'engine.js (mínimo de series por ejercicio)', nota: 'Propuesta de paso: se confirma al construir el reparto.' }),
-    e('TOP_SET_SOLO_EN_DEFINICION', true, 'regla', 'DEC-002', 'E4', CRITERIO, { paso: 6, cuando: DEFINICION, origen: 'DEC-002 y DEC-008', nota: 'El top set existe solo en definición (decidido el 2026-11-08).' }),
+    e('MAX_EJERCICIOS_PRIORITARIOS', 3, 'variantes', 'spec núcleo v2', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'docs/specs/nucleo-v2.md', nota: 'Decidido por Emanuel (2026-11-07).' }),
+    e('MAX_DIAS_GRUPO_CHICO', 2, 'días por semana', 'DEC-026', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'engine.js (máximo de días de un grupo chico)', nota: 'Se conserva como compatibilidad de grupos chicos (T6, aprobado el 2026-11-07).' }),
+    e('SERIES_MIN_POR_EJERCICIO', 2, 'series', 'DEC-026', 'E4', CRITERIO, { paso: 5, estado: 'implementada', origen: 'engine.js (mínimo de series por ejercicio)', nota: 'Propuesta de paso: se confirma al construir el reparto.' }),
+    e('TOP_SET_SOLO_EN_DEFINICION', true, 'regla', 'DEC-002', 'E4', CRITERIO, { paso: 6, estado: 'implementada', cuando: DEFINICION, origen: 'DEC-002 y DEC-008', nota: 'El top set existe solo en definición (decidido el 2026-11-08).' }),
 
     /* ---- Paso 4 · necesidad semanal y demandas mínimas ---- */
-    e('NECESIDAD_SEMANAL_POR_NIVEL', { advanced: 18, intermediate: 14, novice: 10 }, 'series por semana', 'DEC-026', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, origen: 'engine.js (volumen base 18/14/10)' }),
-    e('FACTOR_NECESIDAD_DEFINICION', 0.85, '×', 'DEC-001', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, cuando: DEFINICION, origen: 'engine.js (×0,85)', nota: 'Se aplica una sola vez, sobre la necesidad.' }),
-    e('FACTOR_NECESIDAD_ENFASIS', 1.25, '×', 'DEC-001', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, origen: 'engine.js (×1,25 énfasis y rezagados)', nota: 'Rezagados y énfasis de la división; se aplica una sola vez, sobre la necesidad.' }),
-    e('FACTOR_NECESIDAD_ENFASIS_REDUCIDO', 0.5, '×', 'DEC-001', 'E4', CRITERIO, { paso: 4, origen: 'engine.js (×0,5 énfasis reducido)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
-    e('FACTOR_NECESIDAD_GRUPO_CHICO', 0.6, '×', 'DEC-026', 'E4', CRITERIO, { paso: 4, origen: 'engine.js (×0,6 grupos chicos)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
-    e('REZAGADOS_TOPE_SERIES', 20, 'series por semana', 'DEC-001', 'E4', CRITERIO, { paso: 4, origen: 'engine.js (tope de 20 para rezagados)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
-    e('NECESIDAD_MINIMA_SERIES', 4, 'series por semana', 'DEC-026', 'E4', CRITERIO, { paso: 4, origen: 'engine.js (Math.max(4, …) de la necesidad)', nota: 'En el motor actual el mínimo de 4 se aplica a la necesidad de todos los grupos, no solo a los rezagados (DEC-001 no lo menciona). Análisis del 2026-11-08 (barrido de 360 planes): actúa en 48 planes, todos de principiantes de bikini y wellness, casi siempre subiendo bíceps y tríceps cuyo mínimo de DEC-020 ya se cumple sin él; sin este número ningún grupo queda bajo el piso de DEC-017 ni el mínimo de DEC-020 sin aviso. Es redundante: se elimina en el paso 2 (decidido por Emanuel al aceptar DEC-026).' }),
-    e('PISO_SEMANAL_GRUPO', 10, 'series fraccionadas por semana', 'DEC-017', 'E1', ACSM_2026, { paso: 4, origen: 'VALIDATOR_RULES.minWeeklySetsPerMuscle', nota: 'Piso protector de los grupos mayores; se informa para todos (T11, aprobado). Verificado contra el material oficial del ACSM, no contra el artículo completo.' }),
-    e('FACTOR_PISO_MANTENIMIENTO', 0.5, '×', 'DEC-017', 'E4', SPIERING, { paso: 4, fuentes: ['SPIERING_MANT_2021'], origen: 'VALIDATOR_RULES.maintenanceFloorFactor', nota: 'Convención alineada con DEC-001: el grupo con énfasis reducido solo se mantiene.' }),
-    e('MINIMO_SEMANAL_GRUPO_CHICO', 5, 'series fraccionadas por semana', 'DEC-020', 'E4', SPIERING, { paso: 4, fuentes: ['SPIERING_MANT_2021'], origen: 'VALIDATOR_RULES.groupMinimumWeeklySets', derivadoDe: ['PISO_SEMANAL_GRUPO', 'FACTOR_PISO_MANTENIMIENTO'], nota: 'Derivado: piso × factor de mantenimiento. Un test comprueba que sigue siendo el producto.' }),
+    e('NECESIDAD_SEMANAL_POR_NIVEL', { advanced: 18, intermediate: 14, novice: 10 }, 'series por semana', 'DEC-026', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, estado: 'implementada', origen: 'engine.js (volumen base 18/14/10)' }),
+    e('FACTOR_NECESIDAD_DEFINICION', 0.85, '×', 'DEC-001', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (×0,85)', nota: 'Se aplica una sola vez, sobre la necesidad.' }),
+    e('FACTOR_NECESIDAD_ENFASIS', 1.25, '×', 'DEC-001', 'E4', SIN_RESPALDO_PUNTUAL, { paso: 4, estado: 'implementada', origen: 'engine.js (×1,25 énfasis y rezagados)', nota: 'Rezagados y énfasis de la división; se aplica una sola vez, sobre la necesidad.' }),
+    e('FACTOR_NECESIDAD_ENFASIS_REDUCIDO', 0.5, '×', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (×0,5 énfasis reducido)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
+    e('FACTOR_NECESIDAD_GRUPO_CHICO', 0.6, '×', 'DEC-026', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (×0,6 grupos chicos)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
+    e('REZAGADOS_TOPE_SERIES', 20, 'series por semana', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (tope de 20 para rezagados)', nota: 'Aprobado el 2026-11-07 como criterio de diseño.' }),
+    // El mínimo de 4 series por semana (NECESIDAD_MINIMA_SERIES) se eliminó en el paso 2: era redundante (DEC-026, análisis del 2026-11-08).
+    e('PISO_SEMANAL_GRUPO', 10, 'series fraccionadas por semana', 'DEC-017', 'E1', ACSM_2026, { paso: 4, estado: 'implementada', origen: 'VALIDATOR_RULES.minWeeklySetsPerMuscle', nota: 'Piso protector de los grupos mayores; se informa para todos (T11, aprobado). Verificado contra el material oficial del ACSM, no contra el artículo completo.' }),
+    e('FACTOR_PISO_MANTENIMIENTO', 0.5, '×', 'DEC-017', 'E4', SPIERING, { paso: 4, estado: 'implementada', fuentes: ['SPIERING_MANT_2021'], origen: 'VALIDATOR_RULES.maintenanceFloorFactor', nota: 'Convención alineada con DEC-001: el grupo con énfasis reducido solo se mantiene.' }),
+    e('MINIMO_SEMANAL_GRUPO_CHICO', 5, 'series fraccionadas por semana', 'DEC-020', 'E4', SPIERING, { paso: 4, estado: 'implementada', fuentes: ['SPIERING_MANT_2021'], origen: 'VALIDATOR_RULES.groupMinimumWeeklySets', derivadoDe: ['PISO_SEMANAL_GRUPO', 'FACTOR_PISO_MANTENIMIENTO'], nota: 'Derivado: piso × factor de mantenimiento. Un test comprueba que sigue siendo el producto.' }),
     e('FRECUENCIA_MINIMA_GRUPOS_MAYORES', 2, 'sesiones por semana', 'DEC-010', 'E1', 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', { paso: 4, origen: 'VALIDATOR_RULES.minWeeklyFrequencyMajorGroups', nota: 'Pendiente en el motor actual: ninguna lógica la lee.' }),
 
     /* ---- Paso 5 · relleno por cobertura marginal ---- */
-    e('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION', 11, 'series fraccionadas', 'DEC-025', 'E3', 'Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv, https://sportrxiv.org/index.php/server/preprint/view/537); punto sin mejora detectable fijado de forma arbitraria por los autores, que dicen que no es un límite superior', { paso: 5, origen: 'VALIDATOR_RULES.maxFractionalSetsPerMuscleSession', nota: 'R1. Desde el corte es restricción del reparto (DEC-025); ganan las demandas mínimas si chocan.' }),
-    e('PESO_SERIE_DIRECTA', 1, 'series', 'DEC-014', 'E2', PELLAND + ' (E2 con salvedad; leído solo en resumen)', { paso: 5, origen: 'VALIDATOR_RULES.directSetWeight', nota: 'Conteo fraccionado: convención global, nunca por ejercicio.' }),
-    e('PESO_SERIE_INDIRECTA', 0.5, 'series', 'DEC-014', 'E4', PELLAND + ': 0,5 es la convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística', { paso: 5, origen: 'VALIDATOR_RULES.secondaryMuscleWeight', nota: 'El valor 0,5 es criterio de diseño.' }),
-    e('PESO_SIN_RELACION', 0, 'series', 'DEC-014', 'E4', CRITERIO, { paso: 5, origen: 'VALIDATOR_RULES.noRelationWeight', nota: 'Relación ninguna o a_verificar cuenta 0.' }),
+    e('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION', 11, 'series fraccionadas', 'DEC-025', 'E3', 'Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv, https://sportrxiv.org/index.php/server/preprint/view/537); punto sin mejora detectable fijado de forma arbitraria por los autores, que dicen que no es un límite superior', { paso: 5, estado: 'implementada', origen: 'VALIDATOR_RULES.maxFractionalSetsPerMuscleSession', nota: 'R1. Desde el corte es restricción del reparto (DEC-025); ganan las demandas mínimas si chocan.' }),
+    e('PESO_SERIE_DIRECTA', 1, 'series', 'DEC-014', 'E2', PELLAND + ' (E2 con salvedad; leído solo en resumen)', { paso: 5, estado: 'implementada', origen: 'VALIDATOR_RULES.directSetWeight', nota: 'Conteo fraccionado: convención global, nunca por ejercicio.' }),
+    e('PESO_SERIE_INDIRECTA', 0.5, 'series', 'DEC-014', 'E4', PELLAND + ': 0,5 es la convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística', { paso: 5, estado: 'implementada', origen: 'VALIDATOR_RULES.secondaryMuscleWeight', nota: 'El valor 0,5 es criterio de diseño.' }),
+    e('PESO_SIN_RELACION', 0, 'series', 'DEC-014', 'E4', CRITERIO, { paso: 5, estado: 'implementada', origen: 'VALIDATOR_RULES.noRelationWeight', nota: 'Relación ninguna o a_verificar cuenta 0.' }),
 
     /* ---- Paso 6 · orden y top set ---- */
-    e('ORDEN_POR_DEMANDA', true, 'regla', 'DEC-022', 'E4', 'Nunes et al. 2021, Eur J Sport Sci, https://pubmed.ncbi.nlm.nih.gov/32077380/ (la hipertrofia es similar en cualquier orden; solo resumen). Que el motivo sea proteger la espalda es criterio de diseño', { paso: 6, origen: 'VALIDATOR_RULES.sessionOrderByDemand', nota: 'A1. Que el orden no cuesta hipertrofia es E2; el motivo de seguridad es E4.' }),
-    e('TOP_SET_REPETICIONES', [4, 6], 'repeticiones', 'DEC-002', 'E4', CRITERIO, { paso: 6, cuando: DEFINICION, origen: 'engine.js (top set 4–6)' }),
-    e('TOP_SET_RIR', [1, 2], 'RIR', 'DEC-002', 'E4', CRITERIO, { paso: 6, cuando: DEFINICION, origen: 'engine.js (RIR 1–2)' }),
-    e('BACKOFF_REDUCCION_PORCENTAJE', 10, '%', 'DEC-002', 'E4', 'Formato top set y back-off: criterio de diseño sobre Helms, Bickel y ACSM 2009. Respaldan mantener la intensidad con menos volumen, no el formato en sí', { paso: 6, cuando: DEFINICION, fuentes: ['BICKEL_2011', 'SPIERING_MANT_2021'], origen: 'engine.js (back-offs al −10 %)' }),
-    e('DESCANSO_TOP_SET_S', 180, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, cuando: DEFINICION, origen: 'engine.js (180 s del top set)' }),
-    e('DESCANSO_BACKOFF_S', 150, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, cuando: DEFINICION, origen: 'engine.js (150 s de back-off)' }),
+    e('ORDEN_POR_DEMANDA', true, 'regla', 'DEC-022', 'E4', 'Nunes et al. 2021, Eur J Sport Sci, https://pubmed.ncbi.nlm.nih.gov/32077380/ (la hipertrofia es similar en cualquier orden; solo resumen). Que el motivo sea proteger la espalda es criterio de diseño', { paso: 6, estado: 'implementada', origen: 'VALIDATOR_RULES.sessionOrderByDemand', nota: 'A1. Que el orden no cuesta hipertrofia es E2; el motivo de seguridad es E4.' }),
+    e('TOP_SET_REPETICIONES', [4, 6], 'repeticiones', 'DEC-002', 'E4', CRITERIO, { paso: 6, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (top set 4–6)' }),
+    e('TOP_SET_RIR', [1, 2], 'RIR', 'DEC-002', 'E4', CRITERIO, { paso: 6, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (RIR 1–2)' }),
+    e('BACKOFF_REDUCCION_PORCENTAJE', 10, '%', 'DEC-002', 'E4', 'Formato top set y back-off: criterio de diseño sobre Helms, Bickel y ACSM 2009. Respaldan mantener la intensidad con menos volumen, no el formato en sí', { paso: 6, estado: 'implementada', cuando: DEFINICION, fuentes: ['BICKEL_2011', 'SPIERING_MANT_2021'], origen: 'engine.js (back-offs al −10 %)' }),
+    e('DESCANSO_TOP_SET_S', 180, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (180 s del top set)' }),
+    e('DESCANSO_BACKOFF_S', 150, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (150 s de back-off)' }),
+
+    /* ---- Paso 2 de la construcción · reparto: entradas nuevas (propuestas, nivel 2) ---- */
+    e('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN', 75, 'min por sesión', 'propuesta del agente', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'propuesta del agente (nivel 2)', nota: 'Capacidad de la sesión cuando el perfil no declara su tiempo. 75 min está dentro del rango de las sesiones del motor actual (53 a 82 min en el perfil de Emanuel). Emanuel lo confirma o lo cambia.' }),
+    e('ENFASIS_POR_DIVISION', {
+      bodybuilding_m: { up: ['back', 'quads'], down: [] },
+      classic_m: { up: ['shoulders', 'back', 'quads'], down: [] },
+      physique_m: { up: ['shoulders', 'back', 'abs'], down: ['quads', 'hamstrings', 'glutes'] },
+      physique_w: { up: ['shoulders', 'back', 'quads'], down: [] },
+      figure_w: { up: ['shoulders', 'back', 'glutes'], down: [] },
+      bikini_w: { up: ['glutes', 'hamstrings', 'shoulders'], down: ['quads', 'chest', 'biceps', 'triceps'] },
+      wellness_w: { up: ['glutes', 'quads', 'hamstrings'], down: ['chest', 'shoulders', 'biceps', 'triceps'] },
+      general_m: { up: [], down: [] },
+      general_w: { up: [], down: [] },
+    }, 'grupos', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (EMPHASIS_MAP)', nota: 'Tabla de datos (grupos con énfasis ×1,25 y reducido ×0,5 por división), copiada tal cual del motor actual.' }),
+    e('EXCLUSIONES_POR_LESION', {
+      shoulder: ['chest.dip_parallel', 'chest.press_machine', 'shoulders.press_overhead_barbell', 'shoulders.press_overhead_db', 'shoulders.press_overhead_db_seated', 'triceps.close_grip_press', 'triceps.dips'],
+      elbow: ['biceps.curl_barbell', 'biceps.curl_ez', 'triceps.close_grip_press', 'triceps.dips'],
+      wrist: ['chest.bench_press_barbell', 'back.row_barbell', 'back.row_pendlay', 'biceps.curl_barbell', 'biceps.curl_ez'],
+      lower_back: ['back.row_barbell', 'back.row_pendlay', 'quads.squat_back', 'quads.squat_hack', 'hamstrings.rdl'],
+      hip: ['quads.squat_back', 'quads.squat_hack', 'quads.lunge', 'quads.bulgarian_split_squat', 'glutes.bulgarian_hip', 'functional.bulgarian_db'],
+      knee: ['quads.squat_back', 'quads.squat_hack', 'quads.lunge', 'quads.bulgarian_split_squat', 'quads.leg_extension', 'functional.bulgarian_db'],
+      ankle: ['quads.lunge', 'quads.bulgarian_split_squat', 'glutes.bulgarian_hip', 'calves.calf_raise_standing', 'functional.bulgarian_db'],
+    }, 'variantes por zona', 'DEC-009', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'knowledge.js (INJURY_EXCLUSIONS)', nota: 'Mapa cerrado de DEC-009 (capa 3) expresado por variante. Hasta el corte un test lo compara con el mapa del motor actual.' }),
 
     /* ---- Fuera del núcleo v2 · cardio y funcionales (los números se registran; la lógica no cambia) ---- */
     e('CARDIO_MINIMO_SALUD', 150, 'min por semana', 'DEC-005', 'E1', OMS_2020, { paso: 'fuera', cuando: SALUD_EN_DEFINICION, fuentes: ['WHO_PA'], origen: 'engine.js (piso de 150 min con la bandera)', nota: 'Solo con la bandera salud/funcional en definición. Si aplica a todas las fases queda abierto en B-040.' }),
