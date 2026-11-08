@@ -58,6 +58,7 @@ Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: e
 ## Ramas y PR
 
 - Trabaja en una rama propia; nunca en `main`. Un tema, un PR.
+- **Nada de PRs encadenados.** Todo PR tiene como base `main`. Si depende de otro, se abre cuando ese ya está mergeado (la rama de trabajo se puede preparar antes, pero el PR no se abre hasta entonces).
 - **El agente no mergea ni empuja a `main`.** Lo bloquean los permisos de `.claude/settings.json`; Emanuel mergea a mano.
 - El PR se describe con: qué cambia, tabla antes/después si cambia el plan, pruebas (con mutaciones) y decisiones que necesitan al usuario.
 - Los commits y los PR terminan con las líneas de atribución que indique la sesión.

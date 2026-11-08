@@ -123,6 +123,21 @@ Fecha 2026-11-07. Investigación hecha por el subagente `investigador`; **solo l
 **Cómo lo usaría la app frente a lo que dicen los autores:** la app lo usa como regla de conteo (R1, piso semanal, mínimo de DEC-020); los autores lo ofrecen como heurística para comparar modelos. Es más firme en la app, sobre todo en músculos que el conjunto de datos nunca midió.
 **Confianza.** Alta en la cita y en que el 0,5 es convención; media-alta en el resto (no se pudo abrir el texto completo del artículo de 2026).
 
+## E. Cardio de 150 min por semana (bandera salud/funcional): OMS 2020
+
+**Qué se leyó.** Metadatos de PubMed (PMID 33239350); resumen (parafraseado por la herramienta); texto completo **parcial** del artículo en PMC (la tabla 4 de recomendaciones; unos 100 000 de 138 922 caracteres; es una copia alojada de terceros; no se cita aquí su identificador y no se verificó contra la versión de la revista); la página de la OMS solo dio metadatos (el PDF y la página de la revista respondieron 403). Del ACSM 2011 solo metadatos.
+
+**Fuente verificada.** Bull FC, Al-Ansari SS, Biddle S et al. *World Health Organization 2020 guidelines on physical activity and sedentary behaviour.* Br J Sports Med 2020;54(24):1451-1462. doi 10.1136/bjsports-2020-102955. PMID 33239350. Documento de la OMS: ISBN 9789240015128 (2020). La cita del repo (`WHO_PA`) coincide en título, año y URL del ISBN.
+
+**Qué dice (adultos de 18 a 64 años).** Recomendación fuerte: al menos 150–300 min de actividad aeróbica de intensidad moderada, o 75–150 min vigorosa, o una combinación equivalente, a lo largo de la semana: **150 min es el extremo inferior del rango, el mínimo para el beneficio de salud**. Fuerza (recomendación fuerte): actividades de fortalecimiento muscular de intensidad moderada o mayor que involucren todos los grandes grupos, 2 o más días por semana. Es actividad física general de la población y su objetivo es la salud; sobre adiposidad solo dice que "may also improve"; las guías no tratan beneficios ni daños en atletas, ni rendimiento, ni composición corporal.
+
+**Conclusión (propuesta de nivel 2).** El piso de 150 min por semana moderados es **E1** (postura de un organismo oficial); la extrapolación a un plan de definición y las 3 sesiones de 50 min, el 60–70 % de la frecuencia cardíaca máxima y la distribución son **E4**. Confianza alta en la cifra y la cita; media en cuánto puede afirmar la app sobre el plan completo (la OMS no considera la interferencia con la fuerza ni la definición).
+
+**Hallazgos del repo (corregidos el 2026-11-08 por decisión de Emanuel: se borró la frase de `WHO_PA` y el cardio de mantenimiento y volumen pasó a criterio de diseño E4 sin cita de la OMS; el mínimo de 150 min para todas las fases quedó en B-040).**
+- *(Resuelto el 2026-11-08: la frase se borró.)* `WHO_PA` decía "incluso durante fases de entrenamiento centradas en otro objetivo": **no sale de la fuente**; era una interpretación del repo. Le falta la cita de Bull et al. con DOI y PMID, y su tipo "Organismo regulatorio internacional" sería mejor "Guía oficial de organismo internacional".
+- `ACSM_CARDIO` (Garber CE et al., Med Sci Sports Exerc 2011;43(7):1334-59, PMID 21694556, doi 10.1249/MSS.0b013e318213fefb) coincide con PubMed; solo se leyeron metadatos, no el contenido de "150 min".
+- *(Resuelto el 2026-11-08: texto como criterio de diseño E4, sin cita de la OMS.)* **Contradicción en el motor:** en mantenimiento o volumen el cardio es 2 × 25 = 50 min por semana con el texto "150 min/semana moderado como referencia general". Aclarar el texto o ajustar el plan cambia comportamiento (nivel 2). DEC-005 (aceptado) dice "ACSM 2011 / OMS 2020" y "piso de 150 min"; no se toca.
+
 ## No se pudo verificar
 - El texto completo de Pelland 2026 (Springer pide verificación de navegador; Europe PMC lo marca como suscripción). Todo lo de sus secciones 2.5, 3.4 y 4.1, incluidas las cifras 9,48–54,84 y ~0,32, viene de la nota del repo.
 - Las pp. 867–870 del ACSM 2026 y su material suplementario; el ACSM 2009 y la frase "1–3 min" del repo.
@@ -135,3 +150,5 @@ Fecha 2026-11-07. Investigación hecha por el subagente `investigador`; **solo l
 - **Cobertura mínima por tipo de sesión:** sigue siendo criterio de diseño E4.
 - **18/14/10, 0,85 y 1,25:** E4 (o eliminarlos). Retirar o corregir las etiquetas `SCHOENFELD_VOL` y `HELMS_TRAIN` que sugieren un respaldo inexistente.
 - **0,5 del conteo fraccionado:** decidir si se deja como "E2 con salvedad" o E4; usar la cita de 2026.
+
+**Nota (2026-11-07):** los hallazgos sobre `SCHOENFELD_VOL`, `HELMS_TRAIN` y el cardio de 150 min quedaron resueltos en `docs/specs/nucleo-v2.md`: los números 18/14/10, 0,85 y 1,25 entran al registro con nombres propios y fuente "criterio de diseño E4", y el cardio mínimo (`CARDIO_MINIMO_SALUD`) con fuente OMS 2020. El código actual no se toca hasta el corte.
