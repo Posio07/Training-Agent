@@ -144,6 +144,10 @@
     'shoulders.press_overhead_db_seated', 'hamstrings.rdl', 'back.row_barbell', 'back.row_pendlay', 'back.pull_up', 'back.lat_pulldown'];
   VARIANTES.forEach(x => { x.topSetElegible = TOPSET_ELEGIBLES.includes(x.id); });
 
+  // Variantes con barra cargada con discos: la pantalla de sesión les muestra la barra con la carga (hoy BARBELL_PATTERNS del catálogo viejo).
+  const CON_BARRA = ['quads.squat_back', 'chest.bench_press_barbell', 'shoulders.press_overhead_barbell', 'hamstrings.rdl', 'back.row_barbell', 'back.row_pendlay', 'glutes.hip_thrust'];
+  VARIANTES.forEach(x => { x.barra = CON_BARRA.includes(x.id); });
+
   const PATRON_POR_ID = {};
   PATRONES.forEach(p => { PATRON_POR_ID[p.id] = p; });
   const VARIANTE_POR_ID = {};
