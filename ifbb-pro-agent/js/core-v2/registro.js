@@ -85,6 +85,10 @@
     e('DESCANSO_TOP_SET_S', 180, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (180 s del top set)' }),
     e('DESCANSO_BACKOFF_S', 150, 's', 'DEC-024', 'E4', CRITERIO, { paso: 1, estado: 'implementada', cuando: DEFINICION, origen: 'engine.js (150 s de back-off)' }),
 
+    /* ---- Paso 2b de la construcción · estructura del reparto (pedido por Emanuel, 2026-11-08; DEC-029) ---- */
+    e('SERIES_MIN_PATRON_PRINCIPAL', 4, 'series de trabajo', 'DEC-029', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'pedido de Emanuel (2026-11-08)', nota: 'Mínimo de series de trabajo del patrón principal de cada sesión (el top set más sus back-offs): recibe su volumen en la estructura, antes del relleno.' }),
+    e('EJERCICIO_DIRECTO_SEMANAL_MIN_SERIES', 2, 'series', 'DEC-029', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'DEC-020, punto 6 (nunca se quita el último ejercicio directo de un grupo)', nota: 'Todo grupo del perfil lleva por semana al menos un ejercicio directo (de ese grupo) con este mínimo de series. Equivalente en core-v2 de la regla de DEC-020.' }),
+
     /* ---- Paso 2 de la construcción · reparto: entradas nuevas (propuestas, nivel 2) ---- */
     e('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN', 75, 'min por sesión', 'propuesta del agente', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'propuesta del agente (nivel 2)', nota: 'Capacidad de la sesión cuando el perfil no declara su tiempo. 75 min está dentro del rango de las sesiones del motor actual (53 a 82 min en el perfil de Emanuel). Emanuel lo confirma o lo cambia.' }),
     e('ENFASIS_POR_DIVISION', {
