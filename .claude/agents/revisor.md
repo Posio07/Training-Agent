@@ -16,7 +16,7 @@ Eres el revisor de Training Agent. Revisas un cambio contra las reglas del proye
 
 ## Qué leer primero
 
-`CLAUDE.md` (matriz de niveles y reglas), `DECISIONS.md` (estado de cada DEC), `docs/VISION.md`, `docs/BACKLOG.md`, `docs/specs/validador.md`, y el diff completo contra `main`.
+`CLAUDE.md` (matriz de niveles y reglas), `DECISIONS.md` (índice) y `docs/decisions/` (estado de cada DEC), `docs/VISION.md`, `docs/BACKLOG.md` (índice) y `docs/backlog/`, `docs/specs/validador.md`, y el diff completo contra `main`.
 
 ## Checklist
 
@@ -26,7 +26,7 @@ Eres el revisor de Training Agent. Revisas un cambio contra las reglas del proye
 4. **DEC propuestos y visión.** ¿Depende de un DEC `Propuesto`? ¿Contradice o modifica `docs/VISION.md`?
 5. **Mutación.** ¿Los tests fallarían si se rompe la regla? Elige las 2 o 3 líneas que implementan el comportamiento nuevo, rómpelas en una copia y comprueba que algún test falla. Reporta qué mutaste y qué falló. Si se actualizó un baseline o una huella, ¿el cambio está explicado por un DEC?
 6. **Riesgos.** ¿Hay riesgo de pérdida de datos (borrados, migraciones, import/export), de privacidad (DEC-009: salud y dolor no salen del dispositivo) o de dependencia del server (el registro debe funcionar offline)? **Año de prueba (DEC-023, Aceptado):** la retrocompatibilidad de datos NO es requisito, así que un cambio de formato sin migración no es hallazgo; un reset completo sin exportación es decisión de Emanuel (DEC-030) y no es hallazgo; sí lo es un borrado de datos que nadie pidió y cualquier export de la app que incluya salud o dolor por serie (DEC-009).
-7. **Documentación al día.** ¿Se actualizaron `docs/BACKLOG.md`, `DECISIONS.md` (con estado y "Decidido por") y el spec? Si cambia el plan, ¿está la tabla de antes y después de los 10 perfiles de referencia con minutos por sesión?
+7. **Documentación al día.** ¿Se actualizaron el ítem en `docs/backlog/` y el índice `docs/BACKLOG.md`, el archivo del DEC en `docs/decisions/` y el índice `DECISIONS.md` (con estado y "Decidido por") y el spec? Si cambia el plan, ¿está la tabla de antes y después de los 10 perfiles de referencia con minutos por sesión?
 8. **Identificadores.** Cada SHA, número de PR, URL, DOI, PMID, cita o autor que aparezca en el diff: ¿se verificó contra su fuente real? Compruébalo (git, API de GitHub, Crossref `https://api.crossref.org/works/<doi>`, PubMed eutils). Un identificador que no puedas verificar se reporta como hallazgo, no se da por bueno.
 9. **Alcance.** ¿El PR hace solo lo que dice? ¿Toca archivos que no corresponden (p. ej. código de la app en un PR de docs)? ¿Su base es `main`? Un PR encadenado (con base en la rama de otro PR) es un hallazgo: se abre cuando el otro ya está mergeado.
 10. **Código muerto (DEC-023).** Si el PR implementa una decisión que deja algo sin uso (migraciones, campos legados, caminos, datos, tests que solo fijaban un detalle interno), ¿lo eliminó en el mismo PR? Busca con `grep` lo que la decisión deja sin llamadas. ¿Se conservaron los tests de comportamiento y se eliminaron solo los de detalles internos del código eliminado? ¿Se añadió código de migración o compatibilidad hacia atrás que el año de prueba no exige?
