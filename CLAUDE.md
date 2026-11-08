@@ -37,7 +37,7 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 
 ## Reglas de trabajo
 
-1. **Cada cambio de comportamiento lleva un DEC.** El agente lo crea con estado `Propuesto`; solo Emanuel lo pasa a `Aceptado`. Un DEC `Propuesto` no es base para otro trabajo.
+1. **Cada cambio de comportamiento lleva un DEC.** El agente lo crea con estado `Propuesto`; solo Emanuel lo pasa a `Aceptado`. Un DEC `Propuesto` no es base para otro trabajo. **La aceptación de un DEC la confirma el usuario con un comentario en el PR, desde su cuenta**: lo que se dice en el chat no basta, y el agente deja el DEC `Propuesto` hasta que ese comentario exista. Con el comentario, el agente edita `DECISIONS.md` (estado y "Decidido por") y cita el comentario.
 2. **Si cambia el plan generado**, el PR lleva la tabla de antes y después con los 10 perfiles de referencia (`tests/fixtures/plan-identity-baseline.json`), con series y minutos por sesión.
 3. **Toda regla numérica lleva nivel de evidencia (E1 a E4), fuente y estado** (`implementada` o `pendiente`) en `VALIDATOR_RULES`. Un test comprueba el estado contra el uso real.
 4. **La evidencia solo mueve relaciones entre categorías** (ninguna ↔ indirecta ↔ directa), como máximo un paso por estudio. Nunca pesos a medida por ejercicio.
