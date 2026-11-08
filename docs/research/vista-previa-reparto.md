@@ -190,6 +190,12 @@ Planes con la espalda sin cubrir por R1: 16. Necesidad de espalda de esos planes
 Por días: {"5":8,"6":8}.
 - **Hipótesis (no está en el código)**: si el día de empuje de los splits de 5 y 6 días también pudiera alojar espalda, la espalda quedaría sin cubrir por R1 en 0 planes (hoy 16).
 
+### Series por ejercicio aislado en una sesión (para decidir el tope por ejercicio)
+
+- Ejercicios aislados en las 1620 sesiones: 5693. Distribución por número de series: 2: 1864 · 3: 726 · 4: 850 · 5: 549 · 6: 439 · 7: 409 · 8: 236 · 9: 443 · 10: 56 · 11: 121.
+- **Máximo:** 11 series (Curl femoral tumbado, plan de 3 días). **Sesiones con algún aislado de 6 series o más:** 1075 de 1620 (66.4 %); ejercicios aislados con 6 o más series: 1704 de 5693 (29.9 %).
+- Los que más aparecen con 6 o más: Abducción de cadera en máquina 428 · Extensión de cuádriceps 258 · Elevación de talones de pie 215 · Crunch en polea 208 · Curl femoral tumbado 166 · Curl femoral sentado 141.
+
 ### Hip thrust: por qué no se elige
 
 - Aporte por serie a glúteos: hip thrust 1 · abducción de cadera en máquina 1 · patada de glúteo en polea 1 · sentadilla trasera 0.5 (indirecta, verificada). Segundos por serie (descanso + 45 s): hip thrust 195 · abducción 120 · patada 240.
