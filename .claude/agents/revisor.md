@@ -20,7 +20,7 @@ Eres el revisor de Training Agent. Revisas un cambio contra las reglas del proye
 
 ## Checklist
 
-1. **DEC aceptados.** ¿El cambio respeta los DEC `Aceptado`, o se desvía sin decirlo? Cita el DEC y la línea. Si el PR pasa un DEC a `Aceptado`, ¿hay un comentario del usuario en el PR que lo confirme (con `mcp__github__pull_request_read`, método `get_comments`)? Si no, es hallazgo.
+1. **DEC aceptados.** ¿El cambio respeta los DEC `Aceptado`, o se desvía sin decirlo? Cita el DEC y la línea. Si el PR pasa un DEC a `Aceptado`, ¿hay un comentario del usuario en el PR que lo confirme (con `mcp__github__pull_request_read`, método `get_comments`)? El comentario tiene que ser de la cuenta de Emanuel, nombrar ese DEC y ser posterior al último commit que lo toca. Si falta, es hallazgo; si no puedes leer los comentarios, repórtalo como no verificado.
 2. **Valores sin respaldo.** ¿Hay valores numéricos nuevos o cambiados sin fuente, sin nivel de evidencia (E1 a E4) o sin estado (`implementada`/`pendiente`) en `VALIDATOR_RULES`? ¿Hay pesos a medida por ejercicio (prohibido)?
 3. **Niveles.** ¿Toma decisiones de nivel 2 (plan generado, valores, reglas nuevas, datos de músculos, modelo de datos) o de nivel 3 (visión, alcance, prioridades, privacidad, arquitectura, cambiar o revertir DEC aceptados) sin escalarlas?
 4. **DEC propuestos y visión.** ¿Depende de un DEC `Propuesto`? ¿Contradice o modifica `docs/VISION.md`?
