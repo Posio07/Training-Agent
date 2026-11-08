@@ -5,14 +5,17 @@
  * con tres salidas: más tiempo ese día, más días, o aceptar la sesión con esas demandas sin cubrir. Este módulo arma el aviso a partir de lo
  * que calcula el reparto (`plan.avisoUnico`) y aplica la salida que elige el usuario sobre el perfil y el plan guardado (plan.js, paso 3.1). */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('./plan.js'));
-  else root.CORE_V2_AVISO = factory(root.CORE_V2_REGISTRO, root.CORE_V2_PLAN);
-})(typeof self !== 'undefined' ? self : this, function (REGISTRO, PLAN) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('./plan.js'), require('./reparto.js'));
+  else root.CORE_V2_AVISO = factory(root.CORE_V2_REGISTRO, root.CORE_V2_PLAN, root.CORE_V2_REPARTO);
+})(typeof self !== 'undefined' ? self : this, function (REGISTRO, PLAN, REPARTO) {
   'use strict';
 
   const valor = id => REGISTRO.valor(id);
   const ETIQUETAS = { chest: 'Pecho', back: 'Espalda', shoulders: 'Hombros', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales', glutes: 'Glúteos', calves: 'Pantorrillas', biceps: 'Bíceps', triceps: 'Tríceps', abs: 'Abdomen' };
   const MOTIVO = { R1: 'no cabe sin pasar el límite de series por sesión', tiempo: 'no entra en el tiempo disponible', 'sin ejercicios disponibles': 'no hay ejercicios disponibles con tus lesiones y casillas' };
+  // Máximo de días del perfil: el que acepta el reparto (no se repite el número a mano).
+  const DIAS_MAX = REPARTO.normalizarPerfil({ daysPerWeek: 999 }).dias;
+  const serie = n => (n === 1 ? 'serie' : 'series');
   const n1 = x => String(Math.round(x * 10) / 10).replace('.', ',');
 
   // Lo que cabe como mínimo en una sesión: el bloque más corto que el reparto puede agregar (un ejercicio nuevo de aislamiento), en minutos,
@@ -29,6 +32,14 @@
     const sesiones = new Set();
     a.obligatoriosSinLugar.forEach(x => { const i = plan.sesiones.findIndex(s => s.nombre === x.sesion); if (i >= 0) sesiones.add(i); });
     a.principalReducido.forEach(x => { const i = plan.sesiones.findIndex(s => s.nombre === x.sesion); if (i >= 0) sesiones.add(i); });
+    // Lo que no cabe por R1 es semanal y no trae sesión: las sesiones afectadas son aquellas donde ese músculo ya está en el tope por sesión
+    // (si no hay ninguna al tope, las que lo entrenan). Así el usuario siempre puede aceptar la sesión.
+    const tope = valor('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION');
+    a.sinCubrir.filter(x => x.causa === 'R1').forEach(x => {
+      const entrenan = plan.sesiones.map((s, i) => [i, (s.fraccionado || {})[x.musculo]]).filter(([, f]) => f > 0);
+      const alTope = entrenan.filter(([, f]) => f >= tope - 1e-9);
+      (alTope.length ? alTope : entrenan).forEach(([i]) => sesiones.add(i));
+    });
     const conTiempo = a.sinCubrir.some(x => x.causa === 'tiempo') || a.sinDirecto.length > 0;
     if (conTiempo || sesiones.size === 0) plan.sesiones.forEach((s, i) => { if (limitadaPorTiempo(s)) sesiones.add(i); });
     const afectadas = [...sesiones].sort((x, y) => x - y);
@@ -39,15 +50,15 @@
     a.sinDirecto.forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: sin ejercicio directo (${x.motivo}).`));
     a.sinCubrir.forEach(x => {
       const partes = [];
-      if (x.falta > 0) partes.push(`faltan ${n1(x.falta)} series de la necesidad semanal`);
-      if (x.faltaReal > 0) partes.push(`faltan ${n1(x.faltaReal)} series directas del mínimo`);
+      if (x.falta > 0) partes.push(`faltan ${n1(x.falta)} ${serie(x.falta)} de la necesidad semanal`);
+      if (x.faltaReal > 0) partes.push(`faltan ${n1(x.faltaReal)} ${serie(x.faltaReal)} directas del mínimo`);
       lineas.push(`${ETIQUETAS[x.musculo]}: ${partes.join(' y ')} (${MOTIVO[x.causa] || x.causa}).`);
     });
 
     const dias = plan.perfil.dias;
     const salidas = [
-      { id: 'mas-tiempo', texto: 'Más tiempo en esos días', sesiones: afectadas, minutosSugeridos: afectadas.map(i => plan.sesiones[i].capacidadMin + bloqueMinimoMin()) },
-      { id: 'mas-dias', texto: 'Más días por semana', disponible: dias < 6, dias: Math.min(6, dias + 1) },
+      { id: 'mas-tiempo', texto: 'Más tiempo en esos días (el sugerido es un mínimo: suma un bloque corto; si hace falta más, súbelo tú)', sesiones: afectadas, minutosSugeridos: afectadas.map(i => plan.sesiones[i].capacidadMin + bloqueMinimoMin()) },
+      { id: 'mas-dias', texto: 'Más días por semana', disponible: dias < DIAS_MAX, dias: Math.min(DIAS_MAX, dias + 1) },
       { id: 'aceptar', texto: 'Aceptar esas sesiones con las demandas sin cubrir', disponible: afectadas.length > 0, sesiones: afectadas },
     ];
     // Si el problema es solo R1 (hay tiempo de sobra), más tiempo no ayuda: se avisa y la salida queda como no disponible.

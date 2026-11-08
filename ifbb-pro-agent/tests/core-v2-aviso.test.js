@@ -72,3 +72,24 @@ test('el aviso no se repite por sesión: es uno solo aunque haya muchos músculo
 test('una salida desconocida falla', () => {
   assert.throws(() => AVISO.aplicarSalida({ id: 'x' }, apretado(), nuevo(apretado())), /desconocida/);
 });
+
+test('un faltante solo por R1 también se puede aceptar: las sesiones afectadas son las que están en el tope por sesión', () => {
+  const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 90 };
+  const g = nuevo(p);
+  assert.ok(g.plan.avisoUnico.sinCubrir.every(x => x.causa === 'R1'));
+  const a = AVISO.construirAviso(g.plan);
+  assert.ok(a.sesionesAfectadas.length > 0 && a.soloR1);
+  assert.equal(a.salidas[0].disponible, false); // más tiempo no ayuda: sobra tiempo
+  const r = AVISO.aplicarSalida(a.salidas[2], p, g, { ahora: '2026-11-09' });
+  assert.equal(AVISO.avisoPendiente(a, p, r.planGuardado).hay, false);
+});
+
+test('"más días" usa el máximo del reparto, no un número propio; y el texto concuerda en singular', () => {
+  const REPARTO = require('../js/core-v2/reparto.js');
+  const seis = Object.assign(apretado(), { daysPerWeek: 6 });
+  assert.equal(REPARTO.normalizarPerfil({ daysPerWeek: 999 }).dias, 6);
+  const a = AVISO.construirAviso(nuevo(seis).plan);
+  if (a.hay) assert.equal(a.salidas[1].disponible, false);
+  const un = { avisoUnico: { sinCubrir: [{ musculo: 'back', falta: 1, faltaReal: 0, causa: 'R1' }], obligatoriosSinLugar: [], sinDirecto: [], principalReducido: [] }, sesiones: [{ nombre: 'A', minutos: 60, capacidadMin: 60, fraccionado: { back: 11 } }], perfil: { dias: 3 } };
+  assert.match(AVISO.construirAviso(un).lineas[0], /faltan 1 serie de la necesidad/);
+});
