@@ -189,3 +189,16 @@ Músculos sin cubrir por causa (en grupo-planes): {"tiempo":257,"R1":71}.
 Planes con la espalda sin cubrir por R1: 16. Necesidad de espalda de esos planes: 23 series; cubierto: 22. Perfiles: advanced/classic_m/bulk, advanced/physique_m/bulk, advanced/classic_m/maintain, advanced/physique_m/maintain.
 Por días: {"5":8,"6":8}.
 - **Hipótesis (no está en el código)**: si el día de empuje de los splits de 5 y 6 días también pudiera alojar espalda, la espalda quedaría sin cubrir por R1 en 0 planes (hoy 16).
+
+### Hip thrust: por qué no se elige
+
+- Aporte por serie a glúteos: hip thrust 1 · abducción de cadera en máquina 1 · patada de glúteo en polea 1 · sentadilla trasera 0.5 (indirecta, verificada). Segundos por serie (descanso + 45 s): hip thrust 195 · abducción 120 · patada 240.
+- Con "necesidad por minuto", la abducción rinde 8.3 contra 5.1 del hip thrust (por cada 1000 s): siempre gana la abducción, en todos los perfiles. Para que el hip thrust empatara tendría que durar 120 s por serie. Subir el aporte de la sentadilla a glúteos (indirecta → directa) no ayuda: el hip thrust compite con la abducción, no con la sentadilla. Acortar el descanso del hip thrust sin respaldo por ejercicio sería un peso a medida (E4).
+- **Propuesta (nivel 2, sin implementar):** una regla de estructura análoga a la del ejercicio directo: todo grupo mayor lleva por semana al menos un **multiarticular directo** con 2 series o más. Para glúteos sería el hip thrust (o la búlgara con énfasis en cadera); los demás grupos mayores ya la cumplen. Costo: sesiones de pierna algo más largas y un criterio de diseño más (E4).
+
+### Espalda sin cubrir por R1 a 5 y 6 días: cómo corregirlo sin aflojar R1
+
+- La espalda entra en solo 2 sesiones de los splits de 5 y 6 días, así que con R1 en 11 su techo semanal es 22 series fraccionadas. Los 16 planes afectados son de nivel avanzado, con énfasis en espalda (classic y physique) en volumen o mantenimiento: necesitan 23. Es un problema de cómo se arma el split, no de R1.
+- **Opción A (recomendada):** regla de exposición. Si la necesidad de un grupo supera lo que caben sus sesiones bajo R1 (sesiones × 11), el día de empuje de los splits de 5 y 6 días aloja también ese grupo (un tirón horizontal de apoyo). Solo afecta a esos 16 planes y la hipótesis de arriba la deja en 0 planes sin cubrir. Costo: un criterio de diseño más (E4) y un día de empuje con un tirón en esos casos.
+- **Opción B:** cambiar el split de 5 días a torso, pierna, torso, tirón, pierna (más espalda para todos). Costo: cambia el plan de todos los perfiles de 5 días y se pierde el día de empuje dedicado.
+- **Opción C:** dejarlo como aviso (23 contra 22: una serie de diferencia) y que el usuario decida. Costo: 16 planes con aviso por una serie.
