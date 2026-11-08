@@ -41,7 +41,7 @@ DEC-023 permite resetear los datos durante el año de prueba, así que el núcle
 
 Un ejercicio prioritario no convierte la rutina en calistenia: solo garantiza su lugar. Si una lesión declarada lo contraindica (A7) o si la bandera de dolor de su zona está activa (A6), la seguridad gana sobre la preferencia y la app lo avisa. Las variantes con peso corporal registran la carga añadida o la asistencia para poder seguir el progreso.
 
-**Rutina corta:** deja de ser un recorte de la interfaz. Es la misma sesión generada con menos tiempo disponible, que el usuario fija al empezarla ("hoy tengo 45 minutos").
+**Rutina corta:** deja de ser un recorte de la interfaz. Es la misma sesión generada con menos tiempo disponible, que el usuario fija al empezarla ("hoy tengo 45 minutos"). **La rutina corta se define solo por tiempo** (decidido por Emanuel el 2026-11-08): no tiene tope ni piso de ejercicios. Los patrones obligatorios del tipo entran primero, en el paso de estructura; si el tiempo no alcanza para todos, el aviso lo dice.
 
 **Plan guardado.** El plan generado se **guarda** (con un identificador, la fecha y la versión del motor que lo generó). Hoy se recalcula cada vez que se muestra; en el núcleo nuevo solo se regenera cuando:
 
@@ -68,7 +68,7 @@ Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y 
 - A3 queda expresada aquí: en splits con dos días de pierna, uno es con sentadilla y otro con bisagra, separados por 48 h o más. Sin calendario, se garantiza el **orden de las sesiones** (los dos días de pierna no son consecutivos en el split) y no el reloj; no se agrega un campo de días de la semana.
 - **Tres días (cuerpo completo ×3):** sentadilla el día 1, bisagra el día 3 y pierna sin lumbar alta (prensa, zancada o flexión de rodilla) el día 2.
 - **Splits por defecto:** 4 días, torso, pierna con sentadilla, torso, pierna con bisagra; 5 días, torso, pierna con sentadilla, empuje, tirón, pierna con bisagra; 6 días, empuje, tirón, pierna con sentadilla, empuje, tirón, pierna con bisagra.
-- La rutina corta se arma con los patrones obligatorios del tipo, de 3 a 4 ejercicios.
+- La rutina corta no fija un número de ejercicios: es la misma sesión generada con el tiempo del día. Los patrones obligatorios del tipo entran primero y, si no caben, se avisa.
 
 Los patrones obligatorios son un criterio de diseño (E4). El investigador debe buscar respaldo para la cobertura mínima por tipo de sesión.
 
@@ -151,7 +151,7 @@ El núcleo está listo para el corte cuando, en el barrido de 360 planes:
 - [ ] Ninguna sesión supera su capacidad en minutos sin la aceptación explícita del usuario.
 - [ ] Todo día de tirón tiene tirón vertical y horizontal, y su top set es un tirón.
 - [ ] Ninguna sesión tiene el top set fuera del patrón principal de su tipo.
-- [ ] La rutina corta tiene de 3 a 4 ejercicios y cabe en el tiempo fijado.
+- [ ] La rutina corta cabe en el tiempo fijado, con los patrones obligatorios del tipo primero; si no caben todos, el aviso lo dice (sin tope ni piso de ejercicios).
 - [ ] Ninguna sesión por defecto tiene dos ejercicios de lumbar alta.
 - [ ] Ningún músculo supera 11 series fraccionadas por sesión (DEC-025), o queda sin cubrir con el aviso único.
 - [ ] Se reporta el **porcentaje de planes** (de los 360) en que R1 deja necesidad semanal sin cubrir, por músculo y por número de días; Emanuel lo revisa en la primera simulación del núcleo nuevo.
