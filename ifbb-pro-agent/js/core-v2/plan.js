@@ -24,7 +24,8 @@
 
   /* Campos del perfil que, al cambiar, regeneran el plan. La lista de la spec (tiempo, días, objetivo, nivel, división, rezagados,
    * prioritarios, lesiones, remo con barra) más `healthGoal` (bandera salud/funcional): el reparto habilita los funcionales con ella,
-   * así que un plan guardado con otra bandera estaría desactualizado. Se agregó por esa razón y Emanuel lo confirma en el PR. */
+   * así que un plan guardado con otra bandera estaría desactualizado. Se agregó por esa razón. OJO: hoy el reparto no agrega los funcionales de DEC-005 (con la bandera no cambia ninguno
+   * de los 360 planes del barrido): ese hueco está abierto en B-049, y esta entrada deja el disparador listo para cuando se implemente. Emanuel confirma la ampliación en el PR. */
   const CAMPOS = ['tiempo', 'dias', 'objetivo', 'nivel', 'division', 'rezagados', 'prioritarios', 'lesiones', 'remoConBarra', 'banderaSalud'];
   // La aceptación de una sesión caduca solo con estos tres (DEC-024, punto 4).
   const CAMPOS_ACEPTACION = ['tiempo', 'dias', 'objetivo'];
@@ -49,7 +50,6 @@
     n.minutosPorDia.forEach((m, i) => { if (m !== general) porDia[i] = m; });
     return {
       tiempo: { general, porDia }, // el general más los días cambiados: cambiar los días no cambia "el tiempo"
-
       dias: n.dias,
       objetivo: n.goal,
       nivel: n.level,
