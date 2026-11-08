@@ -231,7 +231,7 @@ Por días: {"5":8,"6":8}.
 | **Sesiones con algún ejercicio de 6 o más** | 1079 (66.6 %) | 712 (44 %) |
 
 - **Volumen:** series totales de los 360 planes antes 34849 y después 34849 (el volumen no se recorta); minutos antes 82241 y después 82241; músculos cuya cobertura fraccionada cambia: ninguno.
-- **Ejercicios que se quedan con más de 5 series** (su patrón no tiene otra variante que quepa): 893 casos en 335 planes; los más frecuentes: glutes.hip_abduction_machine 428 · quads.leg_extension 258 · back.pullover_cable 101 · triceps.pushdown_cable 36 · abs.crunch_cable 34 · calves.calf_raise_standing 20.
+- **Ejercicios que se quedan con más de 5 series**: 893; de ellos 823 son de un patrón con una sola variante (no hay a dónde traspasar) y 70 tienen otra variante que no cupo por tiempo, R1, A2 o A3. Casos en 335 planes; los más frecuentes: glutes.hip_abduction_machine 428 · quads.leg_extension 258 · back.pullover_cable 101 · triceps.pushdown_cable 36 · abs.crunch_cable 34 · calves.calf_raise_standing 20.
 
 ### Hip thrust: por qué no se elige
 

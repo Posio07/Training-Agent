@@ -670,9 +670,30 @@ test('DEC-031: el excedente no lleva top set, ni rompe R1, ni la capacidad, ni A
   }));
 });
 
-test('DEC-031: si el patrón tiene una sola variante (pullover), el ejercicio se queda con sus series y el aviso lo dice', () => {
-  const aviso = barrido.flatMap(({ plan }) => plan.avisos.topeExcedido);
-  const solo = aviso.filter(x => C.variantesDePatron(C.variantePorId(x.varianteId).patron).filter(v => v.id !== x.varianteId).length === 0);
-  assert.ok(aviso.every(x => x.series > 5));
-  assert.ok(solo.length === 0 || solo.every(x => /no hay otra variante/.test(x.motivo)));
+test('DEC-031: si el patrón tiene una sola variante, el ejercicio se queda con sus series y el aviso lo dice; si tiene otra, el traspaso se hace cuando cabe', () => {
+  const unicos = barrido.flatMap(({ plan }) => plan.avisos.topeExcedido).filter(x => C.variantesDePatron(C.variantePorId(x.varianteId).patron).length === 1);
+  assert.ok(unicos.length > 0, 'el barrido debería tener ejercicios de patrón con una sola variante que pasan de 5');
+  unicos.forEach(x => assert.ok(x.series > 5));
+  // Un patrón con otra variante sí traspasa: hay sesiones con dos variantes del mismo patrón en el barrido.
+  assert.ok(barrido.some(({ plan }) => plan.sesiones.some(s => new Set(s.ejercicios.map(e => e.patron)).size < s.ejercicios.length)));
+});
+
+test('DEC-031: el traspaso se niega si la otra variante no cabe en el tiempo (caso forzado); la comprobación de R1 es defensiva', () => {
+  const base = sinTope.find(({ plan }) => plan.sesiones.some(s => s.ejercicios.some(e => e.series > 5 && C.variantesDePatron(e.patron).length > 1)));
+  assert.ok(base, 'hace falta un plan con un ejercicio de más de 5 series cuyo patrón tenga otra variante');
+  const cand = base.plan.sesiones.flatMap(s => s.ejercicios).find(e => e.series > 5 && C.variantesDePatron(e.patron).length > 1);
+  const alternativas = C.variantesDePatron(cand.patron).map(v => v.id).filter(id => id !== cand.varianteId);
+  const perfil = Object.assign({}, base.p, { daysPerWeek: base.d });
+  // Tiempo: las otras variantes cuestan 1000 s por serie y la sesión no tiene holgura para el traspaso.
+  const lento = Object.assign({}, C, { segundosPorSerie: id => (alternativas.includes(id) ? 1000 : C.segundosPorSerie(id)) });
+  const sinLugar = REP.generarPlan(perfil, { catalogo: lento });
+  assert.equal(sinLugar.sesiones.flatMap(s => s.ejercicios).filter(e => alternativas.includes(e.varianteId)).length, 0, 'no debería haberse traspasado con ese costo');
+  assert.ok(sinLugar.avisos.topeExcedido.length > 0, 'sin lugar para el traspaso, el aviso lo dice');
+  sinLugar.sesiones.forEach(s => assert.ok(s.minutos <= s.capacidadMin));
+  // R1 es defensiva: hoy las variantes de un mismo patrón tienen los mismos aportes, así que el traspaso nunca sube un músculo y esa comprobación no llega a decidir. Se verifica que, aun con aportes distintos, no queda R1 rota en una sesión que recibió el traspaso.
+  const todos = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes', 'calves', 'biceps', 'triceps', 'abs'];
+  const pesado = Object.assign({}, C, { aportesDe: id => (alternativas.includes(id) ? todos.map(m => ({ exerciseId: id, muscle: m, relacion: 'directa', evidencia: 'verificado' })) : C.aportesDe(id)) });
+  const conR1 = REP.generarPlan(perfil, { catalogo: pesado });
+  conR1.sesiones.filter(s => s.ejercicios.some(e => alternativas.includes(e.varianteId))).forEach(s => Object.values(s.fraccionado).forEach(v => assert.ok(v <= 11 + 1e-9, `${s.nombre}: R1 ${v}`)));
+  assert.ok(conR1.avisos.topeExcedido.length > 0 || conR1.sesiones.some(s => s.ejercicios.some(e => alternativas.includes(e.varianteId))));
 });

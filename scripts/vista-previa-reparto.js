@@ -210,8 +210,9 @@ REP.MUSCULOS.forEach(m => { frac0[m] = filasSinTope.reduce((a, f) => a + f.pl.se
 const dif = REP.MUSCULOS.filter(m => Math.abs(frac0[m] - frac1[m]) > 1e-6);
 P(`- **Volumen:** series totales de los 360 planes antes ${serT0} y después ${serT1} (el volumen no se recorta); minutos antes ${minT0} y después ${minT1}; músculos cuya cobertura fraccionada cambia: ${dif.length ? dif.map(m => `${ETQ[m]} ${r1(frac1[m] - frac0[m])}`).join(', ') : 'ninguno'}.`);
 const sinOtra = filas.flatMap(f => f.pl.avisos.topeExcedido);
+const unaVariante = sinOtra.filter(x => CAT.variantesDePatron(CAT.variantePorId(x.varianteId).patron).length === 1);
 const porNom = {}; sinOtra.forEach(x => { porNom[x.varianteId] = (porNom[x.varianteId] || 0) + 1; });
-P(`- **Ejercicios que se quedan con más de 5 series** (su patrón no tiene otra variante que quepa): ${sinOtra.length} casos en ${new Set(filas.filter(f => f.pl.avisos.topeExcedido.length).map(f => f)).size} planes; los más frecuentes: ${Object.entries(porNom).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, n]) => `${id} ${n}`).join(' · ') || 'ninguno'}.`);
+P(`- **Ejercicios que se quedan con más de 5 series**: ${sinOtra.length}; de ellos ${unaVariante.length} son de un patrón con una sola variante (no hay a dónde traspasar) y ${sinOtra.length - unaVariante.length} tienen otra variante que no cupo por tiempo, R1, A2 o A3. Casos en ${new Set(filas.filter(f => f.pl.avisos.topeExcedido.length).map(f => f)).size} planes; los más frecuentes: ${Object.entries(porNom).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, n]) => `${id} ${n}`).join(' · ') || 'ninguno'}.`);
 P('');
 P(md ? '### Hip thrust: por qué no se elige' : '-- Hip thrust');
 P('');
