@@ -60,7 +60,7 @@ Un archivo por entrada (`docs/backlog/B-XXX.md`), con la fila completa (dueño, 
 | [B-046](backlog/B-046.md) | Borrar los datos viejos del almacenamiento dos semanas después del corte | propuesto | 2026-11-08 |
 | [B-047](backlog/B-047.md) | Reorganizar `engine.js` después del corte | propuesto | 2026-11-08 |
 | [B-048](backlog/B-048.md) | Rutina corta: ¿de 3 a 4 ejercicios o lo que quepa en el tiempo? | propuesto | 2026-11-08 |
-| [B-049](backlog/B-049.md) | Bandera salud/funcional (DEC-005): el reparto nuevo no agrega los ejercicios funcionales | propuesto | 2026-11-08 |
+| [B-049](backlog/B-049.md) | Bandera salud/funcional (DEC-005): el reparto nuevo no agrega los ejercicios funcionales | en curso | 2026-11-08 |
 | [B-040](backlog/B-040.md) | Decidir si el mínimo de la OMS (150 min por semana de cardio) aplica a todas las fases | propuesto | 2026-11-08 |
 | [B-024](backlog/B-024.md) | Correr los E2E en el CI | propuesto | 2026-10-25 |
 | [B-025](backlog/B-025.md) | Fase 3 del validador: perfil articular y orden de ejercicios | abierto | 2026-11-07 |
