@@ -981,7 +981,7 @@ El plan generado, el registro de sesiones (DEC-015) y los datos guardados.
 ## DEC-028 · El top set va al patrón principal del tipo de sesión, no al primer ejercicio elegible
 **Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente (2026-11-08) porque la spec del núcleo v2 y la decisión T16 de Emanuel ya lo definen y todavía no tiene su DEC. No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo**, no antes.
 
-Contexto: DEC-008 dice que el top set pasa al primer ejercicio elegible del día (lista cerrada de seis patrones). Esa regla es la causa del press militar con top set en el día de tirón (`docs/research/diagnostico-rutina-corta-y-dia-de-tiron.md`). La spec del núcleo v2 (algoritmo, paso 6; trazabilidad T16, resuelta el 2026-11-08) lo reemplaza.
+Contexto: DEC-008 dice que el top set pasa al primer ejercicio elegible del día (lista cerrada de seis patrones del catálogo viejo, que en el catálogo nuevo son las variantes elegibles del punto 2). Esa regla es la causa del press militar con top set en el día de tirón (`docs/research/diagnostico-rutina-corta-y-dia-de-tiron.md`). La spec del núcleo v2 (algoritmo, paso 6; trazabilidad T16, resuelta el 2026-11-08) lo reemplaza.
 
 ### Decisión (propuesta)
 1. El top set va al **patrón principal del tipo de sesión**: empuje horizontal en empuje, tirón vertical en tirón, sentadilla en pierna con sentadilla, bisagra en pierna con bisagra; en torso alterna (empuje horizontal el primero de la semana, tirón vertical el segundo); en cuerpo completo ×3 rota sentadilla, empuje horizontal y bisagra.

@@ -277,7 +277,7 @@
         // R1 deja la necesidad sin cubrir si alguna sesión tenía tiempo y solo R1 impidió sumar.
         causa = motivos.R1 > 0 ? 'R1' : (candidatos === 0 ? 'sin ejercicios disponibles' : 'tiempo');
       }
-            semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
+      semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
     });
     const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
     const avisoUnico = (sinCubrir.length || avisos.obligatoriosSinLugar.length)
