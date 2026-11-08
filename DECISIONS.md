@@ -1076,5 +1076,37 @@ Contexto: DEC-030 dice que el reset del corte es completo y sin exportación. Em
 ### Qué no cambia
 DEC-030 (sin exportación), DEC-023 (sin migraciones), DEC-009 (privacidad).
 
+## DEC-033 · Los números de intensidad, progresión y descarga entran al registro como criterio de diseño (E4)
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente por pedido de Emanuel (requisito del corte de B-039, 2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **No cambia el comportamiento del motor actual ni el plan generado**: los valores son los de los textos fijos de `engine.js`.
+
+Contexto: tres textos fijos del plan (intensidad, progresión y descarga) llevan números sin entrada en el registro ni DEC. La regla 3 de `CLAUDE.md` pide nivel, fuente y estado para todo número, y la spec del núcleo v2 dice que un número sin fuente se justifica como E4 o se elimina. El investigador revisó cada uno (`docs/research/intensidad-progresion-descarga.md`): se leyó texto completo solo del ACSM 2009 (pp. 687-695) y del ACSM 2026 (pp. 851-866), en copias de terceros; el resto, solo resúmenes.
+
+### Decisión (propuesta)
+Se registran, con el valor actual y como **E4 (criterio de diseño con respaldo parcial)**, las 11 entradas siguientes (la doble progresión incluida):
+
+| Entrada | Valor | Respaldo |
+| --- | --- | --- |
+| `INTENSIDAD_REPETICIONES_PRINCIPAL` | 6-12 repeticiones | Helms 2015 (resumen) y ACSM 2009 (6-12 RM, evidencia C; 8-12 en novatos, evidencia A); el ACSM 2026 no da rango |
+| `INTENSIDAD_PORCENTAJE_1RM` | 70-80 % | Helms 2015; el ACSM 2009 da 70-85 %; el ACSM 2026 halló hipertrofia similar de 30 a 100 % |
+| `INTENSIDAD_RIR` | 1-3 | ACSM 2026: 2-3 RIR, evidencia insuficiente para fijarlo; el 1 no sale de ninguna fuente |
+| `INTENSIDAD_REPETICIONES_MAX_AISLAMIENTO` | 15 | Helms 2015: rango de ~3-15; sin fuente del tope |
+| `PROGRESION_CARGA_TREN_SUPERIOR` | 2-5 % | El ACSM 2009 da 2-10 % por tamaño de masa muscular; la partición superior/inferior es de la app |
+| `PROGRESION_CARGA_TREN_INFERIOR` | 5-10 % | Ídem |
+| `PROGRESION_DOBLE` | regla | Criterio de la app; coherente con el ACSM 2009 (zona prescrita) y Plotkin 2022 (resumen), aunque el disparo difiere |
+| `DESCARGA_INTERVALO_SEMANAS` | 4-6 | Práctica descrita por Bell 2023 (Delphi); sin acuerdo ni evidencia de eficacia |
+| `DESCARGA_CAIDAS_DE_RENDIMIENTO_SESIONES` | 2 sesiones seguidas | Sin fuente |
+| `DESCARGA_REDUCCION_VOLUMEN_PORCENTAJE` | 50 % | Bell 2023: sin porcentaje; Coleman 2024 probó una pausa total |
+| `DESCARGA_DURACION_SEMANAS` | 1 semana | Sin fuente |
+
+Los textos se arman desde el registro (`js/core-v2/textos.js`); las fuentes que cita el plan salen de las reglas activas. **Los rangos de repeticiones por ejercicio del catálogo** (por ejemplo 8-12) son datos del catálogo y no entran en esta decisión.
+
+### Alternativas
+- **A. Recomendada: registrarlos todos como E4 (el nivel más conservador de los que propuso el investigador).** Costo: el 6-12 y el 70-80 % quedan sin el respaldo de posicionamiento que podría darles el ACSM 2009.
+- **B. Subir el 6-12 a E1 con salvedad (ACSM 2009).** Costo: citar como vigente una guía que el ACSM 2026 reemplaza y critica; el 2026 no da rango de repeticiones.
+- **C. Eliminar los números sin fuente (el 1 del RIR, el 2 de las caídas, el 50 % y la semana de la descarga).** Costo: textos menos concretos; cambia lo que ve el usuario.
+
+### Qué no cambia
+Los valores y los textos del plan, la escala de evidencia y las demás reglas.
+
 **Estado: Propuesto.**
 
