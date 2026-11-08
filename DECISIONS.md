@@ -1037,7 +1037,7 @@ DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. La no
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-031 · Tope de 5 series por ejercicio y sesión; el excedente pasa a otra variante del mismo patrón
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **Efecto desde el corte al núcleo nuevo**, no antes.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel con un comentario en el PR #44 (https://github.com/Posio07/Training-Agent/pull/44#issuecomment-6723923228: "acepto DEC-030 y DEC-031 - Emanuel"); Emanuel dijo haberlo repetido en este PR (#46), donde no hay comentario visible todavía. **Efecto desde el corte al núcleo nuevo**, no antes.
 
 Contexto: la vista previa del reparto nuevo (`docs/research/vista-previa-reparto.md`, sección "Series por ejercicio aislado") mostró que sin tope por ejercicio un aislamiento puede sumar hasta 11 series en una sesión: 1075 de 1620 sesiones tenían algún aislado con 6 series o más. Emanuel había decidido el 2026-11-07 que no había tope por ejercicio; decidió el 2026-11-08, con esa distribución a la vista, ponerlo.
 
@@ -1055,5 +1055,5 @@ Contexto: la vista previa del reparto nuevo (`docs/research/vista-previa-reparto
 ### Qué no cambia
 La necesidad semanal, R1, los pisos y el volumen total: el traspaso mueve series entre variantes, no las quita.
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**
 
