@@ -261,3 +261,49 @@ test('aportes por músculo: los heredados de variantes partidas salen a_verifica
 });
 
 function EXERCISE_ROWS(id) { return require('../js/exerciseMuscles.js').rows.filter(r => r.exerciseId === id); }
+
+test('B-031: los 31 perfiles propios fijan lumbar/hombro/rodilla (a=alta, m=media, b=baja) según las reglas de desempate', () => {
+  // Cambiar un nivel exige revisar la regla de desempate que lo decide (docs/specs/validador-fase3.md) y esta tabla.
+  const esperado = {
+    'chest.dip_parallel': 'bab',
+    'chest.press_machine': 'bab',
+    'chest.fly_cable': 'bmb',
+    'chest.fly_pecdeck': 'bmb',
+    'back.pull_up': 'bmb',
+    'back.lat_pulldown': 'bmb',
+    'back.row_barbell': 'amb',
+    'back.row_pendlay': 'amb',
+    'back.row_chest_supported_machine': 'bmb',
+    'back.row_chest_supported_bench': 'bmb',
+    'back.row_cable': 'mmb',
+    'back.row_machine': 'bmb',
+    'shoulders.press_overhead_barbell': 'mab',
+    'shoulders.press_overhead_db': 'mab',
+    'shoulders.press_overhead_db_seated': 'bab',
+    'shoulders.face_pull': 'bmb',
+    'shoulders.rear_delt_fly': 'bmb',
+    'shoulders.press_landmine': 'mmb',
+    'shoulders.press_neutral_grip': 'mab',
+    'quads.squat_back': 'ama',
+    'quads.squat_hack': 'mba',
+    'quads.lunge': 'mba',
+    'quads.bulgarian_split_squat': 'mba',
+    'hamstrings.leg_curl_lying': 'bbb',
+    'hamstrings.leg_curl_seated': 'bbb',
+    'biceps.curl_barbell': 'bbb',
+    'biceps.curl_ez': 'bbb',
+    'triceps.close_grip_press': 'bab',
+    'triceps.dips': 'bab',
+    'abs.crunch_cable': 'bbb',
+    'abs.ab_wheel': 'mmb',
+  };
+  assert.deepEqual(Object.keys(esperado).sort(), C.VARIANTES.filter(x => x.heredado).map(x => x.id).sort());
+  Object.entries(esperado).forEach(([id, lhr]) => {
+    const p = C.perfilArticularDe(id);
+    assert.equal(p.lumbar.nivel[0] + p.hombro.nivel[0] + p.rodilla.nivel[0], lhr, id);
+  });
+  // Regla 3 (aislamiento ligero = lumbar baja) y regla 2 (bisagra sostenida = lumbar alta), por nombre.
+  ['shoulders.face_pull', 'shoulders.rear_delt_fly', 'biceps.curl_barbell', 'biceps.curl_ez', 'chest.fly_cable', 'chest.fly_pecdeck', 'abs.crunch_cable'].forEach(id => assert.equal(C.perfilArticularDe(id).lumbar.nivel, 'baja', id));
+  ['back.row_barbell', 'back.row_pendlay'].forEach(id => assert.equal(C.perfilArticularDe(id).lumbar.nivel, 'alta', id));
+  assert.equal(C.perfilArticularDe('shoulders.press_landmine').hombro.nivel, 'media');
+});
