@@ -25,7 +25,7 @@
   /* Campos del perfil que, al cambiar, regeneran el plan. La lista de la spec (tiempo, días, objetivo, nivel, división, rezagados,
    * prioritarios, lesiones, remo con barra) más `healthGoal` (bandera salud/funcional): el reparto habilita los funcionales con ella,
    * así que un plan guardado con otra bandera estaría desactualizado. Se agregó por esa razón. OJO: hoy el reparto no agrega los funcionales de DEC-005 (con la bandera no cambia ninguno
-   * de los 360 planes del barrido): ese hueco está abierto en B-049, y esta entrada deja el disparador listo para cuando se implemente. Emanuel confirma la ampliación en el PR. */
+   * de los 360 planes del barrido): ese hueco está abierto en B-049, y esta entrada deja el disparador listo para cuando se implemente. Ampliación confirmada por Emanuel (2026-11-08): la bandera es el décimo disparador. */
   const CAMPOS = ['tiempo', 'dias', 'objetivo', 'nivel', 'division', 'rezagados', 'prioritarios', 'lesiones', 'remoConBarra', 'banderaSalud'];
   // La aceptación de una sesión caduca solo con estos tres (DEC-024, punto 4).
   const CAMPOS_ACEPTACION = ['tiempo', 'dias', 'objetivo'];
