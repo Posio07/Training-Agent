@@ -998,7 +998,7 @@ La lista cerrada de variantes elegibles, el top set solo en definición, los nú
 **Estado: Propuesto.**
 
 ## DEC-029 · Estructura del reparto: volumen propio del patrón principal y un ejercicio directo por grupo y semana
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente por pedido de Emanuel (2026-11-08), a partir de la vista previa del paso 2. No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **Efecto desde el corte al núcleo nuevo**, no antes.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08), a partir de la vista previa del paso 2; aceptado por Emanuel con un comentario en el PR #42 (https://github.com/Posio07/Training-Agent/pull/42#issuecomment-6723771883: "aceptado dec-029 - Emanuel"). **Efecto desde el corte al núcleo nuevo**, no antes.
 
 Contexto: la vista previa del paso 2 (`docs/research/vista-previa-reparto.md`) mostró dos efectos del puntaje "necesidad por minuto": el patrón principal de la sesión (el del top set) quedaba con 2 series en 79 % de las sesiones, y bíceps y tríceps podían quedar solo con series indirectas. DEC-020 (punto 6) ya protegía el último ejercicio directo de un grupo en el motor actual; la trazabilidad no lo había detectado y el reparto nuevo no lo conservaba.
 
@@ -1014,5 +1014,5 @@ Contexto: la vista previa del paso 2 (`docs/research/vista-previa-reparto.md`) m
 ### Qué no cambia
 R1 sigue siendo restricción (DEC-025), el top set va al patrón principal (DEC-028), el conteo fraccionado y los pisos de DEC-014, DEC-017 y DEC-020.
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**
 
