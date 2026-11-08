@@ -1028,11 +1028,11 @@ Contexto: DEC-023 (punto 2) exige exportar el historial completo con `scripts/ex
 
 ### Alternativas
 - **A. Mantener la exportación obligatoria (DEC-023 tal cual).** Costo: una herramienta y un paso de validación que Emanuel no usa.
-- **B. Recomendada (la que pidió Emanuel): reset completo sin exportación.** Costo: el historial que vive solo en la app se pierde en el corte; Emanuel acepta ese riesgo porque lo registra por su cuenta. Quien use la app más adelante (versión pública) tendría que decidir otra vez.
+- **B. Recomendada (la que pidió Emanuel): reset completo sin exportación.** Revierte de forma explícita la Alternativa C que DEC-023 había descartado ("el historial es el único dato que no se puede regenerar"): el argumento deja de valer porque Emanuel lleva su propio registro fuera de la app (afirmación de Emanuel, que el repo no puede verificar). Costo: el historial que vive solo en la app se pierde en el corte; Emanuel acepta ese riesgo. Quien use la app más adelante (versión pública) tendría que decidir otra vez.
 - **C. Exportación opcional.** Costo: mantener el script y sus tests sin que nadie los use.
 
 ### Qué no cambia
-DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión.
+DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. DEC-023 queda sin editar (es un DEC aceptado): al aceptar este DEC, Emanuel puede autorizar la nota "reemplazado por DEC-030" en el punto 2 de DEC-023, como se hizo con las cláusulas de DEC-015, DEC-016 y DEC-018.
 
 **Estado: Propuesto.**
 
