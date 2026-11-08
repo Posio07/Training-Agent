@@ -2945,3 +2945,98 @@ test('DEC-023: el CSV escapa comas y comillas, lleva BOM y una fila por serie; a
   assert.throws(() => EXP.assertNoPrivate({ perfiles: [{ workouts: [{ pain: 3 }] }] }), /DEC-009/);
   assert.throws(() => EXP.assertNoPrivate({ data: { health: {} } }), /DEC-009/);
 });
+
+/* ---------- Indicador "Siguiente" (orden del split, no la fecha; T5b de la spec del núcleo v2) ---------- */
+const dayNamesOf = days => E.buildPlan(Object.assign({}, male, { daysPerWeek: days }), TODAY).training.sessions.map(s => s.name);
+// Registra una sesión del día `dayIndex` con `nSets` series hechas; `cerrar` la completa (entrada en `sessions`).
+const registrarDia = (p, names, dayIndex, date, nSets, cerrar, id, t) => {
+  const rec = SS.newSession({ profileId: 'p', sessionId: id, dayIndex, dayName: names[dayIndex], short: false, exercises: smExercises(), now: t });
+  for (let i = 0; i < nSets; i++) {
+    SS.markDone(rec, 0, i, { weight: 50, reps: 8, pain: null }, t + i);
+    SS.upsertWorkout(p.workouts, SS.workoutRow(rec, 0, i, date));
+  }
+  if (cerrar) SS.complete(rec, p.sessions, p.workouts, t + 99, date);
+  return rec;
+};
+const perfilVacio = () => ({ workouts: [], sessions: [] });
+
+test('Siguiente: sin sesiones registradas marca el Día 1', () => {
+  assert.equal(SS.siguienteDia([], [], dayNamesOf(5)), 0);
+  assert.equal(SS.siguienteDia(undefined, undefined, dayNamesOf(5)), 0);
+});
+
+test('Siguiente: marca el día que sigue a la última sesión registrada, sin mirar la fecha de hoy', () => {
+  const names = dayNamesOf(5), p = perfilVacio();
+  registrarDia(p, names, 0, '2025-01-10', 2, true, 's1', 1000);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 1);
+  registrarDia(p, names, 1, '2025-01-12', 2, true, 's2', 2000);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 2);
+});
+
+test('Siguiente: después del último día del split vuelve al Día 1', () => {
+  const names = dayNamesOf(4), p = perfilVacio();
+  registrarDia(p, names, 3, '2026-11-01', 2, true, 's1', 1000);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 0);
+});
+
+test('Siguiente: una sesión registrada aunque esté incompleta cuenta como hecha', () => {
+  const names = dayNamesOf(5), p = perfilVacio();
+  registrarDia(p, names, 2, '2026-11-01', 1, false, 's1', 1000); // una sola serie, sin cerrar la sesión
+  assert.equal(p.sessions.length, 0);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 3);
+  // También si solo existe su entrada en `sessions` (por ejemplo, con las series borradas después).
+  const q = perfilVacio();
+  registrarDia(q, names, 1, '2026-11-01', 2, true, 's2', 1000);
+  q.workouts.length = 0;
+  assert.equal(SS.siguienteDia(q.workouts, q.sessions, names), 2);
+});
+
+test('Siguiente: si el usuario elige otro día a mano, el siguiente se calcula desde el último registrado', () => {
+  const names = dayNamesOf(5), p = perfilVacio();
+  registrarDia(p, names, 0, '2026-11-01', 2, true, 's1', 1000);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 1);
+  registrarDia(p, names, 3, '2026-11-02', 2, true, 's2', 2000); // salta al Día 4
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 4);
+  registrarDia(p, names, 1, '2026-11-03', 2, true, 's3', 3000); // vuelve a uno anterior
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 2);
+});
+
+test('Siguiente: la última se decide por fecha y hora, no por el orden en que están guardadas', () => {
+  const names = dayNamesOf(6), p = perfilVacio();
+  registrarDia(p, names, 4, '2026-11-05', 2, true, 'nueva', 5000);
+  registrarDia(p, names, 1, '2026-11-01', 2, true, 'vieja', 9000); // se registró después en el array, pero es de una fecha anterior
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, names), 5);
+  // Mismo día: gana la de hora posterior.
+  const q = perfilVacio();
+  registrarDia(q, names, 2, '2026-11-05', 2, true, 'b', 8000);
+  registrarDia(q, names, 0, '2026-11-05', 2, true, 'a', 1000); // guardada después, pero de una hora anterior
+  assert.equal(SS.siguienteDia(q.workouts, q.sessions, names), 3);
+  // El mismo caso con el orden de guardado invertido: el resultado no depende de cuál se guardó primero.
+  const r = perfilVacio();
+  registrarDia(r, names, 0, '2026-11-05', 2, true, 'a', 1000);
+  registrarDia(r, names, 2, '2026-11-05', 2, true, 'b', 8000);
+  assert.equal(SS.siguienteDia(r.workouts, r.sessions, names), 3);
+});
+
+test('Siguiente: es por perfil (cada uno usa sus propias sesiones)', () => {
+  const names = dayNamesOf(5), a = perfilVacio(), b = perfilVacio();
+  registrarDia(a, names, 3, '2026-11-01', 2, true, 'sa', 1000);
+  registrarDia(b, names, 0, '2026-11-01', 2, true, 'sb', 1000);
+  assert.equal(SS.siguienteDia(a.workouts, a.sessions, names), 4);
+  assert.equal(SS.siguienteDia(b.workouts, b.sessions, names), 1);
+  assert.equal(SS.siguienteDia(perfilVacio().workouts, perfilVacio().sessions, names), 0);
+});
+
+test('Siguiente: si cambia el split vuelve al Día 1', () => {
+  const p = perfilVacio(), cinco = dayNamesOf(5);
+  registrarDia(p, cinco, 2, '2026-11-01', 2, true, 's1', 1000);
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, cinco), 3);
+  [3, 4, 6].forEach(d => assert.equal(SS.siguienteDia(p.workouts, p.sessions, dayNamesOf(d)), 0, `${d} días`));
+  // Si el split vuelve al original, la sesión registrada vuelve a valer.
+  assert.equal(SS.siguienteDia(p.workouts, p.sessions, dayNamesOf(5)), 3);
+});
+
+test('Siguiente: los nombres de día de cada split son distintos entre splits (de eso depende detectar el cambio)', () => {
+  const todos = [3, 4, 5, 6].map(dayNamesOf);
+  todos.forEach((a, i) => todos.forEach((b, j) => { if (i !== j) a.forEach(n => assert.ok(!b.includes(n), `"${n}" se repite entre splits`)); }));
+});
