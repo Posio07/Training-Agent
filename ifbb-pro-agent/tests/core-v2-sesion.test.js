@@ -137,7 +137,7 @@ test('"hoy tengo X min": la misma sesión con el tiempo del día, que cabe, sin 
   const guardado = { plan: REP.generarPlan(p) };
   const antes = JSON.stringify(guardado);
   const corta = SES.sesionConTiempo(p, 2, 30);
-  assert.equal(corta.rutinaCorta, true); assert.equal(corta.minutosFijados, 30); assert.equal(corta.cabe, true);
+  assert.equal(corta.rutinaCorta, true); assert.equal(corta.minutosFijados, 30); assert.equal(corta.cabe, undefined);
   assert.ok(corta.minutos <= 30); assert.equal(corta.nombre, guardado.plan.sesiones[2].nombre);
   assert.ok(corta.series < guardado.plan.sesiones[2].series, 'con menos tiempo, menos series');
   assert.equal(JSON.stringify(guardado), antes, 'el plan guardado no cambia');
@@ -152,4 +152,18 @@ test('"hoy tengo X min": la misma sesión con el tiempo del día, que cabe, sin 
   // La sesión corta también se convierte en ejercicios de sessionStore.
   const rec = SS.newSession({ profileId: 'p', sessionId: 'c', dayIndex: 2, dayName: corta.nombre, short: true, exercises: SES.ejerciciosParaSesion(corta), now: 1 });
   assert.equal(SS.isValid(rec), true);
+});
+
+test('la última vez de una variante desempata por hora cuando hay dos sesiones el mismo día', () => {
+  const w = [fila('chest.bench_press_barbell', '2026-11-05', 'tarde', 'top', 1, 90, 5, 900), fila('chest.bench_press_barbell', '2026-11-05', 'manana', 'top', 1, 80, 5, 100)];
+  assert.equal(SES.ultimaVez(w, 'chest.bench_press_barbell').sessionId, 'tarde');
+  assert.equal(SES.ultimaVez(w.slice().reverse(), 'chest.bench_press_barbell').sessionId, 'tarde');
+});
+
+test('la rutina corta nunca pasa del tiempo fijado, en los 10 perfiles de referencia y con 20, 30 y 45 minutos', () => {
+  const base = require('./fixtures/plan-identity-baseline.json').cases;
+  Object.values(base).forEach(({ profile }) => [20, 30, 45].forEach(min => {
+    const dias = REP.generarPlan(profile).sesiones.length;
+    for (let i = 0; i < dias; i++) { const s = SES.sesionConTiempo(profile, i, min); assert.ok(s.minutos <= min, `${profile.name} día ${i + 1} con ${min} min: ${s.minutos}`); }
+  }));
 });

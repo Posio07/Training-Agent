@@ -124,7 +124,8 @@
   }
 
   // "Hoy tengo X min" (rutina corta): la misma sesión generada con ese tiempo, fijado al empezarla. No toca el plan guardado ni el perfil.
-  // Devuelve la sesión del plan (con la misma forma que `plan.sesiones[i]`) y si cabe en el tiempo.
+  // Devuelve la sesión del plan (con la misma forma que `plan.sesiones[i]`). Decisión pendiente de Emanuel (B-048): la spec pide de 3 a 4 ejercicios en la
+  // rutina corta; aquí el tiempo es la capacidad y no se limita el número de ejercicios (con 20 min salen 2; con 45, hasta 7).
   function sesionConTiempo(perfil, indice, minutos) {
     const m = parseFloat(minutos);
     if (!(m > 0)) throw new Error('Minutos inválidos');
@@ -135,7 +136,7 @@
     const plan = REPARTO.generarPlan(Object.assign({}, perfil, { tiempoDisponibleMin: minutosDelDia }));
     const sesion = plan.sesiones[indice];
     if (!sesion) throw new Error('Sesión inexistente: ' + indice);
-    return Object.assign({}, sesion, { rutinaCorta: true, minutosFijados: m, cabe: sesion.minutos <= m });
+    return Object.assign({}, sesion, { rutinaCorta: true, minutosFijados: m }); // el reparto nunca pasa de la capacidad: sesion.minutos <= m
   }
 
   return { habilitada, variantesDelEjercicio, ultimaVariante, varianteInicial, evaluarCambio, ejerciciosParaSesion, ultimaVez, progreso, sesionConTiempo };
