@@ -843,7 +843,7 @@ Contexto: la app la usan 2 personas y se prueba durante un año antes de una pos
 
 ### Decisión
 1. **Durante el año de prueba, la retrocompatibilidad de datos no es requisito.** El formato del almacenamiento y del plan puede cambiar sin migración. El año de prueba dura hasta que Emanuel lo cierre por escrito (DEC o `docs/VISION.md`).
-2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie.
+2. **Antes de cada reset de datos** (borrar el almacenamiento local, cambiar el formato de forma incompatible), **se exporta el historial completo** (perfiles, medidas, sesiones y series) y se archiva fuera de la app con `node scripts/exportar-historial.js`. El reset no se hace sin esa exportación. La exportación respeta DEC-009: no incluye datos de salud ni dolor por serie. **Reemplazado por DEC-030 (Aceptado el 2026-11-08):** el reset del corte es completo y sin exportación; `scripts/exportar-historial.js` se eliminó.
 3. **El código que una decisión deja muerto se elimina en el mismo PR** que la implementa: migraciones, campos legados, caminos que ya nadie recorre, datos y tests que solo ejercitaban ese código. Un test de comportamiento se conserva; un test que solo fija un detalle interno del código eliminado se elimina con él. Quien revisa el PR comprueba que no queda nada muerto.
 
 ### Qué no cambia
@@ -1017,7 +1017,7 @@ R1 sigue siendo restricción (DEC-025), el top set va al patrón principal (DEC-
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-030 · El reset del corte es completo y sin exportación del historial
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel con un comentario en el PR #44 (https://github.com/Posio07/Training-Agent/pull/44#issuecomment-6723923228: "acepto DEC-030 y DEC-031 - Emanuel").
 
 Contexto: DEC-023 (punto 2) exige exportar el historial completo con `scripts/exportar-historial.js` antes de cada reset de datos, y la spec del núcleo v2 (B-039) incluía un paso de exportación validado contra los conteos de la app. Emanuel lleva su propio registro de entrenamiento fuera de la app, así que la exportación no le sirve y el script se vuelve código muerto.
 
@@ -1032,7 +1032,7 @@ Contexto: DEC-023 (punto 2) exige exportar el historial completo con `scripts/ex
 - **C. Exportación opcional.** Costo: mantener el script y sus tests sin que nadie los use.
 
 ### Qué no cambia
-DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. DEC-023 queda sin editar (es un DEC aceptado): al aceptar este DEC, Emanuel puede autorizar la nota "reemplazado por DEC-030" en el punto 2 de DEC-023, como se hizo con las cláusulas de DEC-015, DEC-016 y DEC-018.
+DEC-009, el resto de DEC-023 y el registro de entrenamiento sin conexión. La nota "reemplazado por DEC-030" se agregó al punto 2 de DEC-023 al aceptarse este DEC (pedido de Emanuel).
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**
 
