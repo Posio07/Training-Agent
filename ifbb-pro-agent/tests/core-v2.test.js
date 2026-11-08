@@ -7,6 +7,8 @@ const path = require('node:path');
 const R = require('../js/core-v2/registro.js');
 const C = require('../js/core-v2/catalogo.js');
 const K = require('../js/knowledge.js');
+const PV = require('../../scripts/build-perfil-articular-variantes.js');
+const PVM = require('../js/core-v2/perfilArticularVariantes.js');
 
 const DIR = path.join(__dirname, '..', 'js', 'core-v2');
 const DECS = new Set([...fs.readFileSync(path.join(__dirname, '..', '..', 'DECISIONS.md'), 'utf8').matchAll(/^## (DEC-\d+)/gm)].map(m => m[1]));
@@ -181,7 +183,7 @@ test('catálogo: cada ejercicio con "o" del motor actual se parte en una variant
     'back.row_barbell': ['back.row_barbell', 'back.row_pendlay'],
     'back.row_chest_supported': ['back.row_chest_supported_machine', 'back.row_chest_supported_bench'],
     'back.row_cable': ['back.row_cable', 'back.row_machine'],
-    'shoulders.press_overhead': ['shoulders.press_overhead_barbell', 'shoulders.press_overhead_db'],
+    'shoulders.press_overhead': ['shoulders.press_overhead_barbell', 'shoulders.press_overhead_db', 'shoulders.press_overhead_db_seated'],
     'shoulders.rear_delt_facepull': ['shoulders.face_pull', 'shoulders.rear_delt_fly'],
     'shoulders.press_landmine_neutral': ['shoulders.press_landmine', 'shoulders.press_neutral_grip'],
     'quads.squat_back_or_hack': ['quads.squat_back', 'quads.squat_hack'],
@@ -200,5 +202,62 @@ test('catálogo: cada ejercicio con "o" del motor actual se parte en una variant
   });
   // Un ejercicio del motor actual cuyo nombre junta opciones tiene que estar en la tabla.
   Object.values(viejos).filter(e => /\s[oó]\s|\//.test(e.name) && !/Vacuum/.test(e.name)).forEach(e => assert.ok(partidos[e.id], `${e.id} ("${e.name}") junta opciones y no está partido`));
-  assert.equal(Object.values(partidos).flat().length, 30);
+  assert.equal(Object.values(partidos).flat().length, 31);
 });
+
+/* ---------- B-031 · perfil articular propio de cada variante partida ---------- */
+
+test('B-031: el módulo generado coincide con data/perfil-articular-variantes.csv', () => {
+  assert.equal(fs.readFileSync(PV.MODULE_PATH, 'utf8'), PV.buildFromCsvText(fs.readFileSync(PV.CSV_PATH, 'utf8')), 'desactualizado: correr `node scripts/build-perfil-articular-variantes.js`');
+});
+
+test('B-031: toda variante partida tiene sus tres articulaciones propias, y solo ellas', () => {
+  const partidas = C.VARIANTES.filter(x => x.heredado).map(x => x.id).sort();
+  assert.equal(partidas.length, 31);
+  const enCsv = [...new Set(PVM.rows.map(r => r.exerciseId))].sort();
+  assert.deepEqual(enCsv, partidas, 'los ids del CSV deben ser exactamente las variantes partidas');
+  partidas.forEach(id => assert.deepEqual(PVM.rows.filter(r => r.exerciseId === id).map(r => r.articulacion).sort(), ['hombro', 'lumbar', 'rodilla'], id));
+  PVM.rows.forEach(r => assert.equal(r.evidencia, 'a_verificar', `${r.exerciseId}/${r.articulacion}: sin fuente leída no puede ser probable`));
+});
+
+test('B-031: las variantes que difieren en lumbar u hombro ya no comparten nivel (criterio de la spec y desempates)', () => {
+  const nivel = (id, j) => C.perfilArticularDe(id)[j].nivel;
+  assert.equal(nivel('quads.squat_back', 'lumbar'), 'alta');
+  assert.equal(nivel('quads.squat_hack', 'lumbar'), 'media');
+  assert.equal(nivel('quads.squat_back', 'hombro'), 'media');
+  assert.equal(nivel('quads.squat_hack', 'hombro'), 'baja');
+  assert.equal(nivel('shoulders.press_overhead_barbell', 'lumbar'), 'media');
+  assert.equal(nivel('shoulders.press_overhead_db_seated', 'lumbar'), 'baja');
+  assert.equal(nivel('back.row_cable', 'lumbar'), 'media');
+  assert.equal(nivel('back.row_machine', 'lumbar'), 'baja');
+  assert.equal(nivel('back.row_barbell', 'lumbar'), 'alta');
+  assert.equal(nivel('back.row_pendlay', 'lumbar'), 'alta');
+  assert.equal(nivel('back.row_chest_supported_bench', 'lumbar'), 'baja');
+  // Las que no se partieron siguen leyendo su fila de data/perfil-articular.csv.
+  assert.equal(nivel('hamstrings.rdl', 'lumbar'), 'alta');
+  assert.equal(nivel('chest.bench_press_barbell', 'hombro'), 'alta');
+});
+
+test('B-031: lo ambiguo queda marcado (press con agarre neutro: hombro alta, decide Emanuel)', () => {
+  const amb = PVM.rows.filter(r => r.ambiguo === 'si').map(r => `${r.exerciseId}/${r.articulacion}`);
+  assert.deepEqual(amb, ['shoulders.press_neutral_grip/hombro']);
+});
+
+test('aportes por músculo: los heredados de variantes partidas salen a_verificar y conservan la evidencia original', () => {
+  C.VARIANTES.forEach(x => {
+    const filas = C.aportesDe(x.id);
+    filas.forEach(r => {
+      if (x.heredado) {
+        assert.equal(r.evidencia, 'a_verificar', `${x.id}/${r.muscle}`);
+        assert.ok(r.evidenciaOriginal, `${x.id}/${r.muscle}: falta evidenciaOriginal`);
+        assert.equal(r.heredadoDe, x.hereda);
+      } else assert.notEqual(r.heredadoDe, x.hereda, x.id);
+    });
+  });
+  // Un ejemplo con evidencia original distinta de a_verificar: las dominadas (bíceps verificado).
+  assert.ok(C.aportesDe('back.pull_up').some(r => r.evidenciaOriginal && r.evidenciaOriginal !== 'a_verificar'));
+  // El ejercicio no partido no se toca.
+  assert.deepEqual(C.aportesDe('chest.bench_press_barbell'), EXERCISE_ROWS('chest.bench_press_barbell'));
+});
+
+function EXERCISE_ROWS(id) { return require('../js/exerciseMuscles.js').rows.filter(r => r.exerciseId === id); }

@@ -5,10 +5,12 @@
  *   - Patrón: el movimiento. El generador planifica por patrón.
  *   - Variante: el ejercicio concreto, con id propio. Desaparecen los ejercicios con "o" en el nombre.
  *
- * Datos de cada variante: aporte por músculo (formato largo, DEC-013) y perfil articular (DEC-021). Las
- * variantes que salen de partir un ejercicio con "o" HEREDAN las filas del ejercicio original (`hereda`):
- * no se inventó ningún dato nuevo. Donde las dos opciones difieren de verdad (por ejemplo sentadilla
- * trasera y hack, B-031) la herencia es un supuesto que Emanuel revisa; `heredado` lo deja a la vista.
+ * Datos de cada variante: aporte por músculo (formato largo, DEC-013) y perfil articular (DEC-021).
+ * - Perfil articular: cada variante partida lleva el suyo propio (data/perfil-articular-variantes.csv, B-031),
+ *   con el criterio de modelado de docs/specs/validador-fase3.md y sus reglas de desempate. Las demás
+ *   variantes conservan su fila de data/perfil-articular.csv.
+ * - Aporte por músculo: las variantes partidas HEREDAN las filas del ejercicio original (`hereda`) y se
+ *   marcan `a_verificar` (con la evidencia original en `evidenciaOriginal`); no se inventó ningún dato.
  * En el PR del corte las filas heredadas se materializan en los CSV de data/.
  *
  * Los rangos de repeticiones son datos del catálogo (como en el motor actual), no reglas del registro.
@@ -17,9 +19,9 @@
  *
  * Los números (descansos, tiempo de ejecución, factor de unilaterales) salen del registro de reglas. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('../exerciseMuscles.js'), require('../perfilArticular.js'));
-  else root.CORE_V2_CATALOGO = factory(root.CORE_V2_REGISTRO, root.EXERCISE_MUSCLES, root.PERFIL_ARTICULAR);
-})(typeof self !== 'undefined' ? self : this, function (REGISTRO, EXERCISE_MUSCLES, PERFIL_ARTICULAR) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('../exerciseMuscles.js'), require('../perfilArticular.js'), require('./perfilArticularVariantes.js'));
+  else root.CORE_V2_CATALOGO = factory(root.CORE_V2_REGISTRO, root.EXERCISE_MUSCLES, root.PERFIL_ARTICULAR, root.CORE_V2_PERFIL_ARTICULAR_VARIANTES);
+})(typeof self !== 'undefined' ? self : this, function (REGISTRO, EXERCISE_MUSCLES, PERFIL_ARTICULAR, PERFIL_VARIANTES) {
   'use strict';
 
   /* Patrones. `clase`: 'principal' (los siete que piden los tipos de sesión), 'complementario' (compuestos que
@@ -78,8 +80,11 @@
     v('back.row_machine', 'Remo en máquina', 'tiron_horizontal', M, [8, 12], 'back.row_cable'),
     v('back.pullover_cable', 'Pullover en polea', 'pullover', A, [10, 15]),
     // Hombros
-    v('shoulders.press_overhead_barbell', 'Press militar con barra', 'empuje_vertical', M, [6, 10], 'shoulders.press_overhead'),
-    v('shoulders.press_overhead_db', 'Press militar con mancuernas', 'empuje_vertical', M, [6, 10], 'shoulders.press_overhead'),
+    // B-031: el perfil lumbar cambia con la postura (de pie media, sentado con respaldo baja), así que el press con
+    // mancuernas tiene dos variantes. La de sentado es nueva respecto del catálogo viejo (lo pidió Emanuel).
+    v('shoulders.press_overhead_barbell', 'Press militar con barra de pie', 'empuje_vertical', M, [6, 10], 'shoulders.press_overhead'),
+    v('shoulders.press_overhead_db', 'Press militar con mancuernas de pie', 'empuje_vertical', M, [6, 10], 'shoulders.press_overhead'),
+    v('shoulders.press_overhead_db_seated', 'Press militar con mancuernas sentado con respaldo', 'empuje_vertical', M, [6, 10], 'shoulders.press_overhead'),
     v('shoulders.lateral_raise_db', 'Elevaciones laterales con mancuerna', 'deltoide_lateral', A, [10, 15]),
     v('shoulders.lateral_raise_cable', 'Elevaciones laterales en polea', 'deltoide_lateral', A, [12, 15]),
     v('shoulders.face_pull', 'Face pull', 'deltoide_posterior', A, [12, 15], 'shoulders.rear_delt_facepull'),
@@ -126,6 +131,11 @@
     v('functional.farmer_carry', 'Paseo del granjero', 'carga_transportada', M, [20, 40], null, { habilitaPor: 'healthGoal', sinAporte: true }),
   ];
 
+  // Una variante es "partida" si comparte el ejercicio de origen con otra: sus aportes por músculo son heredados.
+  const comparten = {};
+  VARIANTES.forEach(x => { comparten[x.hereda] = (comparten[x.hereda] || 0) + 1; });
+  VARIANTES.forEach(x => { x.heredado = comparten[x.hereda] > 1; });
+
   const PATRON_POR_ID = {};
   PATRONES.forEach(p => { PATRON_POR_ID[p.id] = p; });
   const VARIANTE_POR_ID = {};
@@ -138,19 +148,27 @@
   const variantePorId = id => VARIANTE_POR_ID[id] || null;
   const variantesDePatron = patron => VARIANTES.filter(x => x.patron === patron);
 
-  // Datos heredados: filas de músculo y de perfil articular del ejercicio original (`hereda`).
+  // Aportes por músculo. Los heredados (variantes partidas) salen marcados a_verificar: una relación a_verificar
+  // cuenta 0 en el conteo fraccionado (salvo el grupo donde se programa), así que hasta verificarlos suman menos
+  // que en el motor actual. La evidencia original queda en `evidenciaOriginal`.
   const aportesDe = id => {
     const x = VARIANTE_POR_ID[id];
-    return x ? EXERCISE_MUSCLES.rows.filter(r => r.exerciseId === x.hereda) : [];
+    if (!x) return [];
+    return EXERCISE_MUSCLES.rows.filter(r => r.exerciseId === x.hereda).map(r => x.heredado
+      ? Object.assign({}, r, { exerciseId: id, evidencia: 'a_verificar', evidenciaOriginal: r.evidencia, heredadoDe: x.hereda })
+      : Object.assign({}, r));
   };
   const grupoDe = id => {
     const x = VARIANTE_POR_ID[id];
     return x ? (EXERCISE_MUSCLES.buckets[x.hereda] || null) : null;
   };
+  // Perfil articular: el propio de la variante partida o, si no se partió, el de su fila de data/perfil-articular.csv.
   const perfilArticularDe = id => {
     const x = VARIANTE_POR_ID[id];
     const out = {};
-    if (x) PERFIL_ARTICULAR.rows.filter(r => r.exerciseId === x.hereda).forEach(r => { out[r.articulacion] = r; });
+    if (!x) return out;
+    const propias = PERFIL_VARIANTES.rows.filter(r => r.exerciseId === id);
+    (propias.length ? propias : PERFIL_ARTICULAR.rows.filter(r => r.exerciseId === x.hereda)).forEach(r => { out[r.articulacion] = r; });
     return out;
   };
 

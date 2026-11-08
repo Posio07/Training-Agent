@@ -16,6 +16,7 @@ node --test ifbb-pro-agent/tests/engine.test.js ifbb-pro-agent/tests/regression.
 node ifbb-pro-agent/tests/e2e.js                      # recorrido en Chromium
 node ifbb-pro-agent/tests/e2e-aceptacion.js           # E2E de la aceptación del tope E4
 node scripts/build-exercise-muscles.js [--check]      # regenera/comprueba el módulo de los CSV
+node scripts/build-perfil-articular-variantes.js [--check]   # perfil articular de las variantes partidas (core-v2)
 node scripts/snapshot-plan-hashes.js                  # huellas de los 30 planes: solo si el cambio de salida es intencional y tiene DEC
 node scripts/exportar-historial.js <entrada.json>     # historial completo a JSON y CSV, ANTES de cualquier reset de datos (DEC-023)
 ```
