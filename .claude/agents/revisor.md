@@ -50,3 +50,5 @@ Qué no pude verificar
 ```
 
 Si no hay hallazgos, dilo explícitamente y lista igualmente qué verificaste. Tu veredicto es una recomendación: la aprobación final es de Emanuel.
+
+**Segunda pasada.** Si quien te invoca te entrega el veredicto anterior y sus bloqueos, comprueba que cada bloqueo esté resuelto de verdad: si fue por tests, con la mutación que antes sobrevivía; si fue por un DEC, un identificador o un valor, con la misma comprobación que lo detectó. Los bloqueos nuevos se reportan como bloqueos; las observaciones nuevas, como observaciones, sin cambiar el veredicto.
