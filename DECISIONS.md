@@ -1058,7 +1058,7 @@ La necesidad semanal, R1, los pisos y el volumen total: el traspaso mueve series
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-032 · El reset del corte cambia la clave de almacenamiento y conserva los datos viejos dos semanas
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (precisa una cláusula de un DEC aceptado). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **Efecto desde el corte al núcleo nuevo**, no antes.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (precisa una cláusula de un DEC aceptado). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel con un comentario en el PR #50, hecho después del merge (https://github.com/Posio07/Training-Agent/pull/50#issuecomment-6724599840: "Acepto DEC-032 — Emanuel"). **Efecto desde el corte al núcleo nuevo**, no antes.
 
 Contexto: DEC-030 dice que el reset del corte es completo y sin exportación. Emanuel pidió que "completo" se implemente cambiando la clave de almacenamiento sin borrar los datos viejos, para poder volver atrás si el núcleo nuevo falla.
 
@@ -1077,7 +1077,7 @@ Contexto: DEC-030 dice que el reset del corte es completo y sin exportación. Em
 DEC-030 (sin exportación), DEC-023 (sin migraciones), DEC-009 (privacidad).
 
 ## DEC-033 · Los números de intensidad, progresión y descarga entran al registro como criterio de diseño (E4)
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente por pedido de Emanuel (requisito del corte de B-039, 2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte con un comentario en el PR. **No cambia el comportamiento del motor actual ni el plan generado**: los valores son los de los textos fijos de `engine.js`.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). Lo creó el agente como Propuesto por pedido de Emanuel (requisito del corte de B-039, 2026-11-08); aceptado por Emanuel con un comentario en el PR #53, hecho después del merge (https://github.com/Posio07/Training-Agent/pull/53#issuecomment-6724603859: "Acepto DEC-033 — Emanuel"). **No cambia el comportamiento del motor actual ni el plan generado**: los valores son los de los textos fijos de `engine.js`.
 
 Contexto: tres textos fijos del plan (intensidad, progresión y descarga) llevan números sin entrada en el registro ni DEC. La regla 3 de `CLAUDE.md` pide nivel, fuente y estado para todo número, y la spec del núcleo v2 dice que un número sin fuente se justifica como E4 o se elimina. El investigador revisó cada uno (`docs/research/intensidad-progresion-descarga.md`): se leyó texto completo solo del ACSM 2009 (pp. 687-695) y del ACSM 2026 (pp. 851-866), en copias de terceros; el resto, solo resúmenes.
 
