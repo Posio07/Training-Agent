@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test ifbb-pro-agent/tests/engine.test.js ifbb-pro-agent/tests/core-v2.test.js
+      - run: node --test ifbb-pro-agent/tests/engine.test.js ifbb-pro-agent/tests/core-v2*.test.js
 
   deploy:
     needs: test
