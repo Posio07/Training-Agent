@@ -5,9 +5,9 @@ name: Archivos de DECISIONS y backlog bien formados
 on:
   push:
     branches: [main]
-    paths: ['docs/decisions/**', 'docs/backlog/**', 'scripts/generar-indices.js']
+    paths: ['docs/decisions/**', 'docs/backlog/**', 'DECISIONS.md', 'docs/BACKLOG.md', 'scripts/generar-indices.js']
   pull_request:
-    paths: ['docs/decisions/**', 'docs/backlog/**', 'scripts/generar-indices.js']
+    paths: ['docs/decisions/**', 'docs/backlog/**', 'DECISIONS.md', 'docs/BACKLOG.md', 'scripts/generar-indices.js']
 
 permissions:
   contents: read
