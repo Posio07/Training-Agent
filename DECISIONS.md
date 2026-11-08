@@ -978,3 +978,22 @@ El plan generado, el registro de sesiones (DEC-015) y los datos guardados.
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
+## DEC-028 · El top set va al patrón principal del tipo de sesión, no al primer ejercicio elegible
+**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente (2026-11-08) porque la spec del núcleo v2 y la decisión T16 de Emanuel ya lo definen y todavía no tiene su DEC. No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo**, no antes.
+
+Contexto: DEC-008 dice que el top set pasa al primer ejercicio elegible del día (lista cerrada de seis patrones). Esa regla es la causa del press militar con top set en el día de tirón (`docs/research/diagnostico-rutina-corta-y-dia-de-tiron.md`). La spec del núcleo v2 (algoritmo, paso 6; trazabilidad T16, resuelta el 2026-11-08) lo reemplaza.
+
+### Decisión (propuesta)
+1. El top set va al **patrón principal del tipo de sesión**: empuje horizontal en empuje, tirón vertical en tirón, sentadilla en pierna con sentadilla, bisagra en pierna con bisagra; en torso alterna (empuje horizontal el primero de la semana, tirón vertical el segundo); en cuerpo completo ×3 rota sentadilla, empuje horizontal y bisagra.
+2. **Se conserva la elegibilidad de DEC-008**: la variante del top set tiene que estar en la lista cerrada (sentadilla trasera y hack, press banca, press militar, peso muerto rumano, remo con barra y pendlay, dominadas y jalón). Si un ejercicio prioritario del usuario ocupa el patrón principal y no es elegible, conserva su lugar y esa sesión queda sin top set.
+3. Sigue existiendo solo en definición (DEC-002). Sus números van al registro (E4).
+
+### Alternativas
+- **A. Dejar DEC-008 como está.** Costo: sigue el press militar con top set en el día de tirón.
+- **B. Recomendada: patrón principal del tipo.** Costo: una sesión puede quedar sin top set si el patrón principal no tiene variante elegible disponible (lesión o prioritario).
+
+### Qué no cambia
+La lista cerrada de variantes elegibles, el top set solo en definición, los números del top set (4–6 repeticiones, RIR 1–2, back-offs al −10 %).
+
+**Estado: Propuesto.**
+

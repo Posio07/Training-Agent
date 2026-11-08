@@ -42,14 +42,14 @@ function viejo(p) {
   const t = E.buildPlan(p, HOY).training;
   return {
     sesiones: t.sessions.map(s => ({ nombre: s.name, series: s.totalSets, minutos: s.durationMin, ej: s.exercises.map(e => `${e.topSet ? '★' : ''}${e.name} ×${e.sets}`) })),
-    semanal: semanalViejo(t),
+    semanal: semanalViejo(t), directas: t.weeklySets,
   };
 }
 function nuevo(p, cat, extra) {
   const pl = REP.generarPlan(Object.assign({}, p, extra || {}), { catalogo: cat, seriesPrincipal: extra && extra.__sp });
   return {
     sesiones: pl.sesiones.map(s => ({ nombre: s.nombre, series: s.series, minutos: s.minutos, ej: s.ejercicios.map(e => `${e.topSet ? '★' : ''}${e.nombre} ×${e.series}`) })),
-    semanal: Object.fromEntries(Object.entries(pl.semanal).map(([m, x]) => [m, x.cubierto])), plan: pl,
+    semanal: Object.fromEntries(Object.entries(pl.semanal).map(([m, x]) => [m, x.cubierto])), directas: Object.fromEntries(Object.entries(pl.semanal).map(([m, x]) => [m, x.directas])), plan: pl,
   };
 }
 
@@ -82,6 +82,10 @@ lista.forEach(p => {
     P(md ? `| ${fila.join(' | ')} |` : fila.join(' · '));
   });
   P('');
+  P(md ? '### Series directas (garantía de series reales de los grupos mayores, DEC-014)' : '-- Series directas');
+  P(md ? '| Músculo | Piso | A | B | C |\n| --- | --- | --- | --- | --- |' : '');
+  REP.GRUPOS_MAYORES.forEach(m => { const fila = [ETQ[m], dem[m].piso, A.directas[m], B.directas[m], C.directas[m]]; P(md ? `| ${fila.join(' | ')} |` : fila.join(' · ')); });
+  P('');
   P(md ? '### Ejercicios por sesión' : '-- Ejercicios');
   A.sesiones.forEach((sa, i) => {
     P(md ? `**${sa.nombre}**` : sa.nombre);
@@ -113,7 +117,7 @@ const conFalta = filas.filter(f => f.pl.avisoUnico);
 P(`- Planes en que **R1 deja necesidad semanal sin cubrir**: ${conR1.length} de ${filas.length} (${pct(conR1.length, filas.length)}).`);
 P(`- Planes con algún aviso único (cualquier causa): ${conFalta.length} de ${filas.length} (${pct(conFalta.length, filas.length)}).`);
 P(`- Sesiones por encima de su capacidad: ${filas.reduce((a, f) => a + f.pl.sesiones.filter(s => s.minutos > s.capacidadMin).length, 0)} (la restricción de capacidad no se rompe).`);
-P(`- Sesiones por encima de 11 series fraccionadas de un músculo: ${filas.reduce((a, f) => a + f.pl.sesiones.filter(s => Object.values(s.fraccionado).some(v => v > 11 + 1e-9)).length, 0)}.`);
+P(`- Sesiones por encima de 11 series fraccionadas de un músculo: ${filas.reduce((a, f) => a + f.pl.sesiones.filter(s => Object.values(s.fraccionado).some(v => v > 11 + 1e-9)).length, 0)}, todas por una demanda mínima que gana sobre R1 (DEC-025, punto 4); eventos registrados: ${filas.reduce((a, f) => a + f.pl.avisos.r1Excedido.length, 0)}.`);
 P(`- Minutos por sesión (promedio / máximo): ${r1(filas.reduce((a, f) => a + f.pl.sesiones.reduce((b, s) => b + s.minutos, 0), 0) / filas.reduce((a, f) => a + f.pl.sesiones.length, 0))} / ${Math.max(...filas.flatMap(f => f.pl.sesiones.map(s => s.minutos)))}.`);
 P('');
 P(md ? '| Músculo | Planes con necesidad sin cubrir por R1 | 3 días | 4 días | 5 días | 6 días |\n| --- | --- | --- | --- | --- | --- |' : 'Por músculo y por número de días (planes con la necesidad sin cubrir por R1):');

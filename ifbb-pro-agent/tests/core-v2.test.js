@@ -28,7 +28,7 @@ test('registro: cada regla lleva id, valor, nivel E1 a E4, fuente, tipo, paso, e
     assert.ok([1, 2, 3, 4, 5, 6, 7, 'fuera'].includes(r.paso), `${r.id}: paso ${r.paso}`);
     assert.ok(['implementada', 'pendiente'].includes(r.estado), `${r.id}: estado ${r.estado}`);
     // El DEC de origen no se inventa: es 'sin DEC', 'spec núcleo v2' o un DEC que existe en DECISIONS.md.
-    assert.ok(['sin DEC', 'spec núcleo v2'].includes(r.dec) || DECS.has(r.dec), `${r.id}: DEC de origen inexistente (${r.dec})`);
+    assert.ok(['sin DEC', 'spec núcleo v2', 'propuesta del agente'].includes(r.dec) || DECS.has(r.dec), `${r.id}: DEC de origen inexistente (${r.dec})`);
     assert.ok(typeof r.origen === 'string' && r.origen.length > 0, `${r.id}: sin origen`);
     assert.ok(Array.isArray(r.fuentes), `${r.id}: fuentes no es lista`);
   });
@@ -376,8 +376,28 @@ test('paso 1: con menos tiempo la sesión es más corta, y el tiempo del perfil 
   assert.ok(porDia.sesiones[0].minutos <= 30);
 });
 
-test('paso 5: R1 es una restricción: ningún músculo pasa de 11 series fraccionadas por sesión (360 planes)', () => {
-  barrido.forEach(({ d, plan }) => plan.sesiones.forEach(s => Object.entries(s.fraccionado).forEach(([m, v]) => assert.ok(v <= R.valor('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION') + 1e-9, `${d} días ${s.nombre} ${m}: ${v}`))));
+test('paso 5: R1 es una restricción: ningún músculo pasa de 11 series fraccionadas por sesión, salvo para cubrir una demanda mínima y avisado (360 planes)', () => {
+  barrido.forEach(({ d, plan }) => plan.sesiones.forEach(s => Object.entries(s.fraccionado).forEach(([m, v]) => {
+    if (v <= R.valor('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION') + 1e-9) return;
+    assert.ok(plan.avisos.r1Excedido.some(x => x.sesion === s.nombre), `${d} días ${s.nombre} ${m}: ${v} sin aviso de que una demanda mínima ganó sobre R1`);
+  })));
+});
+
+test('DEC-025 punto 4: ganan las demandas mínimas: R1 solo se pasa mientras el piso (fraccionado o de series reales) del músculo está sin cubrir', () => {
+  const eventos = barrido.flatMap(({ plan }) => plan.avisos.r1Excedido);
+  assert.ok(eventos.length > 0, 'el barrido debería tener al menos un caso donde un mínimo gana sobre R1');
+  eventos.forEach(ev => ev.musculos.forEach(x => {
+    const grupoMayor = REP.GRUPOS_MAYORES.includes(x.musculo);
+    assert.ok(x.cubiertoAntes < x.piso || (grupoMayor && x.directasAntes < x.piso), `${ev.sesion} ${x.musculo}: R1 se pasó con el mínimo ya cubierto`);
+  }));
+});
+
+test('DEC-014: la garantía de series reales: cada grupo mayor tiene al menos su piso en series directas, o el aviso único lo dice (360 planes)', () => {
+  barrido.forEach(({ d, plan }) => REP.GRUPOS_MAYORES.forEach(m => {
+    const x = plan.semanal[m];
+    if (x.directas >= x.piso - 1e-9) return;
+    assert.ok(plan.avisoUnico && plan.avisoUnico.sinCubrir.some(y => y.musculo === m && y.faltaReal > 0), `${d} días ${m}: ${x.directas} directas < piso ${x.piso} sin aviso`);
+  }));
 });
 
 test('paso 5: lo que R1 impide queda como necesidad sin cubrir y el aviso único lo explica', () => {
@@ -431,16 +451,42 @@ test('paso 6: el top set rota en cuerpo completo (sentadilla, empuje horizontal,
   assert.deepEqual([t4.sesiones[0].principal, t4.sesiones[2].principal], ['empuje_horizontal', 'tiron_vertical']);
 });
 
-test('A1/A2/A3: lumbar alta primero, como máximo una por sesión, y sentadilla y bisagra nunca juntas (360 planes, con y sin remo con barra)', () => {
+test('A1/A2/A3: lumbar alta primero; una sola por sesión salvo el remo con barra elegido, que se avisa; sentadilla y bisagra nunca juntas (360 planes, con y sin remo con barra)', () => {
   const conBarra = [];
   [3, 4, 5, 6].forEach(d => PERFILES_BARRIDO.forEach(p => conBarra.push({ d, plan: REP.generarPlan(Object.assign({}, p, { daysPerWeek: d, barbellRow: true })) })));
+  barrido.forEach(({ d, plan }) => assert.equal(plan.avisos.a2.length, 0, `${d} días: sin remo con barra no hay dos de lumbar alta`));
   barrido.concat(conBarra).forEach(({ d, plan }) => plan.sesiones.forEach(s => {
-    assert.ok(s.lumbarAltaEnSesion <= R.valor('MAX_LUMBAR_ALTA_POR_SESION'), `${d} días ${s.nombre}`);
+    if (s.lumbarAltaEnSesion > R.valor('MAX_LUMBAR_ALTA_POR_SESION')) {
+      assert.ok(plan.avisos.a2.some(x => x.sesion === s.nombre), `${d} días ${s.nombre}: dos de lumbar alta sin aviso`);
+      assert.ok(s.ejercicios.some(e => ['back.row_barbell', 'back.row_pendlay'].includes(e.varianteId)), `${s.nombre}: la segunda lumbar alta debe ser el remo con barra`);
+    }
     const altas = s.ejercicios.map(e => e.lumbarAlta);
     assert.deepEqual(altas, [...altas].sort((a, b) => b - a), `${s.nombre}: la lumbar alta no va primero`);
     const pats = s.ejercicios.map(e => e.patron);
     assert.ok(!(pats.includes('sentadilla') && pats.includes('bisagra')), `${s.nombre}: sentadilla y bisagra juntas`);
   }));
+});
+
+test('A2 es un aviso cuando el usuario elige el remo con barra: se suma a la sentadilla y el plan lo avisa', () => {
+  const tipo = REP.TIPOS.cc1, original = tipo.obligatorios.slice();
+  try {
+    tipo.obligatorios.push('tiron_horizontal'); // escenario forzado: el día de sentadilla pide también un tirón horizontal
+    const plan = REP.generarPlan({ sex: 'M', level: 'intermediate', daysPerWeek: 3, division: 'general_m', goal: 'bulk', barbellRow: true, prioritarios: ['back.row_barbell'] });
+    const s = plan.sesiones[0];
+    assert.equal(s.lumbarAltaEnSesion, 2);
+    assert.ok(plan.avisos.a2.some(x => x.sesion === s.nombre));
+    const sin = REP.generarPlan({ sex: 'M', level: 'intermediate', daysPerWeek: 3, division: 'general_m', goal: 'bulk', barbellRow: false });
+    assert.equal(sin.sesiones[0].lumbarAltaEnSesion, 1, 'sin la casilla del remo con barra no hay dos de lumbar alta');
+  } finally { tipo.obligatorios.length = 0; original.forEach(x => tipo.obligatorios.push(x)); }
+});
+
+test('A3 por sí sola: aunque la sentadilla no sea de lumbar alta, el día de sentadilla no lleva peso muerto rumano', () => {
+  // Catálogo donde la sentadilla trasera (lumbar alta) no está disponible: el día usa el hack (lumbar media) y A2 no frena a la bisagra, solo A3.
+  const sinTrasera = Object.assign({}, C, { excluidaPorLesion: (id, z) => id === 'quads.squat_back' || C.excluidaPorLesion(id, z) });
+  const plan = REP.generarPlan(emanuelRef, { catalogo: sinTrasera });
+  const sent = plan.sesiones.find(s => s.principal === 'sentadilla');
+  assert.ok(sent.ejercicios.some(e => e.varianteId === 'quads.squat_hack'));
+  assert.ok(!sent.ejercicios.some(e => e.patron === 'bisagra'), 'A3: el día de sentadilla no lleva bisagra');
 });
 
 test('paso 2: lesiones declaradas, remo con barra y bandera salud/funcional habilitan o excluyen variantes', () => {
@@ -514,4 +560,10 @@ test('paso 6: un prioritario no elegible para top set conserva su lugar y esa se
   });
   // Sin prioritarios, el top set del empuje horizontal va a una variante elegible.
   REP.generarPlan(emanuelRef).sesiones.filter(s => s.principal === 'empuje_horizontal').forEach(s => assert.equal(s.ejercicios.find(e => e.topSet).varianteId, 'chest.bench_press_barbell'));
+});
+
+test('DEC-014: en el perfil de referencia cada grupo mayor llega a su piso en series directas, sin aviso (la garantía se cumple, no solo se informa)', () => {
+  const plan = REP.generarPlan(emanuelRef);
+  REP.GRUPOS_MAYORES.forEach(m => assert.ok(plan.semanal[m].directas >= plan.semanal[m].piso, `${m}: ${plan.semanal[m].directas} directas < piso ${plan.semanal[m].piso}`));
+  assert.equal(plan.avisoUnico, null);
 });

@@ -120,6 +120,9 @@
     const pesos = {};
     cat.VARIANTES.forEach(v => { pesos[v.id] = pesosDe(cat, v.id); });
     const lumbarAlta = id => (cat.perfilArticularDe(id).lumbar || {}).nivel === 'alta';
+    // A2 (DEC-022): una sola variante de lumbar alta por sesión. Es restricción por defecto; si el usuario eligió el remo con barra, esa variante puede
+    // sumarse a otra de lumbar alta y el plan lo avisa (aviso, no restricción).
+    const bloqueaA2 = (ses, v) => lumbarAlta(v.id) && ses.nLumbarAlta >= valor('MAX_LUMBAR_ALTA_POR_SESION') && v.habilitaPor !== 'remoConBarra';
 
     // Paso 2 · seguridad y variantes habilitadas por el perfil.
     const elegible = v => {
@@ -134,16 +137,15 @@
     const candidatas = cat.VARIANTES.filter(v => elegible(v) && !v.sinAporte);
 
     const split = SPLITS[perfil.dias];
-    let torsos = 0;
     const sesiones = split.map(([nombre, clave], i) => {
       const spec = T[clave];
       return { indice: i, nombre, clave, spec, capacidadSeg: perfil.minutosPorDia[i] * 60, seg: 0, frac: {}, ejercicios: [], patrones: new Set(), nLumbarAlta: 0, hayTopSet: false };
     });
     const uso = {}; // veces que se usó cada variante en la semana (variedad entre días)
     const diasGrupo = {}; // sesiones de la semana donde aparece cada grupo chico
-    const cubierto = {};
-    MUSCULOS.forEach(m => { cubierto[m] = 0; diasGrupo[m] = new Set(); });
-    const avisos = { obligatoriosSinLugar: [], seguridad: [], prioritariosSinLugar: [] };
+    const cubierto = {}, directas = {};
+    MUSCULOS.forEach(m => { cubierto[m] = 0; directas[m] = 0; diasGrupo[m] = new Set(); });
+    const avisos = { obligatoriosSinLugar: [], seguridad: [], prioritariosSinLugar: [], a2: [], r1Excedido: [] };
 
     // A3 (DEC-022): sentadilla y bisagra pesadas en días distintos; el tipo de sesión excluye el patrón contrario.
     const excluyeA3 = (ses, patron) => valor('SEPARACION_SENTADILLA_BISAGRA') && ses.spec.excluidos.includes(patron);
@@ -159,10 +161,14 @@
       ses.patrones.add(v.patron);
       ses.seg += series * segSerie(v) + (topSet ? extraTopSet(v) : 0);
       if (topSet) ses.hayTopSet = true;
-      if (lumbarAlta(v.id)) ses.nLumbarAlta++;
+      if (lumbarAlta(v.id)) {
+        ses.nLumbarAlta++;
+        if (ses.nLumbarAlta > valor('MAX_LUMBAR_ALTA_POR_SESION')) avisos.a2.push({ sesion: ses.nombre, motivo: 'dos variantes de lumbar alta: el remo con barra elegido se suma a otra' });
+      }
       sumar(ses, ex, series);
       uso[v.id] = (uso[v.id] || 0) + 1;
       const g = cat.grupoDe(v.id);
+      directas[g] = (directas[g] || 0) + series;
       if (GRUPOS_CHICOS.includes(g)) diasGrupo[g].add(ses.indice);
       return ex;
     }
@@ -180,7 +186,7 @@
     sesiones.forEach(ses => {
       ses.spec.obligatorios.forEach(patron => {
         const conTopSet = (!valor('TOP_SET_SOLO_EN_DEFINICION') || perfil.goal === 'cut') && ses.spec.principal === patron; // DEC-008: el top set solo va a variantes elegibles
-        const todas = candidatas.filter(v => v.patron === patron && !excluyeA3(ses, v.patron) && !(lumbarAlta(v.id) && ses.nLumbarAlta >= valor('MAX_LUMBAR_ALTA_POR_SESION')));
+        const todas = candidatas.filter(v => v.patron === patron && !excluyeA3(ses, v.patron) && !bloqueaA2(ses, v));
         // Un prioritario garantiza su lugar: gana sobre la elegibilidad del top set (la sesión queda sin top set si no es elegible).
         const elegidaPrior = prior.find(p => p.patron === patron && todas.includes(p));
         const ops = conTopSet && todas.some(v => v.topSetElegible && !v.sinTopSet) ? todas.filter(v => v.topSetElegible && !v.sinTopSet) : todas;
@@ -198,15 +204,27 @@
     // Paso 5 · relleno por cobertura marginal. Entra la serie con más necesidad no cubierta por minuto; R1 es una restricción.
     const R1 = valor('MAX_SERIES_FRACCIONADAS_MUSCULO_SESION');
     const faltaDe = m => Math.max(0, dem[m].objetivo - cubierto[m]);
-    // Evalúa un movimiento (sumar series a un ejercicio de la sesión, o ejercicio nuevo). Devuelve { ok, util, seg, motivo, musculos }.
+    // Garantía de series reales de los grupos mayores (DEC-014): además del piso en fraccionadas, el piso en series DIRECTAS.
+    const faltaRealDe = m => (GRUPOS_MAYORES.includes(m) ? Math.max(0, dem[m].piso - directas[m]) : 0);
+    // Una demanda mínima sin cubrir (piso en fraccionadas o en series reales) gana sobre R1 (DEC-025, punto 4).
+    const minimoSinCubrir = m => cubierto[m] < dem[m].piso - EPS || faltaRealDe(m) > EPS;
+    // Evalúa un movimiento (sumar series a un ejercicio de la sesión, o ejercicio nuevo). Devuelve { ok, util, seg, motivo, excedeR1 }.
     function evaluar(ses, mov) {
       const w = pesos[mov.v.id], seg = mov.series * segSerie(mov.v);
       if (ses.seg + seg > ses.capacidadSeg + EPS) return { ok: false, motivo: 'capacidad' };
-      for (const m of Object.keys(w)) if ((ses.frac[m] || 0) + w[m] * mov.series > R1 + EPS) return { ok: false, motivo: 'R1', musculo: m };
+      const excedeR1 = [];
+      for (const m of Object.keys(w)) {
+        if ((ses.frac[m] || 0) + w[m] * mov.series > R1 + EPS) {
+          if (!minimoSinCubrir(m)) return { ok: false, motivo: 'R1', musculo: m };
+          excedeR1.push({ musculo: m, cubiertoAntes: Math.round(cubierto[m] * 100) / 100, piso: dem[m].piso, directasAntes: directas[m] });
+        }
+      }
       let util = 0;
       Object.keys(w).forEach(m => { util += Math.min(w[m] * mov.series, faltaDe(m)); });
+      const g = cat.grupoDe(mov.v.id);
+      util += Math.min(mov.series, faltaRealDe(g));
       if (util <= EPS) return { ok: false, motivo: 'sin necesidad' };
-      return { ok: true, util, seg, score: util / seg };
+      return { ok: true, util, seg, score: util / seg, excedeR1 };
     }
     function movimientos(ses) {
       const movs = [];
@@ -215,7 +233,7 @@
         if (ses.patrones.has(v.patron) || excluyeA3(ses, v.patron)) return;
         const g = cat.grupoDe(v.id);
         if (!ses.spec.grupos.includes(g)) return;
-        if (lumbarAlta(v.id) && ses.nLumbarAlta >= valor('MAX_LUMBAR_ALTA_POR_SESION')) return; // A2
+        if (bloqueaA2(ses, v)) return; // A2
         if (GRUPOS_CHICOS.includes(g) && !diasGrupo[g].has(ses.indice) && diasGrupo[g].size >= valor('MAX_DIAS_GRUPO_CHICO')) return;
         movs.push({ v, series: valor('SERIES_MIN_POR_EJERCICIO'), nuevo: true });
       });
@@ -230,8 +248,10 @@
         if (!mejor || r.score > mejor.r.score + EPS || (Math.abs(r.score - mejor.r.score) <= EPS && resto > mejor.resto + EPS)) mejor = { ses, mov, r, resto };
       }));
       if (!mejor) break;
+      if (mejor.r.excedeR1.length) avisos.r1Excedido.push({ sesion: mejor.ses.nombre, varianteId: mejor.mov.v.id, musculos: mejor.r.excedeR1, motivo: 'una demanda mínima gana sobre R1 (DEC-025)' });
       if (mejor.mov.nuevo) agregar(mejor.ses, mejor.mov.v, mejor.mov.series, false);
       else {
+        directas[cat.grupoDe(mejor.mov.v.id)] += 1;
         mejor.mov.ex.series += 1;
         mejor.ses.seg += segSerie(mejor.mov.v);
         sumar(mejor.ses, mejor.mov.ex, 1);
@@ -241,28 +261,27 @@
     // Paso 7 · qué quedó sin cubrir y por qué (aviso único).
     const semanal = {};
     MUSCULOS.forEach(m => {
-      const falta = faltaDe(m);
+      const falta = faltaDe(m), faltaReal = faltaRealDe(m);
       let causa = null;
-      if (falta > EPS) {
-        const motivos = { R1: 0, capacidad: 0, sinCandidatos: 0 };
+      if (falta > EPS || faltaReal > EPS) {
+        const motivos = { R1: 0, capacidad: 0 };
         let candidatos = 0;
         sesiones.forEach(ses => movimientos(ses).forEach(mov => {
           if (!pesos[mov.v.id][m]) return;
           candidatos++;
           const w = pesos[mov.v.id], seg = mov.series * segSerie(mov.v);
-          const bloqueaR1 = Object.keys(w).some(x => (ses.frac[x] || 0) + w[x] * mov.series > R1 + EPS);
+          const bloqueaR1 = Object.keys(w).some(x => (ses.frac[x] || 0) + w[x] * mov.series > R1 + EPS && !minimoSinCubrir(x));
           if (ses.seg + seg > ses.capacidadSeg + EPS) motivos.capacidad++;
           else if (bloqueaR1) motivos.R1++;
         }));
         // R1 deja la necesidad sin cubrir si alguna sesión tenía tiempo y solo R1 impidió sumar.
         causa = motivos.R1 > 0 ? 'R1' : (candidatos === 0 ? 'sin ejercicios disponibles' : 'tiempo');
       }
-      const directas = sesiones.reduce((a, ses) => a + ses.ejercicios.filter(e => cat.grupoDe(e.v.id) === m).reduce((b, e) => b + e.series, 0), 0);
-      semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
+            semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
     });
-    const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS);
+    const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
     const avisoUnico = (sinCubrir.length || avisos.obligatoriosSinLugar.length)
-      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
+      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
       : null;
 
     // Paso 6 · orden (A1): lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos;
