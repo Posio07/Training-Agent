@@ -979,7 +979,7 @@ El plan generado, el registro de sesiones (DEC-015) y los datos guardados.
 **Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-028 · El top set va al patrón principal del tipo de sesión, no al primer ejercicio elegible
-**Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente (2026-11-08) porque la spec del núcleo v2 y la decisión T16 de Emanuel ya lo definen y todavía no tiene su DEC. No vale como base de otro trabajo hasta que Emanuel lo acepte. **Efecto desde el corte al núcleo nuevo**, no antes.
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). **Nivel 3** (cambia una cláusula de un DEC aceptado). Lo creó el agente como Propuesto (2026-11-08) porque la spec del núcleo v2 y la decisión T16 de Emanuel ya lo definen y todavía no tenía su DEC; aceptado por Emanuel con un comentario en el PR #45 (https://github.com/Posio07/Training-Agent/pull/45#issuecomment-6723914944: "Acepto DEC-028 — Emanuel"). **Efecto desde el corte al núcleo nuevo**, no antes.
 
 Contexto: DEC-008 dice que el top set pasa al primer ejercicio elegible del día (lista cerrada de seis patrones del catálogo viejo, que en el catálogo nuevo son las variantes elegibles del punto 2). Esa regla es la causa del press militar con top set en el día de tirón (`docs/research/diagnostico-rutina-corta-y-dia-de-tiron.md`). La spec del núcleo v2 (algoritmo, paso 6; trazabilidad T16, resuelta el 2026-11-08) lo reemplaza.
 
@@ -995,7 +995,7 @@ Contexto: DEC-008 dice que el top set pasa al primer ejercicio elegible del día
 ### Qué no cambia
 La lista cerrada de variantes elegibles, el top set solo en definición, los números del top set (4–6 repeticiones, RIR 1–2, back-offs al −10 %).
 
-**Estado: Propuesto.**
+**Estado: Aceptado por Emanuel el 2026-11-08.**
 
 ## DEC-029 · Estructura del reparto: volumen propio del patrón principal y un ejercicio directo por grupo y semana
 **Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08), a partir de la vista previa del paso 2; aceptado por Emanuel con un comentario en el PR #42 (https://github.com/Posio07/Training-Agent/pull/42#issuecomment-6723771883: "aceptado dec-029 - Emanuel"). **Efecto desde el corte al núcleo nuevo**, no antes.
