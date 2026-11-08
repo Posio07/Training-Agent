@@ -48,3 +48,17 @@ test('las fuentes de los textos son ids de KNOWLEDGE.SOURCES y salen solo de las
   const guardado = T.IDS.map(id => [R.regla(id), R.regla(id).cuando]);
   try { guardado.forEach(([r]) => { r.cuando = { goal: 'nunca' }; }); assert.deepEqual(T.fuentesDeTextos({ goal: 'bulk' }), []); } finally { guardado.forEach(([r, c]) => { r.cuando = c; }); }
 });
+
+test('cada valor del registro llega a su texto: cambiar cualquiera cambia algún texto (nada escrito a mano en textos.js)', () => {
+  const textos = () => [T.intensidad(), T.progresion(), T.descarga()].join('|');
+  const base = textos();
+  T.IDS.forEach(id => {
+    const r = R.regla(id), original = r.valor;
+    if (typeof original === 'boolean') return; // PROGRESION_DOBLE se prueba aparte
+    try {
+      r.valor = Array.isArray(original) ? original.map(x => x + 3) : original + 3;
+      assert.notEqual(textos(), base, `${id}: el texto no cambió`);
+    } finally { r.valor = original; }
+  });
+  assert.equal(textos(), base);
+});

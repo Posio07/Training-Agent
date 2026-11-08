@@ -1082,7 +1082,7 @@ DEC-030 (sin exportación), DEC-023 (sin migraciones), DEC-009 (privacidad).
 Contexto: tres textos fijos del plan (intensidad, progresión y descarga) llevan números sin entrada en el registro ni DEC. La regla 3 de `CLAUDE.md` pide nivel, fuente y estado para todo número, y la spec del núcleo v2 dice que un número sin fuente se justifica como E4 o se elimina. El investigador revisó cada uno (`docs/research/intensidad-progresion-descarga.md`): se leyó texto completo solo del ACSM 2009 (pp. 687-695) y del ACSM 2026 (pp. 851-866), en copias de terceros; el resto, solo resúmenes.
 
 ### Decisión (propuesta)
-Se registran, con el valor actual y como **E4 (criterio de diseño con respaldo parcial)**, las 10 entradas siguientes (más la regla de doble progresión):
+Se registran, con el valor actual y como **E4 (criterio de diseño con respaldo parcial)**, las 11 entradas siguientes (la doble progresión incluida):
 
 | Entrada | Valor | Respaldo |
 | --- | --- | --- |
