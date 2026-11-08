@@ -7,7 +7,7 @@
  *     registra por variante;
  *   - la última vez y el progreso de una variante, a partir de las series registradas (`profile.workouts`);
  *   - "hoy tengo X min" (rutina corta): la misma sesión generada con el tiempo del día, sin tocar el plan guardado.
- * A5 (back-off válido) y A6 (bandera de dolor) llegan en el paso 3.4. */
+ * A5 (back-off válido) y A6 (bandera de dolor) viven en dolor.js (paso 3.4). */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('./catalogo.js'), require('./reparto.js'));
   else root.CORE_V2_SESION = factory(root.CORE_V2_REGISTRO, root.CORE_V2_CATALOGO, root.CORE_V2_REPARTO);

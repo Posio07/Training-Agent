@@ -66,6 +66,7 @@ Un archivo por entrada (`docs/backlog/B-XXX.md`), con la fila completa (dueño, 
 | [B-025](backlog/B-025.md) | Fase 3 del validador: perfil articular y orden de ejercicios | abierto | 2026-11-07 |
 | [B-026](backlog/B-026.md) | Anclar el criterio de modelado de la Fase 3 con datos biomecánicos de carga sobre la columna y el hombro | en curso | 2026-11-07 |
 | [B-050](backlog/B-050.md) | Paso 3.2 del núcleo v2: aviso único con tres salidas | propuesto | 2026-11-08 |
+| [B-051](backlog/B-051.md) | Paso 3.4 del núcleo v2: A5 (back-off válido) y A6 (bandera de dolor por zona), con A4 | propuesto | 2026-11-08 |
 
 ## Cerrados
 

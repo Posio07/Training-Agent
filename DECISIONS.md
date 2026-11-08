@@ -46,3 +46,4 @@ Este archivo es la fuente de verdad de la lógica de negocio. Antes de cambiar c
 | [DEC-031](docs/decisions/DEC-031.md) | Tope de 5 series por ejercicio y sesión; el excedente pasa a otra variante del mismo patrón | Aceptado |
 | [DEC-032](docs/decisions/DEC-032.md) | El reset del corte cambia la clave de almacenamiento y conserva los datos viejos dos semanas | Aceptado |
 | [DEC-033](docs/decisions/DEC-033.md) | Los números de intensidad, progresión y descarga entran al registro como criterio de diseño (E4) | Aceptado |
+| [DEC-034](docs/decisions/DEC-034.md) | En el núcleo v2 la bandera de dolor se marca por zona (lumbar, hombro, rodilla), con A4 y A5 ligadas a ella | Aceptado |
