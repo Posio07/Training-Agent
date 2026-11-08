@@ -1273,9 +1273,13 @@ test('DEC-013: los cambios de la fase son exactamente los aprobados, cada uno mu
   const pu = row('back.pullover_cable', 'back');
   assert.deepEqual([pu.relacion, pu.evidencia], ['directa', 'a_verificar']);
   assert.match(pu.notes, /^PENDIENTE: .*Di Fonza 2026/);
+  // abducción de cadera → glúteos: sigue directa (la única resonancia midió glúteo mayor +5 % y medio/menor +4 %); la etiqueta pasa a "verificado (1 estudio)" (2026-11-08).
+  const ab = row('glutes.hip_abduction_machine', 'glutes');
+  assert.deepEqual([ab.relacion, ab.evidencia], ['directa', 'verificado (1 estudio)']);
+  assert.match(ab.notes, /glúteo mayor y medio\/menor/);
   // Umbral de evidencia: "verificado (1 estudio)" solo aparece en las filas que movió o confirmó un único estudio.
   assert.deepEqual(csvRows().filter(r => r.evidencia === 'verificado (1 estudio)').map(r => `${r.exerciseId}/${r.muscle}`).sort(),
-    ['glutes.hip_thrust/hamstrings', 'quads.leg_press/glutes']);
+    ['glutes.hip_abduction_machine/glutes', 'glutes.hip_thrust/hamstrings', 'quads.leg_press/glutes']);
 });
 
 test('DEC-014: muscle y secondary del plan salen de los datos v2 (bucket si es directa, resto de relaciones que no son ninguna)', () => {
