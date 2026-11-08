@@ -11,7 +11,7 @@ const PV = require('../../scripts/build-perfil-articular-variantes.js');
 const PVM = require('../js/core-v2/perfilArticularVariantes.js');
 
 const DIR = path.join(__dirname, '..', 'js', 'core-v2');
-const DECS = new Set([...fs.readFileSync(path.join(__dirname, '..', '..', 'DECISIONS.md'), 'utf8').matchAll(/^## (DEC-\d+)/gm)].map(m => m[1]));
+const DECS = new Set(fs.readdirSync(path.join(__dirname, '..', '..', 'docs', 'decisions')).map(f => (f.match(/^(DEC-\d+)\.md$/) || [])[1]).filter(Boolean)); // un archivo por DEC
 
 /* ---------- Registro ---------- */
 
@@ -27,7 +27,7 @@ test('registro: cada regla lleva id, valor, nivel E1 a E4, fuente, tipo, paso, e
     assert.ok(['estricta', 'aviso'].includes(r.tipo), `${r.id}: tipo ${r.tipo}`);
     assert.ok([1, 2, 3, 4, 5, 6, 7, 'fuera'].includes(r.paso), `${r.id}: paso ${r.paso}`);
     assert.ok(['implementada', 'pendiente'].includes(r.estado), `${r.id}: estado ${r.estado}`);
-    // El DEC de origen no se inventa: es 'sin DEC', 'spec núcleo v2' o un DEC que existe en DECISIONS.md.
+    // El DEC de origen no se inventa: es 'sin DEC', 'spec núcleo v2' o un DEC que existe en docs/decisions.
     assert.ok(['sin DEC', 'spec núcleo v2', 'propuesta del agente'].includes(r.dec) || DECS.has(r.dec), `${r.id}: DEC de origen inexistente (${r.dec})`);
     assert.ok(typeof r.origen === 'string' && r.origen.length > 0, `${r.id}: sin origen`);
     assert.ok(Array.isArray(r.fuentes), `${r.id}: fuentes no es lista`);
