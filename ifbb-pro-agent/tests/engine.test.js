@@ -3011,6 +3011,11 @@ test('Siguiente: la última se decide por fecha y hora, no por el orden en que e
   registrarDia(q, names, 2, '2026-11-05', 2, true, 'b', 8000);
   registrarDia(q, names, 0, '2026-11-05', 2, true, 'a', 1000); // guardada después, pero de una hora anterior
   assert.equal(SS.siguienteDia(q.workouts, q.sessions, names), 3);
+  // El mismo caso con el orden de guardado invertido: el resultado no depende de cuál se guardó primero.
+  const r = perfilVacio();
+  registrarDia(r, names, 0, '2026-11-05', 2, true, 'a', 1000);
+  registrarDia(r, names, 2, '2026-11-05', 2, true, 'b', 8000);
+  assert.equal(SS.siguienteDia(r.workouts, r.sessions, names), 3);
 });
 
 test('Siguiente: es por perfil (cada uno usa sus propias sesiones)', () => {

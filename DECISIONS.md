@@ -956,7 +956,7 @@ Los números que ya tienen DEC o fuente (R1, conteo fraccionado, piso de 10, mí
 ## DEC-027 · El indicador "Hoy" pasa a "Siguiente" y sigue el orden del split, no la fecha
 **Estado del DEC:** Propuesto — **Decidido por:** pendiente (Emanuel). Lo creó el agente por pedido de Emanuel (2026-11-08). No vale como base de otro trabajo hasta que Emanuel lo acepte. **No cambia el plan generado**: solo la interfaz del Entreno.
 
-Contexto: la pestaña Entreno marcaba como "hoy" el día del split que correspondía al día de la semana (lunes = Día 1, y así hasta el último día del split). Eso supone un calendario fijo: si el usuario se salta un día o entrena en otro orden, la marca queda mal. La spec del núcleo v2 (T5b) ya decidió que el split se ordena por secuencia y no por reloj.
+Contexto: la pestaña Entreno marcaba como "hoy" el día del split que correspondía al día de la semana (lunes = Día 1, y así hasta el último día del split). Eso supone un calendario fijo: si el usuario se salta un día o entrena en otro orden, la marca queda mal. La spec del núcleo v2 va en la misma línea: su modelo no tiene calendario y garantiza el orden de las sesiones, no el reloj (`docs/research/trazabilidad-nucleo-v2.md`, T5b). La numeración salta de DEC-025 a DEC-027 porque DEC-026 vive en el PR #38, todavía sin mergear.
 
 ### Decisión (propuesta)
 1. La etiqueta pasa de "hoy" a **"Siguiente"**.
