@@ -916,3 +916,39 @@ Los propios autores del preprint dicen que 11 **no es un límite superior** ("no
 El conteo fraccionado (E2 con salvedad; el valor 0,5 es criterio de diseño) y el resto de DEC-014.
 
 **Estado: Aceptado por Emanuel el 2026-11-08.**
+
+## DEC-026 · Once reglas del núcleo v2 sin DEC de origen se ratifican como criterio de diseño (E4)
+**Estado del DEC:** Aceptado — **Decidido por:** Emanuel (2026-11-08). Lo creó el agente como Propuesto por pedido de Emanuel (2026-11-08); aceptado por Emanuel en el chat el 2026-11-08, después de revisar el PR #38. **No cambia el comportamiento del motor actual ni el plan generado.**
+
+Contexto: al armar el registro único de reglas del núcleo v2 (`ifbb-pro-agent/js/core-v2/registro.js`, PR #38), once números que hoy viven escritos dentro de `engine.js` no tienen ningún DEC que los respalde ni fuente en `VALIDATOR_RULES`. La regla 3 de `CLAUDE.md` pide nivel, fuente y estado para todo número, y la spec del núcleo v2 dice que un número sin fuente se justifica como E4 o se elimina.
+
+### Decisión (propuesta)
+Se ratifican como **criterio de diseño de la app (E4), sin fuente externa**, con el valor actual y en el registro del núcleo v2:
+
+| # | Regla (id en el registro) | Valor | Dónde está hoy | Para qué |
+| --- | --- | --- | --- | --- |
+| 1 | `NECESIDAD_SEMANAL_POR_NIVEL` | 18 / 14 / 10 series por semana (avanzado, intermedio, novato) | `engine.js`, volumen base | Necesidad semanal por grupo antes de los modificadores |
+| 2 | `FACTOR_NECESIDAD_GRUPO_CHICO` | ×0,6 | `engine.js` | Reduce la necesidad de los grupos chicos |
+| 3 | `NECESIDAD_MINIMA_SERIES` | 4 series por semana | `engine.js`, `Math.max(4, …)` | Mínimo de la necesidad de todos los grupos. **Ver "Mínimo de 4" abajo: se elimina en el paso 2** |
+| 4 | `MAX_DIAS_GRUPO_CHICO` | 2 días por semana | `engine.js` | Máximo de días en que aparece un grupo chico |
+| 5 | `SERIES_MIN_POR_EJERCICIO` | 2 series | `engine.js` | Mínimo de series por ejercicio en el reparto |
+| 6 | `CARDIO_DEFINICION_SESIONES_AVANZADO` | 3 sesiones por semana | `engine.js` | Cardio de definición, nivel avanzado |
+| 7 | `CARDIO_DEFINICION_SESIONES` | 2 sesiones por semana | `engine.js` | Cardio de definición, otros niveles |
+| 8 | `CARDIO_DEFINICION_MINUTOS` | 25 min por sesión | `engine.js` | Cardio de definición |
+| 9 | `CARDIO_MANTENIMIENTO_SESIONES` | 2 sesiones por semana | `engine.js` | Cardio de mantenimiento y volumen (50 min por semana en total, sin cita de la OMS) |
+| 10 | `CARDIO_MANTENIMIENTO_MINUTOS` | 25 min por sesión | `engine.js` | Cardio de mantenimiento y volumen |
+| 11 | `CARDIO_INTENSIDAD_PORCENTAJE_FCMAX` | 60–70 % de la frecuencia cardíaca máxima | `engine.js` | Intensidad del cardio |
+
+Cada una lleva en el registro el nivel E4, la fuente "criterio de diseño" (la 1 con el texto "rango general consistente con la literatura; valores puntuales sin respaldo, criterio de diseño E4") y el DEC de origen DEC-026.
+
+### Mínimo de 4 (análisis del 2026-11-08)
+Se preguntó si el mínimo de 4 actúa en algún caso que no cubran el piso de DEC-017 ni el mínimo de DEC-020. Se quitó el mínimo en una copia del motor actual y se corrió el barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días). Resultado: cambia 48 planes, todos de principiantes de bikini y wellness (24 y 24, 12 por cada cantidad de días). En 46 cambian bíceps y tríceps (en 39 solo esos dos): con el mínimo tienen una serie más que sin él, y su mínimo de DEC-020 se cumple igual. Sin el mínimo de 4, ningún grupo queda sin aviso bajo el piso de DEC-017 ni bajo el mínimo de DEC-020. En un plan el resultado es mejor sin él (pecho deja de quedar bajo el mínimo, de 4 a 5 series), y en 5 planes de hombros y en 5 de isquios es el mínimo el que provoca la pérdida de series por el tope de sesión (sin él tienen 13 en vez de 10 u 11). **Conclusión: es redundante como protección**; Emanuel decidió eliminarlo en el paso 2 al aceptar este DEC. Límite: el análisis usa el motor actual y los 90 perfiles del barrido.
+
+### Alternativas
+- **A. Ratificar los once (recomendada, con el 3 marcado para eliminar en el paso 2).** Costo: queda registrada una convención sin respaldo; es la que ya usa el motor.
+- **B. Eliminar los once y redefinirlos al construir el reparto.** Costo: cambia el plan generado antes de tener el reparto nuevo y obliga a decidir cada número desde cero.
+
+### Qué no cambia
+Los números que ya tienen DEC o fuente (R1, conteo fraccionado, piso de 10, mínimo de grupo chico, A1 a A3, bandera salud/funcional) y el comportamiento del motor actual.
+
+**Estado: Aceptado por Emanuel el 2026-11-08.**

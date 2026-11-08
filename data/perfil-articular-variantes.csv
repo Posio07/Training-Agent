@@ -1,0 +1,94 @@
+exerciseId,articulacion,nivel,evidencia,origen,ambiguo,fuente,notes,review_date
+chest.dip_parallel,lumbar,baja,a_verificar,spec_inicial,no,,"Spec: fondos en paralelas, tronco apoyado en los brazos.",2026-11-08
+chest.dip_parallel,hombro,alta,a_verificar,spec_inicial,no,,Spec: empuje con carga cerca del final del rango.,2026-11-08
+chest.dip_parallel,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+chest.press_machine,lumbar,baja,a_verificar,criterio_e4,no,,Tronco apoyado en el respaldo (criterio lumbar baja).,2026-11-08
+chest.press_machine,hombro,alta,a_verificar,criterio_e4,no,,Empuje con carga cerca del final del rango (criterio hombro alta); la spec dice que la máquina da el mismo nivel que los fondos.,2026-11-08
+chest.press_machine,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+chest.fly_cable,lumbar,baja,a_verificar,criterio_e4,no,,Regla 3: aislamiento ligero de pie o apoyado (aperturas en polea de pie).,2026-11-08
+chest.fly_cable,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: aislamiento en el final del rango.",2026-11-08
+chest.fly_cable,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+chest.fly_pecdeck,lumbar,baja,a_verificar,criterio_e4,no,,Tronco apoyado en el respaldo (criterio lumbar baja).,2026-11-08
+chest.fly_pecdeck,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: aislamiento en el final del rango.",2026-11-08
+chest.fly_pecdeck,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.pull_up,lumbar,baja,a_verificar,spec_inicial,no,,Spec: dominadas.,2026-11-08
+back.pull_up,hombro,media,a_verificar,spec_inicial,no,,Spec: dominadas; tracción.,2026-11-08
+back.pull_up,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.lat_pulldown,lumbar,baja,a_verificar,spec_inicial,no,,Spec: jalón al pecho.,2026-11-08
+back.lat_pulldown,hombro,media,a_verificar,spec_inicial,no,,Spec: jalón al pecho; tracción.,2026-11-08
+back.lat_pulldown,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_barbell,lumbar,alta,a_verificar,spec_inicial,no,,"Spec: remo con barra inclinado. Desempate, regla 2: bisagra sostenida con carga externa.",2026-11-08
+back.row_barbell,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-08
+back.row_barbell,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_pendlay,lumbar,alta,a_verificar,criterio_e4,no,,"Desempate, regla 2: bisagra sostenida con carga externa (torso paralelo al piso, sin apoyo), igual que el remo con barra.",2026-11-08
+back.row_pendlay,hombro,media,a_verificar,criterio_e4,no,,Tracción (criterio hombro media).,2026-11-08
+back.row_pendlay,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_chest_supported_machine,lumbar,baja,a_verificar,spec_inicial,no,,Spec: remo con apoyo de pecho; tronco apoyado (DEC-022: remo por defecto).,2026-11-08
+back.row_chest_supported_machine,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-08
+back.row_chest_supported_machine,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_chest_supported_bench,lumbar,baja,a_verificar,spec_inicial,no,,Spec: remo con apoyo de pecho; tronco apoyado en el banco inclinado.,2026-11-08
+back.row_chest_supported_bench,hombro,media,a_verificar,spec_inicial,no,,Spec: tracción.,2026-11-08
+back.row_chest_supported_bench,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_cable,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 1: polea baja sentada sin apoyo de pecho (tronco sin apoyo con carga en manos).",2026-11-08
+back.row_cable,hombro,media,a_verificar,criterio_e4,no,,Spec: tracción.,2026-11-08
+back.row_cable,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+back.row_machine,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 1: máquina con apoyo de pecho (B-031); si la máquina no tiene apoyo, sería media. Tronco apoyado.",2026-11-08
+back.row_machine,hombro,media,a_verificar,criterio_e4,no,,Spec: tracción.,2026-11-08
+back.row_machine,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.press_overhead_barbell,lumbar,media,a_verificar,spec_inicial,no,,Spec: press militar de pie. Tronco sin apoyo con carga.,2026-11-08
+shoulders.press_overhead_barbell,hombro,alta,a_verificar,spec_inicial,no,,Spec: press militar de pie; multiarticular pesado cerca del final del rango.,2026-11-08
+shoulders.press_overhead_barbell,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.press_overhead_db,lumbar,media,a_verificar,criterio_e4,no,,Mancuernas de pie: tronco sin apoyo con carga en manos (misma lectura que el press de pie de la spec).,2026-11-08
+shoulders.press_overhead_db,hombro,alta,a_verificar,criterio_e4,no,,Multiarticular pesado cerca del final del rango (criterio hombro alta).,2026-11-08
+shoulders.press_overhead_db,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.press_overhead_db_seated,lumbar,baja,a_verificar,spec_inicial,no,,Spec: press militar sentado con respaldo; tronco apoyado.,2026-11-08
+shoulders.press_overhead_db_seated,hombro,alta,a_verificar,spec_inicial,no,,Spec: press militar sentado con respaldo.,2026-11-08
+shoulders.press_overhead_db_seated,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.face_pull,lumbar,baja,a_verificar,criterio_e4,no,,"Regla 3, que es específica y gana sobre la lectura literal del criterio (regla 5): aislamiento ligero.",2026-11-08
+shoulders.face_pull,hombro,media,a_verificar,criterio_e4,no,,Tracción con carga (criterio hombro media).,2026-11-08
+shoulders.face_pull,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.rear_delt_fly,lumbar,baja,a_verificar,criterio_e4,no,,Regla 3: aislamiento ligero; gana sobre la lectura literal del tronco inclinado sin apoyo (regla 5).,2026-11-08
+shoulders.rear_delt_fly,hombro,media,a_verificar,criterio_e4,no,,Elevación con carga del deltoides posterior (criterio hombro media).,2026-11-08
+shoulders.rear_delt_fly,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.press_landmine,lumbar,media,a_verificar,criterio_e4,no,,"De pie, carga en manos.",2026-11-08
+shoulders.press_landmine,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: por su mecánica, empuja en arco sin llegar al final del rango. No se clasifica por su función de sustituto.",2026-11-08
+shoulders.press_landmine,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+shoulders.press_neutral_grip,lumbar,media,a_verificar,criterio_e4,no,,De pie o sentado sin respaldo no está definido; se toma de pie con carga en manos.,2026-11-08
+shoulders.press_neutral_grip,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: por mecánica, empuja con agarre neutro sin llegar al final del rango de abducción y rotación externa del hombro, igual que el press landmine. No se clasifica por su función de sustituto. Decidido por Emanuel (2026-11-08).",2026-11-08
+shoulders.press_neutral_grip,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+quads.squat_back,lumbar,alta,a_verificar,spec_inicial,no,,"Desempate, regla 1: sentadilla trasera, carga pesada sobre la espalda sin apoyo del tronco.",2026-11-08
+quads.squat_back,hombro,media,a_verificar,spec_inicial,no,,Spec: sentadilla trasera; la barra se sostiene sobre los hombros.,2026-11-08
+quads.squat_back,rodilla,alta,a_verificar,spec_inicial,no,,Spec: flexión profunda con carga.,2026-11-08
+quads.squat_hack,lumbar,media,a_verificar,spec_inicial,no,,Spec: hack squat en máquina; el respaldo apoya el tronco.,2026-11-08
+quads.squat_hack,hombro,baja,a_verificar,spec_inicial,no,,Spec: hack squat; el hombro no mueve carga.,2026-11-08
+quads.squat_hack,rodilla,alta,a_verificar,spec_inicial,no,,Spec: flexión profunda con carga.,2026-11-08
+quads.lunge,lumbar,media,a_verificar,criterio_e4,no,,"Zancadas: mismo nivel que la búlgara por el criterio (carga en manos, tronco sin apoyo).",2026-11-08
+quads.lunge,hombro,baja,a_verificar,criterio_e4,no,,Spec (búlgara): el hombro no mueve carga.,2026-11-08
+quads.lunge,rodilla,alta,a_verificar,criterio_e4,no,,Flexión profunda con carga unilateral.,2026-11-08
+quads.bulgarian_split_squat,lumbar,media,a_verificar,spec_inicial,no,,Spec: sentadilla búlgara con mancuernas.,2026-11-08
+quads.bulgarian_split_squat,hombro,baja,a_verificar,spec_inicial,no,,Spec: el hombro no mueve carga.,2026-11-08
+quads.bulgarian_split_squat,rodilla,alta,a_verificar,spec_inicial,no,,Spec: flexión profunda con carga.,2026-11-08
+hamstrings.leg_curl_lying,lumbar,baja,a_verificar,spec_inicial,no,,Spec: curl femoral tumbado; tronco apoyado.,2026-11-08
+hamstrings.leg_curl_lying,hombro,baja,a_verificar,spec_inicial,no,,El hombro no mueve carga.,2026-11-08
+hamstrings.leg_curl_lying,rodilla,baja,a_verificar,spec_inicial,no,,Sin carga relevante en la rodilla.,2026-11-08
+hamstrings.leg_curl_seated,lumbar,baja,a_verificar,spec_inicial,no,,Spec: curl femoral sentado; tronco apoyado.,2026-11-08
+hamstrings.leg_curl_seated,hombro,baja,a_verificar,spec_inicial,no,,El hombro no mueve carga.,2026-11-08
+hamstrings.leg_curl_seated,rodilla,baja,a_verificar,spec_inicial,no,,Sin carga relevante en la rodilla.,2026-11-08
+biceps.curl_barbell,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3: aislamiento ligero de pie (curl con barra).",2026-11-08
+biceps.curl_barbell,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-08
+biceps.curl_barbell,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+biceps.curl_ez,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3: aislamiento ligero de pie (curl con barra Z).",2026-11-08
+biceps.curl_ez,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga.,2026-11-08
+biceps.curl_ez,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+triceps.close_grip_press,lumbar,baja,a_verificar,criterio_e4,no,,Press cerrado en banco: tronco apoyado.,2026-11-08
+triceps.close_grip_press,hombro,alta,a_verificar,criterio_e4,no,,Empuje con carga cerca del final del rango (criterio hombro alta).,2026-11-08
+triceps.close_grip_press,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+triceps.dips,lumbar,baja,a_verificar,spec_inicial,no,,Spec: fondos.,2026-11-08
+triceps.dips,hombro,alta,a_verificar,spec_inicial,no,,"Spec: fondos, empuje con carga.",2026-11-08
+triceps.dips,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+abs.crunch_cable,lumbar,baja,a_verificar,criterio_e4,no,,"Desempate, regla 3: aislamiento ligero. La rueda abdominal (palanca larga) es la más exigente del par original y se clasifica aparte (B-033).",2026-11-08
+abs.crunch_cable,hombro,baja,a_verificar,criterio_e4,no,,El hombro no mueve carga relevante (la polea se sostiene junto a la cabeza).,2026-11-08
+abs.crunch_cable,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
+abs.ab_wheel,lumbar,media,a_verificar,criterio_e4,no,,"Variante más exigente del par original: peso corporal con palanca larga, sin carga externa. Queda en media; cómo clasificar el peso corporal está en B-033.",2026-11-08
+abs.ab_wheel,hombro,media,a_verificar,criterio_e4,no,,Carga el hombro en el final del rango sin carga pesada. Queda en media; ver B-033.,2026-11-08
+abs.ab_wheel,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
