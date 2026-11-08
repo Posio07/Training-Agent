@@ -167,3 +167,17 @@ test('la rutina corta nunca pasa del tiempo fijado, en los 10 perfiles de refere
     for (let i = 0; i < dias; i++) { const s = SES.sesionConTiempo(profile, i, min); assert.ok(s.minutos <= min, `${profile.name} día ${i + 1} con ${min} min: ${s.minutos}`); }
   }));
 });
+
+test('rutina corta: si el tiempo no alcanza para los patrones obligatorios, el aviso los nombra; sin tope ni piso de ejercicios', () => {
+  const p = perfil();
+  const corta = SES.sesionConTiempo(p, 2, 8);
+  assert.ok(corta.minutos <= 8);
+  assert.ok(corta.faltantes.length > 0, 'con 8 minutos no caben todos los patrones obligatorios');
+  assert.equal(corta.avisos.length, corta.faltantes.length);
+  assert.ok(corta.avisos.every(a => a.regla === 'obligatorio-sin-lugar' && /min/.test(a.texto)));
+  // Con tiempo de sobra no hay aviso, y el número de ejercicios no está acotado a 3-4.
+  const holgada = SES.sesionConTiempo(p, 2, 120);
+  assert.deepEqual(holgada.faltantes, []); assert.deepEqual(holgada.avisos, []);
+  const cuenta = [20, 45, 120].map(min => SES.sesionConTiempo(p, 0, min).ejercicios.length);
+  assert.ok(cuenta.some(n => n < 3) || cuenta.some(n => n > 4), 'el tiempo manda: el número de ejercicios no se limita a 3-4');
+});
