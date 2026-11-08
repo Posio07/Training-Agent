@@ -46,7 +46,7 @@ Un ejercicio prioritario no convierte la rutina en calistenia: solo garantiza su
 **Plan guardado.** El plan generado se **guarda** (con un identificador, la fecha y la versión del motor que lo generó). Hoy se recalcula cada vez que se muestra; en el núcleo nuevo solo se regenera cuando:
 
 - el usuario aprieta el botón **"Regenerar"**, o
-- cambia el tiempo disponible, los días, el objetivo, el nivel, la división, los rezagados, los ejercicios prioritarios, las lesiones declaradas o la casilla del remo con barra.
+- cambia el tiempo disponible, los días, el objetivo, el nivel, la división, los rezagados, los ejercicios prioritarios, las lesiones declaradas, la casilla del remo con barra o la bandera salud/funcional (agregada en el paso 3.1: habilita los ejercicios funcionales, así que cambia el plan).
 
 Una **versión nueva del motor no regenera el plan sola**: la app avisa que hay una versión nueva y el usuario decide cuándo aplicarla. La aceptación de una sesión (paso 7) se guarda en este plan y caduca al regenerarlo.
 
