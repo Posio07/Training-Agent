@@ -65,6 +65,7 @@ Un archivo por entrada (`docs/backlog/B-XXX.md`), con la fila completa (dueño, 
 | [B-024](backlog/B-024.md) | Correr los E2E en el CI | propuesto | 2026-10-25 |
 | [B-025](backlog/B-025.md) | Fase 3 del validador: perfil articular y orden de ejercicios | abierto | 2026-11-07 |
 | [B-026](backlog/B-026.md) | Anclar el criterio de modelado de la Fase 3 con datos biomecánicos de carga sobre la columna y el hombro | en curso | 2026-11-07 |
+| [B-050](backlog/B-050.md) | Paso 3.2 del núcleo v2: aviso único con tres salidas | propuesto | 2026-11-08 |
 
 ## Cerrados
 
