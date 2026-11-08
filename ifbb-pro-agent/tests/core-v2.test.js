@@ -165,7 +165,7 @@ test('registro: los números aprobados por Emanuel (spec y trazabilidad, 2026-11
     FACTOR_NECESIDAD_DEFINICION: 0.85, FACTOR_NECESIDAD_ENFASIS: 1.25, FACTOR_NECESIDAD_ENFASIS_REDUCIDO: 0.5, FACTOR_NECESIDAD_GRUPO_CHICO: 0.6,
     REZAGADOS_TOPE_SERIES: 20, MAX_SERIES_FRACCIONADAS_MUSCULO_SESION: 11, MAX_EJERCICIOS_PRIORITARIOS: 3,
     DESCANSO_MULTIARTICULAR_S: 150, DESCANSO_AISLAMIENTO_S: 75, DESCANSO_TOP_SET_S: 180, DESCANSO_BACKOFF_S: 150, FACTOR_UNILATERAL: 2,
-    TOP_SET_REPETICIONES: [4, 6], TOP_SET_RIR: [1, 2], BACKOFF_REDUCCION_PORCENTAJE: 10, MAX_DIAS_GRUPO_CHICO: 2,
+    TOP_SET_REPETICIONES: [4, 6], TOP_SET_RIR: [1, 2], SERIES_MIN_PATRON_PRINCIPAL: 4, EJERCICIO_DIRECTO_SEMANAL_MIN_SERIES: 2, BACKOFF_REDUCCION_PORCENTAJE: 10, MAX_DIAS_GRUPO_CHICO: 2,
     CARDIO_MINIMO_SALUD: 150, CARDIO_SALUD_SESIONES: 3, CARDIO_SALUD_MINUTOS: 50, CARDIO_INTENSIDAD_PORCENTAJE_FCMAX: [60, 70],
     CARDIO_MANTENIMIENTO_SESIONES: 2, CARDIO_MANTENIMIENTO_MINUTOS: 25,
   };
@@ -606,4 +606,27 @@ test('DEC-029: sin variantes ni sesión donde ubicar un grupo, el ejercicio dire
   const plan = REP.generarPlan(emanuelRef, { catalogo: sinBiceps });
   assert.ok(plan.avisos.sinDirecto.some(x => x.musculo === 'biceps'));
   assert.ok(plan.avisoUnico && plan.avisoUnico.sinDirecto.some(x => x.musculo === 'biceps'));
+});
+
+test('DEC-025 punto 4: R1 es estricta primero: con R1 de 11 ningún plan del barrido la pasa mientras otra sesión puede alojar la serie', () => {
+  barrido.forEach(({ d, plan }) => {
+    assert.deepEqual(plan.avisos.r1Excedido, [], `${d} días: R1 se pasó sin necesidad`);
+    plan.sesiones.forEach(s => Object.values(s.fraccionado).forEach(v => assert.ok(v <= 11 + 1e-9, `${d} días ${s.nombre}: ${v}`)));
+  });
+});
+
+test('DEC-029: si el tiempo no alcanza, el patrón principal baja de a una serie y el aviso único lo dice', () => {
+  const plan = REP.generarPlan(Object.assign({}, emanuelRef, { tiempoDisponibleMin: 12 }));
+  const reducidas = plan.sesiones.filter(s => { const p = s.ejercicios.find(e => e.patron === s.principal); return p && p.series < R.valor('SERIES_MIN_PATRON_PRINCIPAL'); });
+  assert.ok(reducidas.length > 0, 'con 12 minutos el principal no cabe con 4 series');
+  reducidas.forEach(s => assert.ok(plan.avisos.principalReducido.some(x => x.sesion === s.nombre)));
+  assert.ok(plan.avisoUnico && plan.avisoUnico.principalReducido.length > 0);
+});
+
+test('DEC-029: un ejercicio con una sola serie no cuenta como el ejercicio directo del grupo', () => {
+  const sesiones = REP.generarPlan(emanuelRef).sesiones;
+  ['biceps', 'triceps', 'calves', 'abs'].forEach(m => {
+    const mejor = Math.max(...sesiones.flatMap(s => s.ejercicios).filter(e => e.grupo === m).map(e => e.series));
+    assert.ok(mejor >= 2, `${m}: su mejor ejercicio tiene ${mejor} serie`);
+  });
 });

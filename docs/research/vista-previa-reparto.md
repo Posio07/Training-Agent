@@ -198,7 +198,7 @@ Por días: {"5":8,"6":8}.
 
 ### Espalda sin cubrir por R1 a 5 y 6 días: cómo corregirlo sin aflojar R1
 
-- La espalda entra en solo 2 sesiones de los splits de 5 y 6 días, así que con R1 en 11 su techo semanal es 22 series fraccionadas. Los 16 planes afectados son de nivel avanzado, con énfasis en espalda (classic y physique) en volumen o mantenimiento: necesitan 23. Es un problema de cómo se arma el split, no de R1.
-- **Opción A (recomendada):** regla de exposición. Si la necesidad de un grupo supera lo que caben sus sesiones bajo R1 (sesiones × 11), el día de empuje de los splits de 5 y 6 días aloja también ese grupo (un tirón horizontal de apoyo). Solo afecta a esos 16 planes y la hipótesis de arriba la deja en 0 planes sin cubrir. Costo: un criterio de diseño más (E4) y un día de empuje con un tirón en esos casos.
+- La espalda entra en solo 2 sesiones de los splits de 5 y 6 días, así que con R1 en 11 su techo semanal es 22 series fraccionadas. Los 16 planes afectados (advanced/classic_m/bulk, advanced/physique_m/bulk, advanced/classic_m/maintain, advanced/physique_m/maintain) necesitan 23 y quedan en 22. Es un problema de cómo se arma el split, no de R1.
+- **Opción A (recomendada):** regla de exposición. Si la necesidad de un grupo supera lo que caben sus sesiones bajo R1 (sesiones × 11), el día de empuje de los splits de 5 y 6 días aloja también ese grupo (un tirón horizontal de apoyo). Solo afecta a esos 16 planes y la hipótesis de arriba los deja en 0 sin cubrir. Costo: un criterio de diseño más (E4) y un día de empuje con un tirón en esos casos.
 - **Opción B:** cambiar el split de 5 días a torso, pierna, torso, tirón, pierna (más espalda para todos). Costo: cambia el plan de todos los perfiles de 5 días y se pierde el día de empuje dedicado.
-- **Opción C:** dejarlo como aviso (23 contra 22: una serie de diferencia) y que el usuario decida. Costo: 16 planes con aviso por una serie.
+- **Opción C:** dejarlo como aviso y que el usuario decida. Costo: 16 planes con aviso por 1 serie(s) de diferencia.
