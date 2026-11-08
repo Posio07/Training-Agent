@@ -10,7 +10,8 @@
  *   con el criterio de modelado de docs/specs/validador-fase3.md y sus reglas de desempate. Las demás
  *   variantes conservan su fila de data/perfil-articular.csv.
  * - Aporte por músculo: las variantes partidas HEREDAN las filas del ejercicio original (`hereda`) y se
- *   marcan `a_verificar` (con la evidencia original en `evidenciaOriginal`); no se inventó ningún dato.
+ *   conservan el estado de verificación del ejercicio original, con la marca `heredadoDe` para rastrearlas (no cuentan 0 por
+ *   estar heredadas: la vista previa del reparto no debe mezclar efectos de datos con efectos de diseño); no se inventó ningún dato.
  * En el PR del corte las filas heredadas se materializan en los CSV de data/.
  *
  * Los rangos de repeticiones son datos del catálogo (como en el motor actual), no reglas del registro.
@@ -148,14 +149,14 @@
   const variantePorId = id => VARIANTE_POR_ID[id] || null;
   const variantesDePatron = patron => VARIANTES.filter(x => x.patron === patron);
 
-  // Aportes por músculo. Los heredados (variantes partidas) salen marcados a_verificar: una relación a_verificar
-  // cuenta 0 en el conteo fraccionado (salvo el grupo donde se programa), así que hasta verificarlos suman menos
-  // que en el motor actual. La evidencia original queda en `evidenciaOriginal`.
+  // Aportes por músculo. Las filas heredadas (variantes partidas) conservan el estado de verificación del ejercicio
+  // original y llevan la marca `heredadoDe` (id del ejercicio original) para rastrearlas; cuentan igual que la fila
+  // original en el conteo fraccionado (decidido por Emanuel, 2026-11-08).
   const aportesDe = id => {
     const x = VARIANTE_POR_ID[id];
     if (!x) return [];
     return EXERCISE_MUSCLES.rows.filter(r => r.exerciseId === x.hereda).map(r => x.heredado
-      ? Object.assign({}, r, { exerciseId: id, evidencia: 'a_verificar', evidenciaOriginal: r.evidencia, heredadoDe: x.hereda })
+      ? Object.assign({}, r, { exerciseId: id, heredadoDe: x.hereda })
       : Object.assign({}, r));
   };
   const grupoDe = id => {

@@ -238,25 +238,26 @@ test('B-031: las variantes que difieren en lumbar u hombro ya no comparten nivel
   assert.equal(nivel('chest.bench_press_barbell', 'hombro'), 'alta');
 });
 
-test('B-031: lo ambiguo queda marcado (press con agarre neutro: hombro alta, decide Emanuel)', () => {
-  const amb = PVM.rows.filter(r => r.ambiguo === 'si').map(r => `${r.exerciseId}/${r.articulacion}`);
-  assert.deepEqual(amb, ['shoulders.press_neutral_grip/hombro']);
+test('B-031: ninguna fila del perfil propio queda ambigua (el press con agarre neutro es hombro media, decidido por Emanuel)', () => {
+  assert.deepEqual(PVM.rows.filter(r => r.ambiguo === 'si'), []);
+  assert.equal(C.perfilArticularDe('shoulders.press_neutral_grip').hombro.nivel, 'media');
 });
 
-test('aportes por músculo: los heredados de variantes partidas salen a_verificar y conservan la evidencia original', () => {
+test('aportes por músculo: los heredados conservan la verificación del original y llevan la marca heredadoDe', () => {
   C.VARIANTES.forEach(x => {
+    const originales = EXERCISE_ROWS(x.hereda);
     const filas = C.aportesDe(x.id);
-    filas.forEach(r => {
-      if (x.heredado) {
-        assert.equal(r.evidencia, 'a_verificar', `${x.id}/${r.muscle}`);
-        assert.ok(r.evidenciaOriginal, `${x.id}/${r.muscle}: falta evidenciaOriginal`);
-        assert.equal(r.heredadoDe, x.hereda);
-      } else assert.notEqual(r.heredadoDe, x.hereda, x.id);
+    assert.equal(filas.length, originales.length, x.id);
+    filas.forEach((r, i) => {
+      const o = originales[i];
+      assert.equal(r.evidencia, o.evidencia, `${x.id}/${r.muscle}: debe conservar la evidencia del original`);
+      assert.equal(r.relacion, o.relacion, `${x.id}/${r.muscle}: debe conservar la relación del original`);
+      if (x.heredado) assert.equal(r.heredadoDe, x.hereda, `${x.id}: falta la marca heredadoDe`);
+      else assert.equal(r.heredadoDe, undefined, `${x.id}: no es heredado`);
     });
   });
-  // Un ejemplo con evidencia original distinta de a_verificar: las dominadas (bíceps verificado).
-  assert.ok(C.aportesDe('back.pull_up').some(r => r.evidenciaOriginal && r.evidenciaOriginal !== 'a_verificar'));
-  // El ejercicio no partido no se toca.
+  // Ejemplo: el bíceps de las dominadas sigue verificado, no a_verificar.
+  assert.ok(C.aportesDe('back.pull_up').some(r => r.evidencia === 'verificado'));
   assert.deepEqual(C.aportesDe('chest.bench_press_barbell'), EXERCISE_ROWS('chest.bench_press_barbell'));
 });
 
@@ -283,7 +284,7 @@ test('B-031: los 31 perfiles propios fijan lumbar/hombro/rodilla (a=alta, m=medi
     'shoulders.face_pull': 'bmb',
     'shoulders.rear_delt_fly': 'bmb',
     'shoulders.press_landmine': 'mmb',
-    'shoulders.press_neutral_grip': 'mab',
+    'shoulders.press_neutral_grip': 'mmb',
     'quads.squat_back': 'ama',
     'quads.squat_hack': 'mba',
     'quads.lunge': 'mba',
@@ -306,4 +307,12 @@ test('B-031: los 31 perfiles propios fijan lumbar/hombro/rodilla (a=alta, m=medi
   ['shoulders.face_pull', 'shoulders.rear_delt_fly', 'biceps.curl_barbell', 'biceps.curl_ez', 'chest.fly_cable', 'chest.fly_pecdeck', 'abs.crunch_cable'].forEach(id => assert.equal(C.perfilArticularDe(id).lumbar.nivel, 'baja', id));
   ['back.row_barbell', 'back.row_pendlay'].forEach(id => assert.equal(C.perfilArticularDe(id).lumbar.nivel, 'alta', id));
   assert.equal(C.perfilArticularDe('shoulders.press_landmine').hombro.nivel, 'media');
+});
+
+test('DEC-026: ninguna regla queda sin DEC de origen y las 11 ratificadas apuntan a DEC-026', () => {
+  assert.deepEqual(R.REGLAS.filter(r => r.dec === 'sin DEC').map(r => r.id), []);
+  const ratificadas = ['NECESIDAD_SEMANAL_POR_NIVEL', 'FACTOR_NECESIDAD_GRUPO_CHICO', 'NECESIDAD_MINIMA_SERIES', 'MAX_DIAS_GRUPO_CHICO', 'SERIES_MIN_POR_EJERCICIO',
+    'CARDIO_DEFINICION_SESIONES_AVANZADO', 'CARDIO_DEFINICION_SESIONES', 'CARDIO_DEFINICION_MINUTOS', 'CARDIO_MANTENIMIENTO_SESIONES', 'CARDIO_MANTENIMIENTO_MINUTOS', 'CARDIO_INTENSIDAD_PORCENTAJE_FCMAX'];
+  ratificadas.forEach(id => { assert.equal(R.regla(id).dec, 'DEC-026', id); assert.equal(R.regla(id).nivel, 'E4', id); });
+  assert.equal(ratificadas.length, 11);
 });

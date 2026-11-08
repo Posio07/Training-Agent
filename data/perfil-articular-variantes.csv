@@ -54,7 +54,7 @@ shoulders.press_landmine,lumbar,media,a_verificar,criterio_e4,no,,"De pie, carga
 shoulders.press_landmine,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: por su mecánica, empuja en arco sin llegar al final del rango. No se clasifica por su función de sustituto.",2026-11-08
 shoulders.press_landmine,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
 shoulders.press_neutral_grip,lumbar,media,a_verificar,criterio_e4,no,,De pie o sentado sin respaldo no está definido; se toma de pie con carga en manos.,2026-11-08
-shoulders.press_neutral_grip,hombro,alta,a_verificar,criterio_e4,si,,AMBIGUO: empuje por encima de la cabeza con mancuernas; el criterio da alta (multiarticular cerca del final del rango) y la regla 4 prohíbe bajarlo para conservar su función de sustituto por lesión de hombro. Decide Emanuel; el efecto es que dejaría de ser un sustituto limpio.,2026-11-08
+shoulders.press_neutral_grip,hombro,media,a_verificar,criterio_e4,no,,"Desempate, regla 4: por mecánica, empuja con agarre neutro sin llegar al final del rango de abducción y rotación externa del hombro, igual que el press landmine. No se clasifica por su función de sustituto. Decidido por Emanuel (2026-11-08).",2026-11-08
 shoulders.press_neutral_grip,rodilla,baja,a_verificar,criterio_e4,no,,Sin carga relevante en la rodilla.,2026-11-08
 quads.squat_back,lumbar,alta,a_verificar,spec_inicial,no,,"Desempate, regla 1: sentadilla trasera, carga pesada sobre la espalda sin apoyo del tronco.",2026-11-08
 quads.squat_back,hombro,media,a_verificar,spec_inicial,no,,Spec: sentadilla trasera; la barra se sostiene sobre los hombros.,2026-11-08
