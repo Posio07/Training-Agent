@@ -1,0 +1,23 @@
+name: Archivos de DECISIONS y backlog bien formados
+
+# Los índices no se guardan en el repo: se generan a pedido con scripts/generar-indices.js. Este chequeo solo valida que cada archivo de
+# docs/decisions/ y docs/backlog/ tenga la forma que el script espera (encabezado, estado del DEC, fila del ítem con 7 celdas).
+on:
+  push:
+    branches: [main]
+    paths: ['docs/decisions/**', 'docs/backlog/**', 'DECISIONS.md', 'docs/BACKLOG.md', 'scripts/generar-indices.js']
+  pull_request:
+    paths: ['docs/decisions/**', 'docs/backlog/**', 'DECISIONS.md', 'docs/BACKLOG.md', 'scripts/generar-indices.js']
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/generar-indices.js --validar
