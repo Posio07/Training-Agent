@@ -34,6 +34,7 @@
   <script src="../js/core-v2/pantallas/perfil.js"></script>
   <script src="../js/core-v2/pantallas/entreno.js"></script>
   <script src="../js/core-v2/pantallas/sesion.js"></script>
+  <script src="../js/core-v2/pantallas/progreso.js"></script>
   <script src="../js/core-v2/pantallas/montaje.js"></script>
   <script>
     // Sprite de íconos de la app real.
@@ -53,6 +54,8 @@
     window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
       almacen,
       guardar: () => {},
+      reloj: () => Date.now(),
+      sesionActivaId: () => { const s = sesion.estado(); return s ? s.sessionId : null; },
       ahora: () => '2026-11-09',
       id: () => 'id' + (++n),
       aviso,

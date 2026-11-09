@@ -4,13 +4,13 @@
  * a `montar`.
  *
  * `ctx`: { almacen: { perfiles: [{ id, data, planGuardado, creadoEn }], activoId }, guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
- *          aviso(texto), confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos) }.
+ *          aviso(texto), reloj() → ms, sesionActivaId() → id de la sesión en curso o null, confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos) }.
  * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea (síntomas,
  * o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a esta función. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./comun.js'));
-  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_COMUN);
-})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, PLAN, AVISO, PERFIL, ENTRENO, COMUN) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./progreso.js'), require('./comun.js'));
+  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_PROGRESO, root.CORE_V2_COMUN);
+})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, PLAN, AVISO, PERFIL, ENTRENO, PROGRESO, COMUN) {
   'use strict';
   const { esc } = COMUN;
 
@@ -22,7 +22,7 @@
     let vista = alm.perfiles.length ? 'plan' : 'perfil', editandoId = null;
 
     function ir(v, id) { vista = v; editandoId = id || null; render(); }
-    function render() { (vista === 'perfil' ? renderPerfil : renderPlan)(); }
+    function render() { (vista === 'perfil' ? renderPerfil : vista === 'progreso' ? renderProgreso : renderPlan)(); }
 
     /* ---------- Perfil ---------- */
     function renderPerfil() {
@@ -75,6 +75,13 @@
       };
     }
 
+    /* ---------- Progreso por variante (la sección de peso y medidas sigue en app.js) ---------- */
+    function renderProgreso() {
+      raiz.innerHTML = '<div class="btn-row"><button class="btn" id="btn-volver">Volver al plan</button></div><div id="progreso"></div>';
+      q('#btn-volver').onclick = () => ir('plan');
+      PROGRESO.montarProgreso(q('#progreso'), { perfil: activo, guardar, ahora: ctx.ahora, reloj: ctx.reloj, aviso: ctx.aviso, confirmar: ctx.confirmar, sesionActivaId: ctx.sesionActivaId || (() => null) });
+    }
+
     /* ---------- Plan (pestaña Entreno) ---------- */
     function renderPlan() {
       const p = activo();
@@ -82,10 +89,11 @@
       // DEC-009: si el tamizaje bloquea, no se muestra el plan.
       const salud = ENGINE.computeHealthScreen(p.data);
       if (salud.blocked) { raiz.innerHTML = ''; ctx.pantallaBloqueo(raiz, p, salud); return; }
-      raiz.innerHTML = `<div class="btn-row"><button class="btn" id="btn-editar">Editar perfil</button><button class="btn" id="btn-nuevo">Nuevo perfil</button></div>
+      raiz.innerHTML = `<div class="btn-row"><button class="btn" id="btn-editar">Editar perfil</button><button class="btn" id="btn-nuevo">Nuevo perfil</button><button class="btn" id="btn-progreso">Progreso</button></div>
         <div id="entreno">${ENTRENO.htmlEntreno({ datos: p.data, guardado: p.planGuardado, siguiente: ctx.siguiente ? ctx.siguiente(p) : 0 })}</div>`;
       q('#btn-editar').onclick = () => ir('perfil', p.id);
       q('#btn-nuevo').onclick = () => ir('perfil');
+      q('#btn-progreso').onclick = () => ir('progreso');
       const regenerar = () => { p.planGuardado = PLAN.regenerar(p.data, { id: ctx.id(), ahora: ctx.ahora() }); guardar(); ctx.aviso('Plan regenerado'); renderPlan(); };
       raiz.querySelectorAll('[data-regenerar], [data-aplicar-version]').forEach(b => b.onclick = regenerar);
       raiz.querySelectorAll('[data-salida]').forEach(b => b.onclick = () => {
