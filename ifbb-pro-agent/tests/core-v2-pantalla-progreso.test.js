@@ -17,7 +17,7 @@ test('las variantes registradas salen de las filas por id de variante, la más r
   assert.deepEqual(P.variantesRegistradas([{ exerciseId: 'viejo.x', exercise: 'Ejercicio viejo', date: '2026-01-01' }, { exercise: 'sin id', date: '2026-01-02' }]).map(x => x.nombre), ['Ejercicio viejo']);
 });
 
-test('los puntos de fuerza son de UNA variante, uno por día: el top set (o la serie más pesada), marcando la rutina corta', () => {
+test('los puntos de fuerza son de UNA variante, uno por día: el top set (o la serie más pesada), marcando la sesión de X min', () => {
   const p = P.puntosDeFuerza(filas, 'quads.squat_back');
   assert.deepEqual(p.map(x => [x.date, x.weight, x.short]), [['2026-11-01', 100, false], ['2026-11-05', 105, true]]);
   assert.deepEqual(P.puntosDeFuerza(filas, 'quads.squat_hack').map(x => x.weight), [120]); // no mezcla con la sentadilla trasera
@@ -34,6 +34,7 @@ test('la sección de fuerza: sin series, con una sola sesión y con dos o más',
   const una = P.htmlFuerza(filas, 'quads.squat_hack');
   assert.match(una, /<option value="quads.squat_hack" selected>/); assert.ok(!/<svg/.test(una)); assert.match(una, /con esta variante/);
   const dos = P.htmlFuerza(filas, 'quads.squat_back');
+  assert.match(dos, /Marca hueca = sesión de X min/); assert.match(dos, /\(sesión de X min\)/);
   assert.match(dos, /<svg class="chart"/); assert.equal((dos.match(/<circle/g) || []).length, 2); assert.match(dos, /dot-short/);
   assert.match(P.htmlFuerza(filas, 'no.existe'), /<option value="quads.squat_hack" selected>/); // una variante que no existe cae en la más reciente
 });
@@ -58,4 +59,11 @@ test('la sesión en curso no se lista en el historial, y sin sesiones el mensaje
 test('la pantalla de progreso no copia lo que se queda en app.js: peso, medidas y gráfico de peso', () => {
   const s = require('fs').readFileSync(require('path').join(__dirname, '..', 'js', 'core-v2', 'pantallas', 'progreso.js'), 'utf8');
   ['htmlProgressHeader', 'weightChart', 'rateLabel', 'log-form', 'btn-apply'].forEach(n => assert.ok(!s.includes(n), n));
+});
+
+test('el historial marca "(editada)" en las series corregidas y en ninguna otra', () => {
+  const perfil = { data: { plateUnit: 'kg' }, workouts: [Object.assign({}, filas[0], { editedAt: 5 }), filas[1]], sessions: [{ sessionId: 's1', dayName: 'Día 2', date: '2026-11-01' }] };
+  const h = P.htmlHistorial(perfil, {});
+  assert.equal((h.match(/\(editada\)/g) || []).length, 1);
+  assert.match(h, /Sentadilla trasera<\/b> · Top set · 100 kg × 5 <span class="muted">\(editada\)/);
 });

@@ -46,7 +46,7 @@
     const X = x => L + (x - x0) / (x1 - x0) * (W - L - R);
     const Y = y => T + (yMax - y) / (yMax - yMin) * (H - T - B);
     const path = points.map((p, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(' ');
-    const dots = points.map((p, i) => `<circle class="${p.short ? 'dot-short' : 'dot'}" cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="3.5"><title>${fmtDate(p.date)}: ${n1(p.weight)} kg × ${p.reps}${p.short ? ' (sesión corta)' : ''}</title></circle>`).join('');
+    const dots = points.map((p, i) => `<circle class="${p.short ? 'dot-short' : 'dot'}" cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="3.5"><title>${fmtDate(p.date)}: ${n1(p.weight)} kg × ${p.reps}${p.short ? ' (sesión de X min)' : ''}</title></circle>`).join('');
     const ticks = [yMin + 1, (yMin + yMax) / 2, yMax - 1].map(v => `<text x="${L - 4}" y="${Y(v) + 3}" text-anchor="end">${n1(v)}</text>`).join('');
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del top set">
       <line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/><line class="axis" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/>
@@ -63,7 +63,7 @@
     const selector = `<label class="help" for="strength-exercise-select">Variante</label><select id="strength-exercise-select">${vars.map(v => `<option value="${esc(v.id)}" ${v.id === elegida ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select>`;
     const puntos = puntosDeFuerza(workouts, elegida);
     if (puntos.length < 2) return `${selector}<p class="muted">Completa dos sesiones con esta variante para ver tu evolución de fuerza.</p>`;
-    return `${selector}${graficoFuerza(puntos)}<p class="help">Marca hueca = rutina corta. El progreso es de cada variante: si cambias de variante, empieza su propia línea.</p>`;
+    return `${selector}${graficoFuerza(puntos)}<p class="help">Marca hueca = sesión de X min (la que armaste con «hoy tengo X min»). El progreso es de cada variante: si cambias de variante, empieza su propia línea.</p>`;
   }
 
   /* ---------- Historial de sesiones ---------- */
@@ -78,7 +78,7 @@
       const id = SS.rowId(w);
       const etiqueta = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${w.setNumber}` }[w.setType] || `Serie ${w.setNumber}`;
       if (e.editandoId === id) return `<li class="hist-row editing"><div class="muted">${esc(w.exercise)} · ${esc(etiqueta)}</div>${setEditorHtml('hist', id, w.weight, w.reps, unit)}</li>`;
-      return `<li class="hist-row"><button class="btn btn-ghost" data-hist-edit="${esc(id)}" aria-label="Editar o borrar: ${esc(w.exercise)}, ${esc(etiqueta)}"><b>${esc(w.exercise)}</b> · ${esc(etiqueta)} · ${n1(w.weight)} ${esc(unit)} × ${esc(w.reps)}</button></li>`;
+      return `<li class="hist-row"><button class="btn btn-ghost" data-hist-edit="${esc(id)}" aria-label="Editar o borrar: ${esc(w.exercise)}, ${esc(etiqueta)}"><b>${esc(w.exercise)}</b> · ${esc(etiqueta)} · ${n1(w.weight)} ${esc(unit)} × ${esc(w.reps)}${w.editedAt ? ' <span class="muted">(editada)</span>' : ''}</button></li>`;
     };
     return `<div class="card"><h3>Sesiones registradas</h3>
       <p class="help">Toca una serie para corregir su peso o repeticiones, o para borrarla.</p>
