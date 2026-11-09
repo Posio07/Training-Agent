@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039). Genera ifbb-pro-agent/tests/fixtures/core-v2-plan-hashes.json: una huella (SHA-256 de la serialización
- * canónica) del plan que genera core-v2 para 10 perfiles de referencia (los de plan-identity-baseline.json). Sirve para que un cambio
+/* Núcleo del generador · núcleo v2 (B-039). Genera ifbb-pro-agent/tests/fixtures/core-v2-plan-hashes.json: una huella (SHA-256 de la serialización
+ * canónica) del plan que genera core-v2 para los 10 perfiles de referencia. Sirve para que un cambio
  * accidental en la salida del reparto, el registro o el catálogo haga fallar un test.
  *
  *   node scripts/snapshot-core-v2.js           regenera la huella
@@ -19,12 +19,11 @@ const OUT = path.join(FIXTURES, 'core-v2-plan-hashes.json');
 const canonical = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, key) => { o[key] = x[key]; return o; }, {}) : x));
 const hash = v => crypto.createHash('sha256').update(canonical(v)).digest('hex');
 
-// Los perfiles de entrada viven dentro del propio archivo de huellas (se copian una sola vez de plan-identity-baseline.json, que se
-// borra en el corte), así el archivo se basta solo.
+// Los perfiles de entrada viven dentro del propio archivo de huellas, así el archivo se basta solo (la línea base del
+// motor viejo de donde salieron se borró en el corte).
 function perfiles() {
-  if (fs.existsSync(OUT)) return JSON.parse(fs.readFileSync(OUT, 'utf8')).perfiles;
-  const base = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'plan-identity-baseline.json'), 'utf8')).cases;
-  return Object.keys(base).reduce((o, k) => { o[k] = base[k].profile; return o; }, {});
+  if (!fs.existsSync(OUT)) throw new Error('falta ' + OUT + ': los perfiles de referencia viven dentro del archivo de huellas');
+  return JSON.parse(fs.readFileSync(OUT, 'utf8')).perfiles;
 }
 
 function calcular() {

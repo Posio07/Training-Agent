@@ -1,5 +1,4 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, DEC-023). Este módulo NO está conectado a la interfaz ni al motor
- * actual: el PR del corte lo conecta y borra el motor viejo (docs/specs/nucleo-v2.md, "El corte").
+/* Núcleo del generador · núcleo v2 (B-039, DEC-023). Conectado a la app en el corte (docs/specs/nucleo-v2.md, "El corte").
  *
  * Registro único de reglas (docs/specs/nucleo-v2.md, "Registro único de reglas"). Todo número del núcleo
  * vive acá y en ningún otro lado. Cada entrada lleva:
@@ -7,7 +6,7 @@
  *   fuentes (ids de KNOWLEDGE.SOURCES que respalda la regla), tipo (estricta | aviso), paso (del algoritmo
  *   de reparto, 1 a 7, o 'fuera' si es de un bloque fuera del núcleo), estado (implementada | pendiente),
  *   cuando (condición del perfil para que la regla, y sus fuentes, estén activas; sin ella, siempre activa)
- *   y origen (nombre en VALIDATOR_RULES o dónde estaba escrito el número en engine.js).
+ *   y origen (dónde vivía el número antes del corte: `VALIDATOR_RULES` o `engine.js`).
  *
  * Requisito de B-039: una fuente aparece en el plan solo cuando la regla que respalda está activa
  * (por ejemplo, la cita de la OMS solo con la bandera salud/funcional): ver fuentesActivas().
@@ -48,8 +47,8 @@
     /* ---- Paso 2 · restricciones de seguridad ---- */
     e('MAX_LUMBAR_ALTA_POR_SESION', 1, 'ejercicios', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, estado: 'implementada', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxLumbarHighPerSession', nota: 'A2. Ninguna fuente prueba que el tope prevenga lesiones.' }),
     e('SEPARACION_SENTADILLA_BISAGRA', true, 'regla', 'DEC-022', 'E4', KEOGH_TUNG, { paso: 2, estado: 'implementada', origen: 'VALIDATOR_RULES.hingeSquatSeparation', nota: 'A3. Pasa a propiedad del tipo de sesión (pierna con sentadilla y pierna con bisagra).' }),
-    e('UMBRAL_DOLOR_BANDERA', 5, '0-10', 'DEC-011', 'E4', 'Pain-Monitoring Model (Thomeé 1997; adaptado en Silbernagel et al. 2007, Am J Sports Med 35(6):897-906, PMID 17307888). Umbral verificado en una fuente secundaria (Sprague et al. 2021)', { paso: 2, estado: 'implementada', fuentes: ['SILBERNAGEL_2007'], origen: 'VALIDATOR_RULES.painFlagThreshold', nota: 'A6. Marcado para revisión en el motor actual.' }),
-    e('DOLOR_SESIONES_MINIMAS', 2, 'sesiones', 'DEC-011', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'VALIDATOR_RULES.painAdviceMinSessions', nota: 'Sesiones distintas con dolor sobre el umbral en la misma zona (DEC-034; el motor actual cuenta por patrón).' }),
+    e('UMBRAL_DOLOR_BANDERA', 5, '0-10', 'DEC-011', 'E4', 'Pain-Monitoring Model (Thomeé 1997; adaptado en Silbernagel et al. 2007, Am J Sports Med 35(6):897-906, PMID 17307888). Umbral verificado en una fuente secundaria (Sprague et al. 2021)', { paso: 2, estado: 'implementada', fuentes: ['SILBERNAGEL_2007'], origen: 'VALIDATOR_RULES.painFlagThreshold', nota: 'A6. Marcado para revisión.' }),
+    e('DOLOR_SESIONES_MINIMAS', 2, 'sesiones', 'DEC-011', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'VALIDATOR_RULES.painAdviceMinSessions', nota: 'Sesiones distintas con dolor sobre el umbral en la misma zona (DEC-034; el motor viejo contaba por patrón).' }),
     e('DOLOR_VENTANA_DIAS', 28, 'días', 'DEC-011', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'VALIDATOR_RULES.painAdviceWindowDays', nota: 'Últimas 4 semanas, contadas hacia atrás.' }),
     e('DOLOR_SESIONES_LIMPIAS_DESMARCAR', 2, 'sesiones distintas seguidas', 'DEC-034', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'engine.js (applyPainReading: cleanStreak >= 2)', nota: 'A6. La marca de dolor de una zona se limpia con dos sesiones DISTINTAS seguidas sin pasarse del umbral (DEC-009 y DEC-011).' }),
     e('MAX_HOMBRO_ALTO_POR_SESION', 2, 'ejercicios', 'DEC-034', 'E4', KEOGH_TUNG, { paso: 2, estado: 'implementada', tipo: 'aviso', origen: 'docs/specs/validador-fase3.md (A4)', nota: 'A4. Solo se activa si A6 registró dolor de hombro; sin esa bandera no se avisa (saltaba en el 71 % de los 360 planes). Ninguna fuente prueba que el tope prevenga lesiones.' }),
@@ -93,7 +92,7 @@
     e('EJERCICIO_DIRECTO_SEMANAL_MIN_SERIES', 2, 'series', 'DEC-029', 'E4', CRITERIO, { paso: 3, estado: 'implementada', origen: 'DEC-020, punto 6 (nunca se quita el último ejercicio directo de un grupo)', nota: 'Todo grupo del perfil lleva por semana al menos un ejercicio directo (de ese grupo) con este mínimo de series. Equivalente en core-v2 de la regla de DEC-020.' }),
 
     /* ---- Paso 2 de la construcción · reparto: entradas nuevas (propuestas, nivel 2) ---- */
-    e('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN', 75, 'min por sesión', 'propuesta del agente', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'propuesta del agente (nivel 2)', nota: 'Capacidad de la sesión cuando el perfil no declara su tiempo. 75 min está dentro del rango de las sesiones del motor actual (53 a 82 min en el perfil de Emanuel). Emanuel lo confirma o lo cambia.' }),
+    e('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN', 75, 'min por sesión', 'propuesta del agente', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'propuesta del agente (nivel 2)', nota: 'Capacidad de la sesión cuando el perfil no declara su tiempo. 75 min está dentro del rango de las sesiones del motor viejo (53 a 82 min en el perfil de Emanuel). Emanuel lo confirma o lo cambia.' }),
     e('ENFASIS_POR_DIVISION', {
       bodybuilding_m: { up: ['back', 'quads'], down: [] },
       classic_m: { up: ['shoulders', 'back', 'quads'], down: [] },
@@ -104,7 +103,7 @@
       wellness_w: { up: ['glutes', 'quads', 'hamstrings'], down: ['chest', 'shoulders', 'biceps', 'triceps'] },
       general_m: { up: [], down: [] },
       general_w: { up: [], down: [] },
-    }, 'grupos', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (EMPHASIS_MAP)', nota: 'Tabla de datos (grupos con énfasis ×1,25 y reducido ×0,5 por división), copiada tal cual del motor actual.' }),
+    }, 'grupos', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (EMPHASIS_MAP)', nota: 'Tabla de datos (grupos con énfasis ×1,25 y reducido ×0,5 por división), copiada tal cual del motor viejo.' }),
     e('EXCLUSIONES_POR_LESION', {
       shoulder: ['chest.dip_parallel', 'chest.press_machine', 'shoulders.press_overhead_barbell', 'shoulders.press_overhead_db', 'shoulders.press_overhead_db_seated', 'triceps.close_grip_press', 'triceps.dips'],
       elbow: ['biceps.curl_barbell', 'biceps.curl_ez', 'triceps.close_grip_press', 'triceps.dips'],
@@ -113,7 +112,7 @@
       hip: ['quads.squat_back', 'quads.squat_hack', 'quads.lunge', 'quads.bulgarian_split_squat', 'glutes.bulgarian_hip', 'functional.bulgarian_db'],
       knee: ['quads.squat_back', 'quads.squat_hack', 'quads.lunge', 'quads.bulgarian_split_squat', 'quads.leg_extension', 'functional.bulgarian_db'],
       ankle: ['quads.lunge', 'quads.bulgarian_split_squat', 'glutes.bulgarian_hip', 'calves.calf_raise_standing', 'functional.bulgarian_db'],
-    }, 'variantes por zona', 'DEC-009', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'knowledge.js (INJURY_EXCLUSIONS)', nota: 'Mapa cerrado de DEC-009 (capa 3) expresado por variante. Hasta el corte un test lo compara con el mapa del motor actual.' }),
+    }, 'variantes por zona', 'DEC-009', 'E4', CRITERIO, { paso: 2, estado: 'implementada', origen: 'knowledge.js (INJURY_EXCLUSIONS)', nota: 'Mapa cerrado de DEC-009 (capa 3) expresado por variante. Hasta el corte un test lo compara con el mapa del motor viejo.' }),
 
     /* ---- Fuera del núcleo v2 · cardio y funcionales (los números se registran; la lógica no cambia) ---- */
     e('CARDIO_MINIMO_SALUD', 150, 'min por semana', 'DEC-005', 'E1', OMS_2020, { paso: 'fuera', estado: 'implementada', cuando: SALUD_EN_DEFINICION, fuentes: ['WHO_PA'], origen: 'engine.js (piso de 150 min con la bandera)', nota: 'Solo con la bandera salud/funcional en definición. Si aplica a todas las fases queda abierto en B-040.' }),
@@ -135,11 +134,11 @@
     e('REPS_RANGO_AISLAMIENTO', [10, 15], 'repeticiones', 'spec núcleo v2', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'catálogo (aislamientos)' }),
     e('REPS_RANGO_AISLAMIENTO_ALTO', [12, 15], 'repeticiones', 'spec núcleo v2', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'catálogo (aislamientos de rango alto)' }),
     e('REPS_RANGO_VACUUM', [5, 8], 'repeticiones', 'spec núcleo v2', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'catálogo (vacuum abdominal)' }),
-    e('REPS_RANGO_CARGA_TRANSPORTADA', [20, 40], 'unidades de la etiqueta del plan', 'DEC-005', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'catálogo (paseo del granjero)', nota: 'La etiqueta del paseo del granjero muestra este rango tal cual; el motor actual no dice la unidad.' }),
-    e('SERIES_EXTRA_FUNCIONAL_SIN_VOLUMEN', 2, 'series', 'DEC-005', 'E4', CRITERIO, { paso: 'fuera', estado: 'implementada', cuando: { healthGoal: true }, origen: 'VALIDATOR_RULES.functionalNoVolumeExtraSets', nota: 'Paseo del granjero: se agrega aparte y no cuenta como volumen. Marcado para revisión en el motor actual.' }),
+    e('REPS_RANGO_CARGA_TRANSPORTADA', [20, 40], 'unidades de la etiqueta del plan', 'DEC-005', 'E4', CRITERIO, { paso: 1, estado: 'implementada', origen: 'catálogo (paseo del granjero)', nota: 'La etiqueta del paseo del granjero muestra este rango tal cual; el motor viejo no decía la unidad.' }),
+    e('SERIES_EXTRA_FUNCIONAL_SIN_VOLUMEN', 2, 'series', 'DEC-005', 'E4', CRITERIO, { paso: 'fuera', estado: 'implementada', cuando: { healthGoal: true }, origen: 'VALIDATOR_RULES.functionalNoVolumeExtraSets', nota: 'Paseo del granjero: se agrega aparte y no cuenta como volumen. Marcado para revisión.' }),
 
     /* ---- Fuera del núcleo v2 · intensidad, progresión y descarga (requisito del corte de B-039; DEC-033; revisión del investigador 2026-11-08) ---- */
-    // Los valores son los de los textos fijos del motor actual (engine.js). El nivel es el más conservador de los que propuso el investigador;
+    // Los valores son los de los textos fijos que tenía el motor viejo (engine.js). El nivel es el más conservador de los que propuso el investigador;
     // las lecturas completas están en docs/research/intensidad-progresion-descarga.md. Solo hubo lectura del texto completo del ACSM 2009
     // (pp. 687-695) y del ACSM 2026 (pp. 851-866), en copias de terceros; Helms 2015 y el resto, solo resúmenes.
     e('INTENSIDAD_REPETICIONES_PRINCIPAL', [6, 12], 'repeticiones', 'DEC-033', 'E4', 'Helms et al. 2015, J Sports Med Phys Fitness 55(3):164-178, PMID 24998610 (resumen: la mayoría de las repeticiones en 6-12) y ACSM 2009, Med Sci Sports Exerc 41(3):687-708, PMID 19204579 (p. 694: 8-12 repeticiones en novatos e intermedios, evidencia A; énfasis en 6-12 RM para hipertrofia, evidencia C). El ACSM 2026 (Currier et al., Med Sci Sports Exerc 58(4):851-872, PMID 41843416) reemplaza la guía de 2009: dice que la carga no influye en la hipertrofia y no da un rango de repeticiones', { paso: 'fuera', estado: 'implementada', fuentes: ['HELMS_TRAIN', 'ACSM_RT'], origen: 'engine.js (texto de intensidad)', nota: 'Podría ser E1 con salvedad si Emanuel toma la guía de 2009 como vigente; se registra E4 por ser la más conservadora.' }),
@@ -154,11 +153,11 @@
     e('DESCARGA_REDUCCION_VOLUMEN_PORCENTAJE', 50, '% del volumen', 'DEC-033', 'E4', 'Criterio de diseño. Bell et al. 2023: acuerdo en bajar el volumen y en que la intensidad puede mantenerse, sin un porcentaje; Coleman et al. 2024, PeerJ 12:e16777, PMID 38274324 (solo resumen): una semana sin entrenar no cambió la hipertrofia del tren inferior (pausa total, no media carga)', { paso: 'fuera', estado: 'implementada', fuentes: [], origen: 'engine.js (texto de descarga)' }),
     e('DESCARGA_DURACION_SEMANAS', 1, 'semanas', 'DEC-033', 'E4', 'Criterio de diseño sin fuente (Bell et al. 2023 describe descargas de unos 7 días como práctica habitual)', { paso: 'fuera', estado: 'implementada', fuentes: [], origen: 'engine.js (texto de descarga)' }),
 
-    /* ---- Reglas de progresión de volumen (R3): configuradas en el motor actual, sin lector ---- */
-    e('AUMENTO_SEMANAL_MAXIMO_PORCENTAJE', 20, '%', 'DEC-010', 'E4', 'FAPESP: la progresión óptima de volumen no está definida (https://bv.fapesp.br/en/bolsas/223465/URL)', { paso: 'fuera', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxWeeklyVolumeIncreasePct', nota: 'Pendiente en el motor actual: ninguna lógica la lee.' }),
-    e('RATIO_AGUDO_CRONICO_MAXIMO', 1.3, 'razón', 'DEC-010', 'E4', 'Gabbett, ratio de carga aguda/crónica (https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management)', { paso: 'fuera', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxAcuteChronicRatio', nota: 'Pendiente en el motor actual: ninguna lógica la lee.' }),
-    e('VENTANA_HISTORIAL_SEMANAS', 4, 'semanas', 'DEC-010', 'E4', CRITERIO, { paso: 'fuera', origen: 'VALIDATOR_RULES.historyWindowWeeks', nota: 'Pendiente en el motor actual: ninguna lógica la lee.' }),
-    e('HISTORIAL_MINIMO_SEMANAS_RAMPA', 2, 'semanas', 'DEC-010', 'E4', CRITERIO, { paso: 'fuera', origen: 'VALIDATOR_RULES.minHistoryWeeksForRamp', nota: 'Pendiente en el motor actual: ninguna lógica la lee.' }),
+    /* ---- Reglas de progresión de volumen (R3): configuradas, sin lector ---- */
+    e('AUMENTO_SEMANAL_MAXIMO_PORCENTAJE', 20, '%', 'DEC-010', 'E4', 'FAPESP: la progresión óptima de volumen no está definida (https://bv.fapesp.br/en/bolsas/223465/URL)', { paso: 'fuera', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxWeeklyVolumeIncreasePct', nota: 'Pendiente: ninguna lógica la lee.' }),
+    e('RATIO_AGUDO_CRONICO_MAXIMO', 1.3, 'razón', 'DEC-010', 'E4', 'Gabbett, ratio de carga aguda/crónica (https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management)', { paso: 'fuera', tipo: 'aviso', origen: 'VALIDATOR_RULES.maxAcuteChronicRatio', nota: 'Pendiente: ninguna lógica la lee.' }),
+    e('VENTANA_HISTORIAL_SEMANAS', 4, 'semanas', 'DEC-010', 'E4', CRITERIO, { paso: 'fuera', origen: 'VALIDATOR_RULES.historyWindowWeeks', nota: 'Pendiente: ninguna lógica la lee.' }),
+    e('HISTORIAL_MINIMO_SEMANAS_RAMPA', 2, 'semanas', 'DEC-010', 'E4', CRITERIO, { paso: 'fuera', origen: 'VALIDATOR_RULES.minHistoryWeeksForRamp', nota: 'Pendiente: ninguna lógica la lee.' }),
   ];
 
   const POR_ID = {};
@@ -188,5 +187,5 @@
     return [...ids].sort();
   }
 
-  return { REGLAS, regla, valor, estaActiva, reglasActivas, fuentesActivas };
+  return { REGLAS, regla, valor, estaActiva, fuentesActivas };
 });

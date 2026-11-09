@@ -1,7 +1,6 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.6). Pantalla de PLAN, pestaña "Entreno", del núcleo nuevo: arma el HTML desde el plan guardado
- * (`core-v2/plan.js`). Copia y adapta de `app.js` las tarjetas de sesión (`htmlSessionCard`, `htmlExRow`, `htmlExercise`, `htmlTraining`), que
- * se borran en el corte. Resumen, dieta, medidas y suplementos NO se tocan: siguen en `app.js` junto a esta pestaña.
- * NO está conectado a la app: lo monta la página de prueba (tests/pagina-nucleo-v2.html) y el corte lo conecta.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.6). Pantalla de PLAN, pestaña "Entreno", del núcleo nuevo: arma el HTML desde el plan guardado
+ * (`core-v2/plan.js`). Viene de las tarjetas de sesión de `app.js` (`htmlSessionCard`, `htmlExRow`, `htmlExercise`,
+ * `htmlTraining`), que el corte borró. Resumen, dieta, medidas y suplementos NO se tocan: siguen en `app.js` junto a esta pestaña.
  *
  * Todo son funciones puras que devuelven HTML; los eventos los conecta `montaje.js` con los atributos `data-*`:
  *   data-regenerar · data-aplicar-version · data-salida="mas-tiempo|mas-dias|aceptar" · data-toggle-day · data-start-session. */
@@ -142,5 +141,5 @@
       </details>`;
   }
 
-  return { htmlEntreno, htmlSesion, htmlEjercicio, htmlAviso, avisosDelPlan };
+  return { htmlEntreno, avisosDelPlan };
 });

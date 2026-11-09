@@ -1,9 +1,8 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.2b: bandera salud/funcional (B-049, DEC-035). No tocan el motor actual ni la interfaz. */
+/* Tests del núcleo v2, paso 3.2b: bandera salud/funcional (B-049, DEC-035). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const R = require('../js/core-v2/reparto.js');
 const C = require('../js/core-v2/cardio.js');
-const E = require('../js/engine.js');
 const CAT = require('../js/core-v2/catalogo.js');
 
 const base = (o) => Object.assign({ sex: 'F', level: 'intermediate', daysPerWeek: 4, division: 'bikini_w', goal: 'cut', tiempoDisponibleMin: 75 }, o);
@@ -94,11 +93,18 @@ test('cardio: en definición con la bandera son 3 × 50 = 150 min (el piso de la
   assert.deepEqual(C.prescribirCardio(base({ goal: 'bulk', healthGoal: true })).fuentes, []);
 });
 
-test('hasta el corte: el cardio de core-v2 es idéntico al del motor actual en todos los objetivos, niveles y con/sin bandera', () => {
-  ['cut', 'maintain', 'bulk'].forEach(goal => ['beginner', 'intermediate', 'advanced'].forEach(level => [false, true].forEach(healthGoal => {
-    const perfil = { name: 'T', sex: 'M', age: 30, heightCm: 178, weightKg: 85, level, daysPerWeek: 4, division: 'general_m', goal, healthGoal };
-    const v = E.buildPlan(perfil, '2026-11-08').training.cardio;
-    const n = C.prescribirCardio(perfil);
-    assert.deepEqual([n.sesiones, n.minutos, n.tipo, n.regla], [v.sessions, v.minutes, v.type, v.rule], `${goal}/${level}/${healthGoal}`);
+test('el cardio es el que prescribía el motor viejo: 2 × 25 min (3 × 25 en definición avanzada) salvo definición con la bandera de salud, que son 3 × 50 (el corte no lo cambió)', () => {
+  // En definición el avanzado lleva una sesión más (DEC-005); con la bandera de salud manda el piso de 150 min/semana.
+  const esperado = (goal, level, healthGoal) => (goal === 'cut' && healthGoal ? [3, 50] : goal === 'cut' && level === 'advanced' ? [3, 25] : [2, 25]);
+  ['cut', 'maintain', 'bulk'].forEach(goal => ['novice', 'intermediate', 'advanced'].forEach(level => [false, true].forEach(healthGoal => {
+    const n = C.prescribirCardio({ name: 'T', sex: 'M', age: 30, heightCm: 178, weightKg: 85, level, daysPerWeek: 4, division: 'general_m', goal, healthGoal });
+    assert.deepEqual([n.sesiones, n.minutos], esperado(goal, level, healthGoal), `${goal}/${level}/${healthGoal}`);
+    assert.ok(n.tipo.length > 10 && n.regla.length > 20, `${goal}/${level}/${healthGoal}: tipo y regla`);
+    // Fuera de definición el nivel no entra en la prescripción.
+    if (goal !== 'cut') assert.deepEqual(n, C.prescribirCardio({ goal, healthGoal }));
   })));
+  // En definición con la bandera se llega al piso de 150 min/semana y se cita a la OMS; fuera de ahí, no.
+  assert.equal(C.prescribirCardio({ goal: 'cut', healthGoal: true }).minutosSemana, 150);
+  assert.deepEqual(C.prescribirCardio({ goal: 'cut', healthGoal: true }).fuentes, ['ACSM_CARDIO', 'WHO_PA']);
+  assert.deepEqual(C.prescribirCardio({ goal: 'bulk', healthGoal: true }).fuentes, []);
 });

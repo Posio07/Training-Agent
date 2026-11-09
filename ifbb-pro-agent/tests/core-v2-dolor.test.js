@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.4: A4, A5 y A6 (B-039, DEC-034). No tocan el motor actual ni la interfaz. */
+/* Tests del núcleo v2, paso 3.4: A4, A5 y A6 (B-039, DEC-034). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');

@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.5). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del corte lo conecta.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.5). Conectado a la app en el corte.
  *
  * Los tres textos fijos del plan (intensidad, progresión y descarga), armados desde el registro de reglas: ningún número vive acá. Reemplazan
  * los textos escritos a mano en engine.js. `fuentesDeTextos` dice qué fuentes respaldan las reglas activas de estos textos (requisito de
@@ -40,5 +40,5 @@
     return [...ids].sort();
   }
 
-  return { intensidad, progresion, descarga, fuentesDeTextos, IDS };
+  return { intensidad, progresion, descarga, fuentesDeTextos };
 });

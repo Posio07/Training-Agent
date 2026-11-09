@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.2). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del corte lo conecta
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.2). Conectado a la app en el corte
  * (docs/specs/nucleo-v2.md, paso 7 del algoritmo y "Aceptación").
  *
  * Aviso único: si las demandas mínimas no entran en la capacidad (o la necesidad de un músculo no cabe bajo R1), la app muestra UN solo aviso
@@ -102,5 +102,5 @@
     return Object.assign({}, aviso, { hay: faltan.length > 0 || aviso.sesionesAfectadas.length === 0, sesionesAfectadas: faltan });
   }
 
-  return { ETIQUETAS, bloqueMinimoMin, limitadaPorTiempo, construirAviso, aplicarSalida, avisoPendiente };
+  return { bloqueMinimoMin, construirAviso, aplicarSalida, avisoPendiente };
 });

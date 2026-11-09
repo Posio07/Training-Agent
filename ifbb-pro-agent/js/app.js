@@ -1,30 +1,38 @@
-/* Interfaz y persistencia. Los perfiles se guardan en localStorage del
- * dispositivo (nunca salen del teléfono) y se pueden exportar/importar en JSON. */
+/* Interfaz. Los perfiles se guardan en localStorage del dispositivo (nunca salen
+ * del teléfono) y se pueden exportar/importar en JSON.
+ *
+ * El plan de entrenamiento, el formulario del perfil, la sesión y el progreso por
+ * variante los pinta el núcleo nuevo (`js/core-v2/pantallas/`), que este archivo
+ * monta; acá se quedan los perfiles, el resumen, la dieta, las medidas, los
+ * suplementos, el progreso de peso y medidas, y las fuentes (B-047).
+ *
+ * El almacenamiento es el de `core-v2/almacen.js`: clave nueva y sin migración
+ * (DEC-032 y DEC-023). Los datos de la app anterior (`ifbb-agent:v1`) quedan en el
+ * dispositivo, ignorados, hasta que un PR aparte los borre (B-046). */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'ifbb-agent:v1';
+  const ALMACEN = window.CORE_V2_ALMACEN;
+  const MONTAJE = window.CORE_V2_MONTAJE;
+  const SESION_PANTALLA = window.CORE_V2_SESION_PANTALLA;
+  const SS = window.SESSION_STORE;
   const $ = sel => document.querySelector(sel);
   const view = $('#view');
 
   /* ---------- Estado y persistencia ---------- */
-  let state = load();
+  const todayIso = () => new Date().toISOString().slice(0, 10);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // El almacenamiento, sin lógica propia: la clave, la forma y el guardado con aviso salen de core-v2/almacen.js.
+  const state = ALMACEN.cargar(storageOrNull());
+  const save = ALMACEN.guardador(storageOrNull(), state, msg => toast(msg));
   let ui = { tab: 'profiles', planTab: 'summary', editingId: null };
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) { const s = JSON.parse(raw); if (s && Array.isArray(s.profiles)) return s; }
-    } catch (e) { /* almacenamiento no disponible */ }
-    return { profiles: [], activeId: null };
+  // localStorage si el navegador lo permite; si no, un almacenamiento en memoria (la app sigue funcionando sin guardar).
+  function storageOrNull() {
+    try { localStorage.setItem('__probe', '1'); localStorage.removeItem('__probe'); return localStorage; }
+    catch (e) { const mem = {}; return { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } }; }
   }
-  function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch (e) { toast('No se pudo guardar: almacenamiento no disponible.'); }
-  }
-  const active = () => state.profiles.find(p => p.id === state.activeId) || null;
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const todayIso = () => new Date().toISOString().slice(0, 10);
+  const active = () => ALMACEN.activo(state);
 
   /* ---------- Utilidades ---------- */
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -169,7 +177,7 @@
       $('#btn-edit').onclick = () => { ui.editingId = state.activeId; go('data'); };
       $('#btn-dup').onclick = () => {
         const src = active();
-        const copy = { id: uid(), createdAt: todayIso(), updatedAt: todayIso(), data: Object.assign({}, src.data, { name: src.data.name + ' (copia)' }), log: [] };
+        const copy = ALMACEN.crearPerfil(Object.assign({}, src.data, { name: src.data.name + ' (copia)' }), { id: uid(), planId: uid(), ahora: todayIso() });
         state.profiles.push(copy); state.activeId = copy.id; save(); toast('Perfil duplicado'); render();
       };
       $('#btn-export').onclick = exportJson;
@@ -214,10 +222,11 @@
           const newId = uid();
           const prepared = ENGINE.prepareImportedProfile(item, todayIso(), newId);
           droppedHealth = droppedHealth || prepared.droppedHealth;
-          const imported = { id: newId, createdAt: prepared.createdAt, updatedAt: prepared.updatedAt, data: prepared.data, log: prepared.log };
+          const imported = ALMACEN.crearPerfil(prepared.data, { id: newId, planId: uid(), ahora: todayIso() });
+          imported.createdAt = prepared.createdAt; imported.updatedAt = prepared.updatedAt;
+          imported.log = prepared.log;
           // B-001: el entrenamiento registrado (series y sesiones, sin dolor) vuelve con el perfil.
-          if (prepared.workouts.length) imported.workouts = prepared.workouts;
-          if (prepared.sessions.length) imported.sessions = prepared.sessions;
+          imported.workouts = prepared.workouts; imported.sessions = prepared.sessions;
           restoredSets += prepared.workouts.length;
           state.profiles.push(imported);
           count++;
@@ -230,210 +239,9 @@
     reader.readAsText(file);
   }
 
-  function platesCheckboxes(unit, selected) {
-    const canon = unit === 'lb' ? KNOWLEDGE.PLATES_LB : KNOWLEDGE.PLATES_KG;
-    const sel = Array.isArray(selected) && selected.length ? selected.map(Number) : canon;
-    return canon.map(p => `<label style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0;font-size:.85rem;color:var(--tiza)"><input type="checkbox" name="availablePlates" value="${p}" style="width:auto" ${sel.includes(p) ? 'checked' : ''}> ${n1(p)} ${unit}</label>`).join('');
-  }
-
-  /* DEC-009: una fila por zona de lesión, con el diagnóstico y el dolor
-   * actual ocultos hasta marcar la zona (JS, puramente visual: lo que
-   * decide qué cuenta es normalizeHealth en engine.js). */
-  function injuryZoneRow(zone, label, inj) {
-    const checked = !!inj;
-    // Nota: no usar `hidden` + estilo inline `display` en el mismo
-    // elemento. El estilo inline siempre le gana a la regla [hidden] de
-    // la hoja del navegador, así que quedaría visible igual. El propio
-    // display inline (none/flex) es lo único que hace falta.
-    return `<div class="injury-zone" data-zone="${zone}">
-      <label style="display:flex;align-items:center;gap:.5rem;margin:.25rem 0"><input type="checkbox" name="injuryZones" value="${zone}" class="injury-toggle" style="width:auto" ${checked ? 'checked' : ''}> ${esc(label)}</label>
-      <div class="injury-sub" style="padding-left:1.7rem;display:${checked ? 'flex' : 'none'};gap:1.1rem;flex-wrap:wrap;margin:0 0 .6rem">
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--acero)"><input type="checkbox" name="injuryDiagnosed" value="${zone}" style="width:auto" ${inj && inj.diagnosed ? 'checked' : ''}> Diagnóstico profesional</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--acero)"><input type="checkbox" name="injuryPainNow" value="${zone}" style="width:auto" ${inj && inj.painNow ? 'checked' : ''}> Dolor actualmente</label>
-        ${inj && inj.clearanceDate ? `<span style="font-size:.78rem;color:var(--acero)">Autorización profesional registrada el ${esc(inj.clearanceDate)}</span>` : ''}
-      </div>
-    </div>`;
-  }
-
-  /* ---------- Datos ---------- */
-  function renderData() {
-    const editing = ui.editingId ? state.profiles.find(p => p.id === ui.editingId) : null;
-    const d = editing ? editing.data : { sex: 'M', activity: 'moderate', level: 'intermediate', daysPerWeek: 4, goal: 'cut', division: 'classic_m' };
-    const opt = (list, val, fmt) => list.map(x => `<option value="${esc(fmt ? fmt(x).v : x.id)}" ${(fmt ? fmt(x).v : x.id) === val ? 'selected' : ''}>${esc(fmt ? fmt(x).l : x.label)}</option>`).join('');
-    const divisions = Object.values(KNOWLEDGE.DIVISIONS);
-    // DEC-009: estructura por defecto si el perfil todavía no tiene datos de salud.
-    const h = Object.assign({ screening: {}, diabetes: { type: 'none' }, injuries: [] }, d.health || {});
-    h.screening = h.screening || {};
-    const injuriesByZone = {};
-    (h.injuries || []).forEach(inj => { injuriesByZone[inj.zone] = inj; });
-    const hasHealthData = !!(h.screening.regularExercise || h.screening.cvMetabolicRenal || h.screening.symptoms || h.screening.medicalClearance || h.diabetes.type !== 'none' || h.diabetes.medication || (h.injuries || []).length);
-
-    view.innerHTML = `
-      <form id="form" novalidate>
-        <div class="card accent">
-          <h2>${editing ? 'Editar datos' : 'Nuevo perfil'}</h2>
-          <p class="muted">Cuantos más datos reales aportes, más preciso será el plan. Los campos con * son obligatorios.</p>
-        </div>
-        <fieldset>
-          <legend>Persona</legend>
-          <label>Nombre del perfil *</label>
-          <input name="name" value="${esc(d.name || '')}" placeholder="Ej. Óscar · Prep 2027" required>
-          <div class="row3">
-            <div><label>Sexo *</label><select name="sex" id="sex"><option value="M" ${d.sex === 'M' ? 'selected' : ''}>Hombre</option><option value="F" ${d.sex === 'F' ? 'selected' : ''}>Mujer</option></select></div>
-            <div><label>Edad *</label><input name="age" type="number" inputmode="numeric" min="14" max="90" value="${esc(d.age || '')}"></div>
-            <div><label>Estatura (cm) *</label><input name="heightCm" type="number" inputmode="decimal" step="0.5" value="${esc(d.heightCm || '')}"></div>
-          </div>
-          <div class="row2">
-            <div><label>Peso (kg) *</label><input name="weightKg" type="number" inputmode="decimal" step="0.1" value="${esc(d.weightKg || '')}"></div>
-            <div><label>% grasa medido (si lo sabes)</label><input name="bodyFatPct" type="number" inputmode="decimal" step="0.1" value="${esc(d.bodyFatPct || '')}" placeholder="DXA, plicometría…"></div>
-          </div>
-          <p class="help">Si no tienes % de grasa medido, rellena las circunferencias y se estimará con el método de la US Navy (±3-4 %).</p>
-          <div class="row3">
-            <div><label>Cuello (cm)</label><input name="neckCm" type="number" inputmode="decimal" step="0.5" value="${esc(d.neckCm || '')}"></div>
-            <div><label>Cintura (cm)</label><input name="waistCm" type="number" inputmode="decimal" step="0.5" value="${esc(d.waistCm || '')}"></div>
-            <div><label>Cadera (cm)</label><input name="hipCm" type="number" inputmode="decimal" step="0.5" value="${esc(d.hipCm || '')}" placeholder="mujeres"></div>
-          </div>
-          <p class="help">Cintura: a la altura del ombligo (hombres) o en el punto más estrecho (mujeres). Cuello: justo bajo la laringe. Cadera: en el punto más ancho.</p>
-        </fieldset>
-        <fieldset>
-          <legend>Actividad y experiencia</legend>
-          <label>Actividad diaria *</label>
-          <select name="activity">${opt(KNOWLEDGE.ACTIVITY, d.activity)}</select>
-          <label>Experiencia en entrenamiento de fuerza *</label>
-          <select name="level">
-            <option value="novice" ${d.level === 'novice' ? 'selected' : ''}>Principiante (&lt; 1 año seguido)</option>
-            <option value="intermediate" ${d.level === 'intermediate' ? 'selected' : ''}>Intermedio (1-4 años)</option>
-            <option value="advanced" ${d.level === 'advanced' ? 'selected' : ''}>Avanzado (&gt; 4 años o competidor)</option>
-          </select>
-          <label>Días de entrenamiento por semana *</label>
-          <select name="daysPerWeek">${[3, 4, 5, 6].map(n => `<option value="${n}" ${Number(d.daysPerWeek) === n ? 'selected' : ''}>${n} días</option>`).join('')}</select>
-          <label>Grupos musculares rezagados (opcional)</label>
-          <p class="help">Reciben un 25 % más de series que el resto, por encima incluso del recorte que les tocaría por tu división.</p>
-          <div class="row3">${Object.entries(KNOWLEDGE.MUSCLE_LABELS).map(([id, label]) => `<label style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0;font-size:.85rem;color:var(--tiza)"><input type="checkbox" name="laggingMuscles" value="${id}" style="width:auto" ${(d.laggingMuscles || []).includes(id) ? 'checked' : ''}> ${esc(label)}</label>`).join('')}</div>
-        </fieldset>
-        <fieldset>
-          <legend>Objetivo</legend>
-          <label>División IFBB Pro League *</label>
-          <select name="division" id="division">${opt(divisions.filter(x => x.sex === d.sex), d.division)}</select>
-          <p class="help" id="division-help"></p>
-          <label>Fase *</label>
-          <select name="goal">
-            <option value="cut" ${d.goal === 'cut' ? 'selected' : ''}>Definición / preparación (perder grasa)</option>
-            <option value="bulk" ${d.goal === 'bulk' ? 'selected' : ''}>Volumen / off-season (ganar músculo)</option>
-            <option value="maintain" ${d.goal === 'maintain' ? 'selected' : ''}>Mantenimiento / recomposición</option>
-          </select>
-          <div class="row2">
-            <div><label>Fecha objetivo (opcional)</label><input name="targetDate" type="date" value="${esc(d.targetDate || '')}"></div>
-            <div><label>% grasa objetivo (opcional)</label><input name="targetBf" type="number" inputmode="decimal" step="0.5" value="${esc(d.targetBf || '')}" placeholder="auto según división"></div>
-          </div>
-          <div id="classic-wrap" ${d.division === 'classic_m' ? '' : 'hidden'}>
-            <label>Límite oficial Classic Physique para tu estatura (lb, opcional)</label>
-            <input name="classicLimitLb" type="number" inputmode="numeric" value="${esc(d.classicLimitLb || '')}" placeholder="Deja vacío para usar la tabla orientativa">
-            <p class="help">La tabla incluida es la de agosto de 2023 y no pudo verificarse contra el reglamento vigente. Si conoces el límite actual, escríbelo aquí.</p>
-          </div>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="healthGoal" style="width:auto" ${d.healthGoal ? 'checked' : ''}> Priorizar salud/funcional sobre estética</label>
-          <p class="help">En definición, mantiene el cardio en 150 min/semana en vez de recortarlo, y suma sentadilla búlgara, step-up con carga y paseo del granjero a la rutina de pierna.</p>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="barbellRow" style="width:auto" ${d.barbellRow ? 'checked' : ''}> Incluir remo con barra</label>
-          <p class="help">Por defecto el remo del plan es con apoyo de pecho, que carga menos la espalda baja. No hay estudios que muestren más hipertrofia de espalda con el remo con barra. Si lo incluyes, el plan puede avisarte cuando junte dos ejercicios de mucha demanda lumbar en un día.</p>
-        </fieldset>
-        <fieldset>
-          <legend>Barra cargada</legend>
-          <p class="help">Para que el modo sesión te muestre qué discos poner en cada lado, en los ejercicios de barra (sentadilla, press banca, press militar, peso muerto rumano, remo con barra, hip thrust).</p>
-          <div class="row2">
-            <div><label>Unidad</label><select name="plateUnit" id="plateUnit"><option value="kg" ${(d.plateUnit || 'kg') === 'kg' ? 'selected' : ''}>Kilogramos</option><option value="lb" ${d.plateUnit === 'lb' ? 'selected' : ''}>Libras</option></select></div>
-            <div><label>Peso de la barra</label><input name="barWeight" id="barWeight" type="number" inputmode="decimal" step="0.5" value="${esc(d.barWeight || '')}" placeholder="${(d.plateUnit || 'kg') === 'lb' ? '45' : '20'}"></div>
-          </div>
-          <label>Discos disponibles</label>
-          <div class="row3" id="plates-wrap">${platesCheckboxes(d.plateUnit || 'kg', d.availablePlates)}</div>
-        </fieldset>
-        <fieldset>
-          <legend>Salud</legend>
-          <p class="help">La app NO reemplaza a un médico, fisioterapeuta ni entrenador certificado. El tamizaje y los avisos de diabetes aplican posicionamientos oficiales. Para lesiones la app no adapta la rutina: te pide la autorización de un profesional y solo evita, como precaución (E4), algunos ejercicios de la zona. Una condición sin regla cargada queda registrada y no cambia nada.</p>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthRegularExercise" style="width:auto" ${h.screening.regularExercise ? 'checked' : ''}> Hago ejercicio planificado ≥30 min, 3 días/semana, desde hace al menos 3 meses</label>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthCvMetabolicRenal" style="width:auto" ${h.screening.cvMetabolicRenal ? 'checked' : ''}> Tengo diagnóstico de enfermedad cardiovascular, metabólica (diabetes) o renal</label>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthSymptoms" style="width:auto" ${h.screening.symptoms ? 'checked' : ''}> Tengo dolor/molestia en el pecho, falta de aire en reposo o con poco esfuerzo, mareo o desmayo, palpitaciones, hinchazón de tobillos, dolor en las piernas al caminar, soplo cardíaco conocido o fatiga inusual</label>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem"><input type="checkbox" name="healthMedicalClearance" style="width:auto" ${h.screening.medicalClearance ? 'checked' : ''}> Tengo autorización médica para entrenar a intensidad vigorosa (vigente, últimos 12 meses)</label>
-          <p class="help">Si marcaste síntomas, o la condición cardiovascular/metabólica/renal sin entrenar de forma regular, el plan queda oculto hasta marcar esta autorización.</p>
-
-          <label style="margin-top:.8rem">Diabetes</label>
-          <select name="diabetesType">
-            <option value="none" ${h.diabetes.type === 'none' ? 'selected' : ''}>Ninguna</option>
-            <option value="type1" ${h.diabetes.type === 'type1' ? 'selected' : ''}>Tipo 1</option>
-            <option value="type2" ${h.diabetes.type === 'type2' ? 'selected' : ''}>Tipo 2</option>
-          </select>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem"><input type="checkbox" name="healthDiabetesMed" style="width:auto" ${h.diabetes.medication ? 'checked' : ''}> Uso insulina u otro fármaco que baja la glucosa</label>
-
-          <label style="margin-top:.8rem">Lesiones (marcá la zona si tenés una)</label>
-          <div id="injury-zones">${KNOWLEDGE.INJURY_ZONES.map(z => injuryZoneRow(z, KNOWLEDGE.INJURY_LABELS[z], injuriesByZone[z])).join('')}</div>
-          <p class="help">Con cualquier zona marcada, el plan queda en pausa hasta que confirmes que un profesional te autorizó a entrenar con esa lesión (se pide una vez por zona y se vuelve a pedir si agregás otra, si el dolor de una zona aumenta o si cambia su diagnóstico). Como precaución (E4) se evitan algunos ejercicios de la zona: no es una adaptación a tu lesión. En Modo sesión podés registrar el dolor de cada serie que la involucre.</p>
-
-          ${hasHealthData ? '<div class="btn-row"><button type="button" class="btn btn-danger" id="btn-clear-health">Borrar datos de salud</button></div>' : ''}
-        </fieldset>
-        <div id="form-errors"></div>
-        <div class="btn-row">
-          <button type="submit" class="btn btn-primary btn-block">Guardar y generar plan</button>
-        </div>
-        <div class="btn-row"><button type="button" class="btn btn-ghost btn-block" id="btn-cancel">Cancelar</button></div>
-      </form>`;
-
-    const form = $('#form');
-    const sexSel = $('#sex'), divSel = $('#division');
-    function refreshDivisions() {
-      const sex = sexSel.value;
-      const cur = divSel.value;
-      divSel.innerHTML = opt(divisions.filter(x => x.sex === sex), KNOWLEDGE.DIVISIONS[cur] && KNOWLEDGE.DIVISIONS[cur].sex === sex ? cur : (sex === 'M' ? 'classic_m' : 'bikini_w'));
-      refreshHelp();
-    }
-    function refreshHelp() {
-      const dv = KNOWLEDGE.DIVISIONS[divSel.value];
-      $('#division-help').textContent = dv ? `${dv.judging} Grasa en tarima estimada: ${dv.stageBf[0]}-${dv.stageBf[1]} %.` : '';
-      $('#classic-wrap').hidden = divSel.value !== 'classic_m';
-    }
-    sexSel.onchange = refreshDivisions; divSel.onchange = refreshHelp; refreshHelp();
-    $('#btn-cancel').onclick = () => go(active() ? 'plan' : 'profiles');
-    $('#plateUnit').onchange = () => {
-      const u = $('#plateUnit').value;
-      $('#barWeight').placeholder = u === 'lb' ? '45' : '20';
-      $('#plates-wrap').innerHTML = platesCheckboxes(u, null);
-    };
-    view.querySelectorAll('.injury-toggle').forEach(cb => cb.onchange = () => {
-      const sub = cb.closest('.injury-zone').querySelector('.injury-sub');
-      sub.style.display = cb.checked ? 'flex' : 'none';
-    });
-    const btnClearHealth = $('#btn-clear-health');
-    if (btnClearHealth) btnClearHealth.onclick = () => {
-      if (!confirm('¿Borrar todos los datos de salud de este perfil? No afecta el resto de los datos.')) return;
-      editing.data.health = { screening: { regularExercise: false, cvMetabolicRenal: false, symptoms: false, medicalClearance: false }, diabetes: { type: 'none', medication: false }, injuries: [] };
-      editing.updatedAt = todayIso(); save(); toast('Datos de salud borrados'); renderData();
-    };
-
-    form.onsubmit = e => {
-      e.preventDefault();
-      const fd = new FormData(form);
-      const data = Object.fromEntries(fd.entries());
-      data.laggingMuscles = fd.getAll('laggingMuscles');
-      data.availablePlates = fd.getAll('availablePlates');
-      data.injuryZones = fd.getAll('injuryZones');
-      data.injuryDiagnosed = fd.getAll('injuryDiagnosed');
-      data.injuryPainNow = fd.getAll('injuryPainNow');
-      const errors = ENGINE.validateProfile(data);
-      if (errors.length) { $('#form-errors').innerHTML = errors.map(x => `<div class="alert danger">${esc(x)}</div>`).join(''); window.scrollTo({ top: document.body.scrollHeight }); return; }
-      const norm = ENGINE.normalizeProfile(data);
-      norm.health = ENGINE.reconcileInjuryClearances(editing && editing.data.health, norm.health); // DEC-011
-      norm.longSessionAcceptance = (editing && editing.data.longSessionAcceptance) || null; // DEC-016: la firma del plan decide si sigue valiendo
-      if (editing) { editing.data = norm; editing.updatedAt = todayIso(); state.activeId = editing.id; }
-      else {
-        const p = { id: uid(), createdAt: todayIso(), updatedAt: todayIso(), data: norm, log: [] };
-        p.log.push(logEntryFrom(norm));
-        state.profiles.push(p); state.activeId = p.id;
-      }
-      save(); toast('Perfil guardado'); ui.planTab = 'summary'; go('plan');
-    };
-  }
-
-  function logEntryFrom(d) {
-    return { date: todayIso(), weightKg: d.weightKg, bodyFatPct: d.bodyFatPct || null, waistCm: d.waistCm || null, neckCm: d.neckCm || null, hipCm: d.hipCm || null, notes: 'Datos iniciales' };
-  }
+  /* ---------- Datos (formulario del perfil) ---------- */
+  // El formulario y su cableado viven en core-v2/pantallas/perfil.js; acá solo se monta.
+  function renderData() { montarNucleo('perfil', ui.editingId); }
 
   /* ---------- Plan ---------- */
   function renderPlan() {
@@ -452,12 +260,34 @@
     const body = $('#plan-body');
     if (ui.planTab === 'summary') { body.innerHTML = htmlSummary(plan, p); wireCounts(body, 'summary:' + p.id); }
     else if (ui.planTab === 'nutrition') body.innerHTML = htmlNutrition(plan);
-    else if (ui.planTab === 'training') body.innerHTML = htmlTraining(plan, p);
+    else if (ui.planTab === 'training') montarNucleo('plan', null, body); // el entreno lo pinta core-v2/pantallas/entreno.js
     else if (ui.planTab === 'targets') body.innerHTML = htmlTargets(plan);
     else body.innerHTML = htmlSupps(plan);
     const share = $('#btn-share');
-    if (share) share.onclick = () => sharePlan(plan);
-    if (ui.planTab === 'training') wireTrainingDays(plan, p);
+    if (share) share.onclick = () => sharePlan(plan, p);
+  }
+
+  /* ---------- Montaje del núcleo nuevo ----------
+   * Perfil, entreno y progreso por variante los pinta core-v2/pantallas/montaje.js.
+   * La navegación sigue siendo de esta barra de pestañas: `navegar` traduce el cambio
+   * de pantalla que pide el núcleo a la pestaña que le corresponde. */
+  function montarNucleo(vista, editandoId, raiz) {
+    const destino = raiz || view;
+    if (!raiz) destino.innerHTML = '';
+    MONTAJE.montar(destino, {
+      almacen: state, guardar: save, ahora: todayIso, reloj: () => Date.now(), id: uid, aviso: toast,
+      confirmar: (msg, opciones) => confirmModal(msg, opciones),
+      vista, editandoId,
+      navegar: (v, id) => {
+        if (v === 'perfil') { ui.editingId = id; go('data'); }
+        else if (v === 'progreso') go('progress');
+        else { ui.editingId = null; ui.planTab = 'summary'; go('plan'); } // guardar o cancelar el perfil vuelve al Resumen, como antes del corte
+      },
+      siguiente: p => SS.siguienteDia(p.workouts || [], p.sessions || [], p.planGuardado.plan.sesiones.map(x => x.nombre)),
+      sesionActivaId: () => { const st = sesion.estado(); return st ? st.sessionId : null; },
+      pantallaBloqueo: (destinoRaiz, perfil, salud) => { destinoRaiz.innerHTML = htmlHealthBlock({ health: salud }); wireHealthBlock(perfil); },
+      alIniciarSesion: (indice, perfil, minutos) => sesion.iniciar(perfil, indice, minutos),
+    });
   }
 
   /* DEC-009: pantalla de bloqueo cuando el tamizaje lo exige. El motor
@@ -510,36 +340,12 @@
     $('#btn-edit-health').onclick = () => { ui.editingId = profile.id; go('data'); };
   }
 
-  function wireTrainingDays(plan, profile) {
-    // DEC-016: la aceptación guarda la firma del plan y el máximo de series que se vio (no es un permiso abierto).
-    const setLong = value => { profile.data.longSessionAcceptedOn = ''; profile.data.longSessionAcceptance = value; profile.updatedAt = todayIso(); save(); toast(value ? 'Aceptación registrada' : 'Tope restablecido'); renderPlan(); };
-    const proposed = plan.training.sessionLimit.proposed;
-    view.querySelectorAll('[data-accept-long]').forEach(b => b.onclick = () => setLong({ on: todayIso(), signature: proposed.signature, maxSets: proposed.maxSets }));
-    view.querySelectorAll('[data-revoke-long]').forEach(b => b.onclick = () => setLong(null));
-    view.querySelectorAll('[data-change-split]').forEach(b => b.onclick = () => { ui.editingId = profile.id; go('data'); });
-    view.querySelectorAll('[data-toggle-day]').forEach(btn => {
-      btn.onclick = () => {
-        const bodyEl = document.getElementById('day-body-' + btn.dataset.toggleDay);
-        const isOpen = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isOpen));
-        if (bodyEl) bodyEl.inert = isOpen;
-      };
-    });
-    view.querySelectorAll('[data-start-session]').forEach(btn => {
-      btn.onclick = () => startSessionMode(profile, plan, Number(btn.dataset.startSession), false);
-    });
-    view.querySelectorAll('[data-start-session-short]').forEach(btn => {
-      btn.onclick = () => startSessionMode(profile, plan, Number(btn.dataset.startSessionShort), true);
-    });
-  }
-
-  // DEC-011: etiqueta de nivel de evidencia visible junto a avisos y ejercicios
-  // que son precauciones heurísticas.
   function evTag(level) { return `<span class="ev-tag">${esc(level)} · ${level === 'E3' ? 'preprint' : 'heurística'}</span>`; }
   function alerts(list) { return list.map(w => `<div class="alert ${w.level}">${esc(w.text)}${w.evidence ? ' ' + evTag(w.evidence) : ''}</div>`).join(''); }
 
   function htmlSummary(plan, profile) {
-    const m = plan.metrics, t = plan.targets, n = plan.nutrition, tr = plan.training;
+    const m = plan.metrics, t = plan.targets, n = plan.nutrition;
+    const dias = profile.planGuardado.plan.sesiones.length;
     const goalLabel = { cut: 'Definición', bulk: 'Volumen', maintain: 'Mantenimiento' }[plan.input.goal];
     return `
       <div class="card accent">
@@ -564,7 +370,7 @@
           <li>Gasto total: ${n0(m.bmr)} × ${m.activityFactor} (${esc(m.activityLabel)}) = <b>${n0(m.tdee)} kcal</b>.</li>
           <li>${plan.input.goal === 'cut' ? `Ritmo de pérdida ${t.ratePct} % del peso/semana (${n1(t.rateKg * 1000)} g) → déficit ${n0(-n.delta)} kcal/día ${cite('HELMS_NUT')}.` : plan.input.goal === 'bulk' ? `Superávit ${n0(n.delta)} kcal/día para ganar ~${t.ratePct} % del peso/semana ${cite('IRAKI')}.` : 'Calorías de mantenimiento; la recomposición depende de proteína alta y entrenamiento progresivo.'}</li>
           <li>Masa magra ${n1(m.lbm)} kg · masa grasa ${n1(m.fatMass)} kg · FFMI normalizado ${n1(m.ffmiNormalized)} ${cite('KOURI')}.</li>
-          <li>Entrenamiento: ${esc(tr.splitName)}, ${tr.daysPerWeek} días, cada músculo ≥2×/semana ${cite(['SCHOENFELD_FREQ', 'SCHOENFELD_VOL'])}.</li>
+          <li>Entrenamiento: ${dias} días por semana; el reparto parte del tiempo que tienes en cada sesión ${cite(['SCHOENFELD_VOL', 'HELMS_TRAIN'])}. El detalle está en Entreno.</li>
         </ul>
         <div class="btn-row"><button class="btn" id="btn-share">Compartir / copiar resumen</button></div>
       </div>
@@ -627,151 +433,6 @@
   // DEC-014 · regla E4: tope de series por sesión. El usuario puede aceptar sesiones más largas (queda con fecha).
   // DEC-016: la aceptación vale para este plan y hasta un máximo de series; si cambia, se vuelve a pedir.
   // También avisa de los grupos que quedan bajo el mínimo semanal (mayores y chicos).
-  function htmlSessionLimit(sl) {
-    const acceptBtn = '<button class="btn" data-accept-long>Aceptar sesiones más largas (sin recortes)</button>';
-    const splitBtn = '<button class="btn" data-change-split>Cambiar de split</button>';
-    let out = '';
-    if (sl.accepted) {
-      const a = sl.acceptance;
-      out += `<div class="card"><h3>Sesiones más largas aceptadas</h3>
-        <p>Aceptaste sesiones por encima de las ${sl.cap} series el ${esc(sl.accepted)}${a ? `, hasta ${a.maxSets} series por sesión y para este plan (días, división, objetivo, rezagados y nivel)` : ''}: no se recorta ninguna serie. Si cambias el plan o alguna sesión supera ese máximo, se vuelve a pedir. ${evTag('E4')}</p>
-        <div class="btn-row"><button class="btn" data-revoke-long>Volver al tope de ${sl.cap} series</button></div></div>`;
-    } else if (sl.trimmed.length) {
-      const inv = sl.acceptanceInvalidated;
-      out += `<div class="card"><h3>Tope de ${sl.cap} series por sesión</h3>
-        ${inv ? `<div class="alert warn">Tu aceptación del ${esc(inv.on)} ya no aplica (${inv.reason === 'firma' ? 'cambió el plan' : 'una sesión supera el máximo que aceptaste'}). Hay que volver a aceptar.</div>` : ''}
-        <p>Para respetar el tope se recortaron series de aislamiento (el detalle está en los avisos del plan). Es una convención de la app, sin fuente externa. ${evTag('E4')}</p>
-        <div class="btn-row">${acceptBtn}</div></div>`;
-    }
-    if (sl.belowMinimum && sl.belowMinimum.length) {
-      const canAccept = !sl.accepted && sl.belowMinimum.some(x => x.trimmedByCap > 0);
-      out += `<div class="card"><h3>Grupos por debajo del mínimo semanal</h3>
-        <p>Objetivo de hipertrofia del ACSM 2026: ~10 series fraccionadas por grupo a la semana (la app lo usa como piso protector; en los grupos con énfasis reducido por la división, el piso es el de mantenimiento). ${evTag('E1')}</p>
-        <ul>${sl.belowMinimum.map(x => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[x.muscle])}</b>: ${n1(x.fractionalSets)} de ${x.floor}${x.floor < 10 ? ' (mantenimiento: énfasis reducido por la división)' : ''}${x.trimmedByCap > 0 ? ` · el tope E4 quitó ${n1(x.trimmedByCap)}` : ''}</li>`).join('')}</ul>
-        <div class="btn-row">${canAccept ? acceptBtn : ''}${splitBtn}</div></div>`;
-    }
-    // DEC-020: mínimo semanal por grupo. Si no cabe dentro del tope, solo se cumple con la aceptación explícita.
-    const unmetMin = sl.minimum ? sl.minimum.groups.filter(g => !g.met && !g.excludedByInjury) : [];
-    if (unmetMin.length) {
-      out += `<div class="card"><h3>Mínimo semanal por grupo</h3>
-        <p>La app exige al menos ${sl.minimum.value} series fraccionadas por semana en cada grupo (convención de la app, ${evTag('E4')}). No cabe dentro del tope de ${sl.cap} series por sesión en:</p>
-        <ul>${unmetMin.map(g => `<li><b>${esc(KNOWLEDGE.MUSCLE_LABELS[g.muscle])}</b>: ${n1(g.after)} de ${g.minimum}</li>`).join('')}</ul>
-        <p>${sl.accepted ? 'Ni con tu aceptación cabe: prueba con más días por semana.' : 'Para cumplirlo una sesión tendría que pasarse del tope: puedes aceptarlo de forma explícita o cambiar de split.'}</p>
-        <div class="btn-row">${sl.accepted ? '' : acceptBtn}${splitBtn}</div></div>`;
-    }
-    return out;
-  }
-
-  function htmlTraining(plan, profile) {
-    const tr = plan.training, t = plan.targets;
-    const setsRows = Object.entries(tr.weeklySets).map(([mu, s]) => `<tr><td>${esc(KNOWLEDGE.MUSCLE_LABELS[mu])}${tr.laggingApplied[mu] ? ' <span class="cite" title="Grupo rezagado: +25 % de series, anula el énfasis de la división">rezagado</span>' : ''}</td><td class="num">${s}</td></tr>`).join('');
-    // "Siguiente": el día que sigue a la última sesión registrada del perfil, en el orden del split (no depende
-    // de la fecha); sin sesiones registradas, el Día 1. Si cambia el split, vuelve al Día 1.
-    const nextIdx = SS.siguienteDia((profile && profile.workouts) || [], (profile && profile.sessions) || [], tr.sessions.map(s => s.name));
-    return `
-      <div class="card accent">
-        <h2>Entrenamiento · ${esc(tr.splitName)}</h2>
-        <p class="muted">${tr.daysPerWeek} días/semana · énfasis de la división: ${esc(t.division.emphasis.join(' · '))}</p>
-        <ul>
-          <li><b>Intensidad:</b> ${esc(tr.intensity)} ${cite(['HELMS_TRAIN', 'ACSM_RT'])}</li>
-          <li><b>Progresión:</b> ${esc(tr.progression)} ${cite('ACSM_RT')}</li>
-          <li><b>Descarga:</b> ${esc(tr.deload)}</li>
-          ${tr.posing ? `<li><b>Posado:</b> ${esc(tr.posing)}</li>` : ''}
-        </ul>
-        <div class="src">Fuentes: ${cite(tr.sources)}</div>
-      </div>
-      ${htmlSessionLimit(tr.sessionLimit)}
-      ${tr.sessions.map((s, i) => htmlSessionCard(s, i, i === nextIdx)).join('')}
-      <div class="card">
-        <h3>Cardio</h3>
-        <p><b>${tr.cardio.sessions} sesiones × ${tr.cardio.minutes} min</b> · ${esc(tr.cardio.type)}</p>
-        <p class="muted">${esc(tr.cardio.rule)} ${cite(['HELMS_TRAIN', 'ACSM_CARDIO'])}</p>
-      </div>
-      <details class="card"><summary>Series semanales por grupo muscular</summary>
-        <table><tr><th>Músculo</th><th class="num">Series/semana</th></tr>${setsRows}</table>
-        <p class="help">Base: 10 (principiante), 14 (intermedio) o 18 (avanzado) series/semana por grupo grande, ajustadas por división y reducidas un 15 % en definición ${cite(['SCHOENFELD_VOL', 'HELMS_TRAIN'])}.</p>
-      </details>
-      <div class="card">
-        <h3>Reglas de ejecución</h3>
-        <ul>
-          <li>Calienta con 2-3 series de aproximación en el primer ejercicio de cada grupo muscular.</li>
-          <li>Rango completo de movimiento y técnica estable; el peso es la herramienta, no el objetivo.</li>
-          <li>Anota cargas y repeticiones cada sesión: sin registro no hay progresión.</li>
-          <li>Si acumulas dolor articular, sustituye el ejercicio por otro de la misma lista para ese músculo.</li>
-          <li>Duerme 7-9 h: el sueño insuficiente reduce la retención de masa magra en déficit.</li>
-        </ul>
-      </div>`;
-  }
-
-  function htmlExRow(e, extraClass, label, reps, setsLabel, showTag) {
-    return `<div class="ex-row ${extraClass}">
-      <div class="ex-main">
-        <div class="ex-name">${esc(label != null ? label : e.name)}${showTag ? ' <span class="ex-tag">Top set</span>' : ''}${e.injurySubstitute ? ' ' + evTag(e.injurySubstitute.evidence) : ''}</div>
-        <div class="ex-fields">
-          <span class="f">${esc(e.muscleLabel)}</span>
-          <span class="f">${icon('gauge')} RIR ${esc(showTag ? e.topSet.rir : e.rir)}</span>
-          <span class="f">${icon('clock')} ${esc(showTag ? '3 min' : e.rest)}</span>
-        </div>
-        ${e.cue ? `<div class="help">${esc(e.cue.text)} ${evTag(e.cue.evidence)}</div>` : ''}
-      </div>
-      <div class="ex-sets">${esc(setsLabel)} × ${esc(reps)}</div>
-    </div>`;
-  }
-
-  function htmlExercise(e) {
-    if (e.topSet) {
-      const topRow = htmlExRow(e, 'type-top', e.name, e.topSet.reps, '1', true);
-      const backoffRow = e.backoffSets > 0
-        ? `<div class="backoff">${htmlExRow(e, e.type === 'compound' ? 'type-compound' : 'type-isolation', 'Back-off (−10 % carga)', e.reps, e.backoffSets, false)}</div>`
-        : '';
-      return `<div class="ex-group">${topRow}${backoffRow}</div>`;
-    }
-    return `<div class="ex-group">${htmlExRow(e, e.type === 'compound' ? 'type-compound' : 'type-isolation', e.name, e.reps, e.sets, false)}</div>`;
-  }
-
-  function htmlSessionCard(s, i, isNext) {
-    const open = isNext;
-    // Composición del día por tipo de serie: el top set de cada ejercicio
-    // con top set cuenta como 1 (rojo); el resto de sus series (back-off)
-    // y las series de los ejercicios sin top set cuentan como azul
-    // (multiarticular) o verde (aislamiento) según el tipo del ejercicio.
-    const counts = { top: 0, compound: 0, isolation: 0 };
-    s.exercises.forEach(e => {
-      const rest = e.topSet ? e.sets - 1 : e.sets;
-      if (e.topSet) counts.top += 1;
-      counts[e.type === 'compound' ? 'compound' : 'isolation'] += rest;
-    });
-    const pct = n => s.totalSets ? (n / s.totalSets * 100) : 0;
-    const muscles = [...new Set(s.exercises.map(e => e.muscleLabel))];
-    return `<div class="session">
-      <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${open}" aria-controls="day-body-${i}">
-        <div class="session-head-main">
-          <h4>${esc(s.name)}${isNext ? ' <span class="day-tag">Siguiente</span>' : ''}</h4>
-          <div class="session-metrics">
-            <span class="metric"><b>${s.totalSets}</b> series</span>
-            <span class="metric">${icon('clock')} ~${s.durationMin} min</span>
-          </div>
-          <div class="session-bar" aria-hidden="true">
-            <span class="top" style="width:${pct(counts.top)}%"></span>
-            <span class="compound" style="width:${pct(counts.compound)}%"></span>
-            <span class="isolation" style="width:${pct(counts.isolation)}%"></span>
-          </div>
-          <div class="session-muscles">${muscles.map(m => `<span class="chip">${esc(m)}</span>`).join('')}</div>
-        </div>
-        ${icon('chevron', 'chev')}
-      </button>
-      <div class="session-body" id="day-body-${i}" ${open ? '' : 'inert'}>
-        <div class="session-body-inner">
-          <div class="ex-list">${s.exercises.map(htmlExercise).join('')}</div>
-          <div class="btn-row" style="margin-top:.6rem">
-            <button class="btn btn-primary btn-lg" data-start-session="${i}" style="flex:2">Empezar sesión</button>
-            <button class="btn" data-start-session-short="${i}" style="flex:1">Versión corta</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
-
   function htmlTargets(plan) {
     const m = plan.metrics, t = plan.targets, p = plan.input;
     const cl = t.classic;
@@ -828,631 +489,16 @@
       </div>`;
   }
 
-  function sharePlan(plan) {
+  function sharePlan(plan, profile) {
     const n = plan.nutrition, t = plan.targets;
     const text = `Training Agent · ${plan.input.name}\n${t.division.label} · ${plan.input.goal}\n` +
       `Calorías: ${n.calories} kcal (P ${n.protein} g · C ${n.carbs} g · G ${n.fat} g)\n` +
       `Grasa ${Math.round(plan.metrics.bodyFat * 10) / 10} % → ${t.targetBf} % · Peso ${plan.input.weightKg} → ${Math.round(t.targetWeight * 10) / 10} kg en ~${Math.round(t.weeksNeeded)} semanas\n` +
-      `Entreno: ${plan.training.splitName}, ${plan.training.daysPerWeek} días/semana`;
+      `Entreno: ${profile.planGuardado.plan.sesiones.length} días/semana`;
     if (navigator.share) navigator.share({ title: 'Plan Training Agent', text }).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Resumen copiado'));
   }
 
-  /* ---------- Modo sesión (Fase 4) ----------
-   * Pantalla a pantalla completa para usar en el gimnasio. No toca
-   * plan.training en ningún momento ("Versión corta" es solo una forma
-   * distinta de mostrarlo). Cada serie registrada se guarda al toque en
-   * profile.workouts (mismo localStorage que usa Progreso). */
-  let sm = null; // estado del modo sesión activo (o null si no hay ninguno)
-  let smWakeLock = null;
-  let smTimerInterval = null;
-
-  function parseRestSeconds(label) {
-    const m = String(label || '').match(/(\d+)/);
-    const n = m ? parseInt(m[1], 10) : 90;
-    return /min/.test(label || '') ? n * 60 : n;
-  }
-  function fmtTimer(s) { const m = Math.floor(s / 60), r = s % 60; return `${m}:${String(r).padStart(2, '0')}`; }
-
-  /* ---------- Barra cargada (Fase 5) ----------
-   * Reparto de discos por lado: greedy de mayor a menor denominación entre
-   * los discos disponibles del perfil. Si no da exacto, se queda en el
-   * valor más cercano POR DEBAJO y se muestra la diferencia. */
-  function platesForWeight(totalWeight, barWeight, availablePlates) {
-    const perSide = (totalWeight - barWeight) / 2;
-    if (!(perSide > 0)) return { plates: [], achieved: barWeight, diff: round2(totalWeight - barWeight) };
-    const sorted = availablePlates.slice().sort((a, b) => b - a);
-    const used = []; let remaining = perSide;
-    sorted.forEach(p => { while (remaining >= p - 1e-6) { used.push(p); remaining -= p; } });
-    const achieved = barWeight + used.reduce((a, b) => a + b, 0) * 2;
-    return { plates: used, achieved: round2(achieved), diff: round2(totalWeight - achieved) };
-  }
-  function round2(v) { return Math.round(v * 100) / 100; }
-
-  function svgBarbell(result, unit) {
-    const canon = unit === 'lb' ? KNOWLEDGE.PLATES_LB : KNOWLEDGE.PLATES_KG;
-    const colorFor = w => { const idx = canon.findIndex(p => Math.abs(p - w) < 1e-6); return KNOWLEDGE.PLATE_COLORS[idx === -1 ? canon.length - 1 : idx]; };
-    const heightFor = w => Math.min(64, 24 + w * (unit === 'lb' ? 0.55 : 1.2));
-    const widthFor = w => (unit === 'lb' ? w >= 35 : w >= 10) ? 11 : 7;
-    let x = 96, i = 0; // arranca pegado al manguito, hacia afuera
-    const rects = result.plates.map(w => {
-      const h = heightFor(w), wd = widthFor(w);
-      const delay = `style="animation-delay:${i * 40}ms"`;
-      const svg = `<rect class="plate-rect plate-rect-l" ${delay} x="${x}" y="${(100 - h) / 2}" width="${wd}" height="${h}" rx="2" fill="${colorFor(w)}" stroke="#1a1d20" stroke-width="1"></rect><rect class="plate-rect plate-rect-r" ${delay} x="${292 - x - wd}" y="${(100 - h) / 2}" width="${wd}" height="${h}" rx="2" fill="${colorFor(w)}" stroke="#1a1d20" stroke-width="1"></rect>`;
-      x += wd + 1.5; i++;
-      return svg;
-    }).join('');
-    return `<svg class="platebar" viewBox="0 0 292 100" width="100%" height="64" role="img" aria-label="Carga de la barra">
-      <rect x="0" y="46" width="292" height="8" rx="2" fill="var(--acero)"></rect>
-      <rect x="86" y="30" width="10" height="40" rx="2" fill="var(--superficie-2)" stroke="var(--borde)"></rect>
-      <rect x="196" y="30" width="10" height="40" rx="2" fill="var(--superficie-2)" stroke="var(--borde)"></rect>
-      ${rects}
-    </svg>`;
-  }
-
-  /* Fase 7: imagen ilustrativa (posición inicial/final) del ejercicio,
-   * solo si hay un equivalente mapeado en EXERCISE_IMAGES. Alterna entre
-   * ambas por CSS (sin JS); con prefers-reduced-motion queda fija en la
-   * primera. Puramente decorativa/informativa: no participa de ningún
-   * cálculo ni se guarda en ningún lado. */
-  function htmlExerciseImage(ex) {
-    const imgs = typeof EXERCISE_IMAGES !== 'undefined' ? EXERCISE_IMAGES[ex.name] : null;
-    if (!imgs) return '';
-    return `<div class="sm-image-wrap">
-      <img class="sm-image sm-image-a" src="${esc(imgs[0])}" alt="${esc(ex.name)} · posición inicial" loading="lazy" width="140" height="140">
-      <img class="sm-image sm-image-b" src="${esc(imgs[1])}" alt="${esc(ex.name)} · posición final" loading="lazy" width="140" height="140">
-    </div>`;
-  }
-
-  function htmlPlateBarsForExercise(profile, ex, last) {
-    if (!KNOWLEDGE.BARBELL_PATTERNS.has(ex.pattern)) return '';
-    const hasTop = ex.sets.some(s => s.setType === 'top');
-    const findLast = (type, num) => last && last.sets.find(s => s.setType === type && s.setNumber === num);
-    if (hasTop) {
-      const topW = findLast('top', 1); const boW = findLast('backoff', 1);
-      return `<div class="card" id="platebar-top" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Top set</h3>${htmlPlateBar(profile, ex.pattern, topW && topW.weight)}</div>` +
-        (ex.sets.some(s => s.setType === 'backoff') ? `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Back-off</h3>${htmlPlateBar(profile, ex.pattern, boW && boW.weight)}</div>` : '');
-    }
-    const firstW = findLast('normal', 1);
-    return `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga sugerida</h3>${htmlPlateBar(profile, ex.pattern, firstW && firstW.weight)}</div>`;
-  }
-
-  function htmlPlateBar(profile, pattern, weight) {
-    if (!KNOWLEDGE.BARBELL_PATTERNS.has(pattern)) return '';
-    if (!weight || weight <= 0) return `<div class="platebar-wrap"><p class="platebar-note">Registrá tu primera sesión para ver la carga.</p></div>`;
-    const unit = profile.data.plateUnit || 'kg';
-    const bar = profile.data.barWeight || (unit === 'lb' ? 45 : 20);
-    const plates = profile.data.availablePlates && profile.data.availablePlates.length ? profile.data.availablePlates : (unit === 'lb' ? KNOWLEDGE.PLATES_LB : KNOWLEDGE.PLATES_KG);
-    const res = platesForWeight(weight, bar, plates);
-    const exact = Math.abs(res.diff) < 0.01;
-    return `<div class="platebar-wrap">
-      ${svgBarbell(res, unit)}
-      <div class="platebar-weight">${n1(exact ? weight : res.achieved)} ${unit}${!exact ? ` <span class="muted" style="font-size:.8rem">(objetivo ${n1(weight)} ${unit}, −${n1(Math.abs(res.diff))} ${unit})</span>` : ''}</div>
-      <div class="platebar-note">barra ${n1(bar)} ${unit} + ${res.plates.length ? res.plates.map(p => n1(p)).join(' + ') + ' por lado' : 'sin discos'}</div>
-    </div>`;
-  }
-
-  // Misma fórmula que usa engine.js para la duración estimada (DEC-003 v2 /
-  // DEC-007), aplicada acá solo para mostrar el total de la versión corta;
-  // no cambia ningún cálculo del plan.
-  function exerciseDurationMin(e) {
-    const uf = e.unilateral ? 2 : 1;
-    const exec = KNOWLEDGE.VALIDATOR_RULES.setExecutionSeconds.value; // DEC-010
-    let seconds = 0;
-    if (e.topSet) { seconds += uf * (180 + exec); seconds += uf * ((e.backoffSets || 0) * (150 + exec)); }
-    else { const rest = e.type === 'compound' ? 150 : 75; seconds += uf * (e.sets * (rest + exec)); }
-    return Math.round(seconds / 60);
-  }
-
-  // DEC-009 · Capa 3: ¿este grupo muscular queda involucrado por alguna de
-  // las zonas de lesión declaradas? (tenga o no diagnóstico). Más amplio
-  // que "el patrón excluido": un ejercicio que YA es el sustituto (porque
-  // el excluido ni siquiera llega a aparecer en el plan) sigue
-  // involucrando la zona y por eso también lleva escala de dolor.
-  function injuryAffectsMuscle(muscle, zones) {
-    return zones.some(z => KNOWLEDGE.INJURY_EXCLUSIONS[z] && KNOWLEDGE.INJURY_EXCLUSIONS[z][muscle]);
-  }
-  // Alternativa dentro del mismo grupo muscular para un ejercicio marcado
-  // por dolor: el siguiente de la lista del catálogo que no esté excluido
-  // por las zonas declaradas ni sea el propio ejercicio marcado.
-  function findPainSubstitute(pattern, bucket, zones, profile) {
-    const lib = KNOWLEDGE.EXERCISES[bucket] || [];
-    const excluded = new Set([pattern]);
-    zones.forEach(z => { const map = KNOWLEDGE.INJURY_EXCLUSIONS[z]; if (map && map[bucket]) map[bucket].forEach(p => excluded.add(p)); });
-    const flags = (profile.painFlags || {});
-    return lib.find(ex => !excluded.has(ex.pattern) && !(flags[ex.pattern] && flags[ex.pattern].flagged) && (!ex.injuryOnly || zones.indexOf(ex.injuryOnly) !== -1));
-  }
-
-  function buildSmExercises(session, short, profile) {
-    let list = session.exercises;
-    if (short) list = list.filter(e => e.type === 'compound').slice(0, 2);
-    const zones = ((profile.data.health && profile.data.health.injuries) || []).map(i => i.zone);
-    const flags = profile.painFlags || {};
-    return list.map(e => {
-      let ex = e, substitutedFrom = null;
-      const flag = flags[e.pattern];
-      if (flag && flag.flagged) {
-        // DEC-010: la lista de sustitutos sale del bucket donde vive el
-        // ejercicio; el sustituto trae su propia identidad y aporte.
-        const alt = findPainSubstitute(e.pattern, e.bucket, zones, profile);
-        if (alt) { substitutedFrom = e.name; ex = Object.assign({}, e, ENGINE.exerciseFields(alt, e.bucket), { name: alt.name, pattern: alt.pattern, reps: `${alt.reps[0]}-${alt.reps[1]}`, topSet: null, backoffSets: 0, injurySubstitute: alt.injuryOnly ? { zone: alt.injuryOnly, evidence: 'E4' } : null }); }
-      }
-      // DEC-011 (E4): dolor por encima del umbral en 2+ sesiones distintas de
-      // las últimas 4 semanas en el patrón ORIGINAL del plan (aunque haya sido
-      // sustituido) → recomendar consultar a un profesional.
-      const painAdvice = ENGINE.painProfessionalAdvice(flags[e.pattern], todayIso());
-      const sets = [];
-      if (ex.topSet) {
-        sets.push({ setType: 'top', setNumber: 1, repsLabel: ex.topSet.reps, restLabel: '3 min' });
-        for (let i = 0; i < (ex.backoffSets || 0); i++) sets.push({ setType: 'backoff', setNumber: i + 1, repsLabel: ex.reps, restLabel: ex.rest });
-      } else {
-        for (let i = 0; i < ex.sets; i++) sets.push({ setType: 'normal', setNumber: i + 1, repsLabel: ex.reps, restLabel: ex.rest });
-      }
-      return {
-        name: ex.name, exerciseId: ex.exerciseId, bucket: ex.bucket, muscle: ex.muscle, muscleLabel: ex.muscleLabel, type: ex.type, pattern: ex.pattern, unilateral: ex.unilateral,
-        durationMin: exerciseDurationMin(ex), sets, substitutedFrom,
-        painScale: injuryAffectsMuscle(ex.bucket, zones),
-        injurySubstitute: ex.injurySubstitute || null,
-        painAdvice: painAdvice.advise ? { sessions: painAdvice.sessions, name: e.name } : null,
-      };
-    });
-  }
-
-  // Wake Lock (DEC-015, Paso 3): mantiene la pantalla encendida durante la sesión. El navegador lo libera
-  // solo al ocultar la app, así que se vuelve a pedir en visibilitychange. Si no está soportado (o se
-  // deniega) se avisa una vez y el cronómetro sigue siendo exacto porque no depende de la pantalla.
-  let smWakeLockSupported = true;
-  async function requestWakeLock() {
-    if (!('wakeLock' in navigator)) { smWakeLockSupported = false; return; }
-    if (smWakeLock) return;
-    try {
-      const lock = await navigator.wakeLock.request('screen');
-      smWakeLock = lock;
-      lock.addEventListener('release', () => { if (smWakeLock === lock) smWakeLock = null; });
-      smWakeLockSupported = true;
-    } catch (e) { smWakeLockSupported = false; /* denegado o no disponible: seguimos igual */ }
-  }
-  function releaseWakeLock() { try { if (smWakeLock) { smWakeLock.release(); smWakeLock = null; } } catch (e) { /* noop */ } }
-
-  /* DEC-015 · sesión persistente: la sesión en curso se guarda aparte (SESSION_STORE) cada vez que
-   * cambia, así sobrevive a un cierre de la app o a que se apague el teléfono. */
-  const SS = window.SESSION_STORE;
-  const persistSm = () => {
-    if (!sm || sm.status !== SS.STATUS.ACTIVE) return;
-    if (!SS.saveActive(localStorage, sm, Date.now())) toast('No se pudo guardar la sesión en curso.');
-  };
-
-  function startSessionMode(profile, plan, dayIndex, short) {
-    const pending = SS.loadActive(localStorage);
-    if (pending) { toast('Tienes una sesión en curso: reanúdala o descártala primero.'); offerResume(); return; }
-    const session = plan.training.sessions[dayIndex];
-    const exercises = buildSmExercises(session, short, profile);
-    if (!exercises.length) { toast('Este día no tiene multiarticulares para la versión corta.'); return; }
-    sm = SS.newSession({ profileId: profile.id, sessionId: uid(), dayIndex, dayName: session.name, short, exercises, now: Date.now() });
-    persistSm();
-    requestWakeLock();
-    let root = document.getElementById('session-mode-root');
-    if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
-    renderSessionMode(profile);
-  }
-
-  function endSessionMode() {
-    closeTimer();
-    releaseWakeLock();
-    const root = document.getElementById('session-mode-root');
-    if (root) root.remove();
-    sm = null;
-    smEditing = null;
-  }
-
-  /* DEC-015 (Paso 2) · editor mínimo de una serie: peso y repeticiones, Guardar / Borrar / Cancelar.
-   * Lo comparten el modo sesión y el historial. `attr` es el atributo data-* que identifica la serie. */
-  function setEditorHtml(attr, id, weight, reps, unit) {
-    return `<form class="set-editor" data-set-editor data-editor-id="${esc(id)}" novalidate>
-      <div class="sm-set-row">
-        <div class="fieldwrap"><input type="number" inputmode="decimal" step="any" name="weight" value="${esc(weight)}" aria-label="Peso (${esc(unit)})"><div class="unit">peso (${esc(unit)})</div></div>
-        <div class="fieldwrap"><input type="number" inputmode="numeric" step="1" name="reps" value="${esc(reps)}" aria-label="Repeticiones"><div class="unit">reps</div></div>
-      </div>
-      <div class="btn-row" style="margin:.4rem 0 0"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
-    </form>`;
-  }
-  // Conecta el editor que haya dentro de `root`. onSave(vals) debe devolver { ok, error }.
-  function wireSetEditor(root, { onSave, onDelete, onCancel }) {
-    const form = root.querySelector('[data-set-editor]');
-    if (!form) return;
-    form.onsubmit = e => {
-      e.preventDefault();
-      const r = onSave({ weight: form.elements.weight.value, reps: form.elements.reps.value });
-      if (r && !r.ok) toast(r.error);
-    };
-    form.querySelector('[data-editor-cancel]').onclick = onCancel;
-    form.querySelector('[data-editor-delete]').onclick = async () => {
-      const ok = await confirmModal('¿Borrar esta serie? Se quita también del historial y de tu progreso.', { confirmLabel: 'Borrar', cancelLabel: 'Cancelar' });
-      if (ok) onDelete();
-    };
-  }
-  let smEditing = null; // { ex, set } de la serie en edición dentro del modo sesión
-
-  // Editar o borrar una serie ya registrada de la sesión en curso.
-  function smEditSet(profile, exIndex, setIdx, vals) {
-    const r = SS.editActiveSet(sm, exIndex, setIdx, vals, Date.now());
-    if (!r.ok) return r;
-    persistSm(); // 1) la sesión, 2) la fila del historial
-    SS.syncRow(sm, profile.workouts = profile.workouts || [], exIndex, setIdx, todayIso());
-    profile.updatedAt = todayIso(); save();
-    smEditing = null; renderSessionMode(profile);
-    return r;
-  }
-  function smDeleteSet(profile, exIndex, setIdx) {
-    const r = SS.deleteActiveSet(sm, exIndex, setIdx);
-    if (!r.ok) { toast(r.error); return; }
-    persistSm(); // la intención de borrar queda guardada antes de tocar el historial
-    SS.removeRow(profile.workouts = profile.workouts || [], r.key);
-    profile.updatedAt = todayIso(); save();
-    smEditing = null; renderSessionMode(profile);
-  }
-
-  // Terminar: la sesión pasa a 'completada' (una sola vez) y deja de ser reanudable.
-  function finishSm(profile) {
-    if (sm.status === SS.STATUS.ACTIVE) {
-      SS.clearRest(sm); closeTimer();
-      profile.sessions = profile.sessions || [];
-      profile.workouts = profile.workouts || [];
-      SS.complete(sm, profile.sessions, profile.workouts, Date.now(), todayIso());
-      profile.updatedAt = todayIso();
-      save();
-      SS.clearActive(localStorage);
-    }
-    sm.finished = true;
-    renderSessionMode(profile);
-  }
-
-  /* Al abrir la app: si quedó una sesión 'en_curso', ofrecer Reanudar o Descartar. */
-  function offerResume() {
-    if (document.getElementById('resume-prompt')) return;
-    if (SS.peekCorrupt(localStorage)) { toast('Hay una sesión guardada que no se pudo leer.'); return; }
-    const rec = SS.loadActive(localStorage);
-    if (!rec) return;
-    const profile = state.profiles.find(p => p.id === rec.profileId);
-    if (!profile) { SS.clearActive(localStorage); return; } // el perfil ya no existe
-    const pr = SS.progress(rec);
-    const ov = document.createElement('div');
-    ov.id = 'resume-prompt'; ov.className = 'card accent'; ov.setAttribute('role', 'alertdialog');
-    ov.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.35)';
-    ov.innerHTML = `<h3>Tienes una sesión en curso</h3>
-      <p>${esc(rec.dayName)}${rec.short ? ' · versión corta' : ''} · ${pr.done}/${pr.total} series hechas · empezó ${esc(new Date(rec.startedAt).toLocaleString('es'))}.</p>
-      <div class="btn-row"><button class="btn btn-primary" id="resume-yes">Reanudar</button><button class="btn" id="resume-no">Descartar</button></div>`;
-    document.body.appendChild(ov);
-    $('#resume-yes').onclick = () => {
-      ov.remove();
-      state.activeId = profile.id;
-      if (SS.reconcile(rec, profile.workouts = profile.workouts || [], todayIso())) { profile.updatedAt = todayIso(); save(); }
-      sm = rec;
-      persistSm();
-      requestWakeLock();
-      let root = document.getElementById('session-mode-root');
-      if (!root) { root = document.createElement('div'); root.id = 'session-mode-root'; document.body.appendChild(root); }
-      renderSessionMode(profile);
-      // Si había un descanso en marcha, sigue con lo que falta según el reloj real; si ya venció, se limpia sin sonar.
-      if (sm.rest) { if (SS.restRemaining(sm, Date.now()) > 0) showRestOverlay(); else { SS.clearRest(sm); persistSm(); } }
-    };
-    $('#resume-no').onclick = async () => {
-      const n = pr.done;
-      const ok = await confirmModal(n ? `Se descartará la sesión y se borrarán sus ${n} series registradas. ¿Continuar?` : '¿Descartar la sesión en curso?', { confirmLabel: 'Descartar', cancelLabel: 'Cancelar' });
-      if (!ok) return;
-      ov.remove();
-      const removed = SS.discard(rec, profile.workouts = profile.workouts || []);
-      if (removed) { profile.updatedAt = todayIso(); save(); }
-      SS.clearActive(localStorage);
-      toast('Sesión descartada');
-    };
-  }
-
-  function lastTimeFor(profile, exerciseName) {
-    const all = (profile.workouts || []).filter(w => w.exercise === exerciseName && w.sessionId !== sm.sessionId);
-    if (!all.length) return null;
-    let lastEntry = all[0];
-    all.forEach(w => { if (w.savedAt > lastEntry.savedAt) lastEntry = w; });
-    const sets = all.filter(w => w.sessionId === lastEntry.sessionId).sort((a, b) => (a.setType === 'top' ? -1 : b.setType === 'top' ? 1 : 0) || a.setNumber - b.setNumber);
-    return { date: lastEntry.date, sets };
-  }
-
-  function renderSessionMode(profile) {
-    const root = document.getElementById('session-mode-root');
-    if (!root || !sm) return;
-    if (sm.finished) { root.innerHTML = htmlSmSummary(profile); wireSmSummary(profile); return; }
-    const ex = sm.exercises[sm.exIndex];
-    const vals = sm.values[sm.exIndex];
-    const last = lastTimeFor(profile, ex.name);
-    const doneCount = sm.values.flat().filter(v => v.done).length;
-    const totalCount = sm.values.flat().length;
-    root.innerHTML = `
-      <div class="session-mode">
-        <div class="session-mode-head">
-          <button class="btn btn-icon" id="sm-close" aria-label="Cerrar sesión">✕</button>
-          <div class="prog">${sm.short ? 'Versión corta · ' : ''}Ejercicio ${sm.exIndex + 1} de ${sm.exercises.length} · ${doneCount}/${totalCount} series</div>
-          <button class="btn" id="sm-finish">Terminar</button>
-        </div>
-        <div class="session-mode-body">
-          ${(!('wakeLock' in navigator) || !smWakeLockSupported) ? `<p class="help" id="sm-wakelock-note">Tu navegador no puede mantener la pantalla encendida. Desactiva el bloqueo automático mientras entrenas; el cronómetro de descanso sigue siendo exacto aunque la pantalla se apague.</p>` : ''}
-          <h2 class="sm-exname">${esc(ex.name)}</h2>
-          <div class="sm-exmeta">${esc(ex.muscleLabel)} ${sm.short ? `· ~${ex.durationMin} min` : ''}</div>
-          ${ex.substitutedFrom ? `<div class="alert warn">Reemplaza a "${esc(ex.substitutedFrom)}" por el dolor registrado la vez pasada. Te sugerimos consultar a un profesional. ${evTag('E4')}</div>` : ''}
-          ${ex.painAdvice ? `<div class="alert danger">Registraste dolor por encima del umbral en "${esc(ex.painAdvice.name)}" en ${ex.painAdvice.sessions} sesiones distintas de las últimas 4 semanas. Te recomendamos consultar a un profesional antes de seguir cargando ese movimiento. ${evTag('E4')}</div>` : ''}
-          ${ex.injurySubstitute ? `<div class="alert info">Ejercicio incluido como precaución por la zona declarada: no es una adaptación a tu lesión. ${evTag('E4')}</div>` : ''}
-          ${htmlExerciseImage(ex)}
-          ${last ? `<div class="sm-last ${last.sets.some(s => s.setType === 'top') ? 'sm-last-top' : ''}">
-            <b>Última vez</b> (${fmtDate(last.date)}): ${last.sets.map(s => `${s.setType === 'top' ? icon('trophy') + ' ' : ''}<span class="v">${n1(s.weight)} ${profile.data.plateUnit || 'kg'} × ${s.reps}</span>`).join(' · ')}
-          </div>` : `<div class="sm-last">Primera vez que registrás este ejercicio.</div>`}
-          ${htmlPlateBarsForExercise(profile, ex, last)}
-          ${ex.sets.map((st, i) => htmlSmSet(st, i, vals[i], profile.data.plateUnit || 'kg', ex.painScale)).join('')}
-        </div>
-        <div class="session-mode-foot">
-          <button class="btn btn-icon" id="sm-prev" ${sm.exIndex === 0 ? 'disabled' : ''} aria-label="Ejercicio anterior">‹</button>
-          <button class="btn btn-primary" id="sm-next" style="flex:1">${sm.exIndex === sm.exercises.length - 1 ? 'Finalizar ejercicios' : 'Siguiente ejercicio'}</button>
-          <button class="btn btn-icon" id="sm-next-arrow" ${sm.exIndex === sm.exercises.length - 1 ? 'disabled' : ''} aria-label="Ejercicio siguiente">›</button>
-        </div>
-      </div>`;
-    wireSessionMode(profile);
-  }
-
-  function htmlSmSet(st, i, v, unit, painScale) {
-    const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${st.setNumber}` }[st.setType];
-    if (v.done && smEditing && smEditing.ex === sm.exIndex && smEditing.set === i) {
-      return `<div class="sm-set editing" data-set="${i}"><div class="sm-set-title">${esc(label)} · editar</div>${setEditorHtml('sm', `${sm.exIndex}:${i}`, v.weight, v.reps, unit)}</div>`;
-    }
-    return `<div class="sm-set ${v.done ? 'done' : ''}" data-set="${i}">
-      <div class="sm-set-row">
-        <div class="idx">${label === `Serie ${st.setNumber}` ? st.setNumber : (st.setType === 'top' ? icon('trophy') : '↓')}</div>
-        <div class="fieldwrap"><input type="number" inputmode="decimal" placeholder="${unit}" value="${v.weight || ''}" data-sm-weight="${i}" ${v.done ? 'disabled' : ''}><div class="unit">peso (${unit})</div></div>
-        <div class="fieldwrap"><input type="number" inputmode="numeric" placeholder="${st.repsLabel}" value="${v.reps || ''}" data-sm-reps="${i}" ${v.done ? 'disabled' : ''}><div class="unit">reps (obj. ${esc(st.repsLabel)})</div></div>
-        ${v.done
-          ? `<button class="btn done-btn" data-sm-edit="${i}" aria-label="Editar o borrar esta serie">${icon('check', 'check-draw')} Editar</button>`
-          : `<button class="btn btn-primary done-btn" data-sm-done="${i}">Hecha</button>`}
-      </div>
-      ${painScale ? `<div class="fieldwrap sm-pain"><input type="number" inputmode="numeric" min="0" max="10" placeholder="0-10" value="${v.pain === '' || v.pain == null ? '' : v.pain}" data-sm-pain="${i}" ${v.done ? 'disabled' : ''}><div class="unit">dolor en esta serie (0-10)</div></div>` : ''}
-    </div>`;
-  }
-
-  function wireSessionMode(profile) {
-    const root = document.getElementById('session-mode-root');
-    // ✕ no termina la sesión: queda 'en_curso' y se puede reanudar al volver a abrir la app.
-    $('#sm-close').onclick = () => { if (confirm('¿Salir del modo sesión? La sesión queda guardada y podrás reanudarla.')) endSessionMode(); };
-    $('#sm-finish').onclick = () => finishSm(profile);
-    $('#sm-prev').onclick = () => { sm.exIndex = Math.max(0, sm.exIndex - 1); persistSm(); renderSessionMode(profile); };
-    const next = () => {
-      if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); }
-      else finishSm(profile);
-    };
-    $('#sm-next').onclick = next;
-    const nextArrow = $('#sm-next-arrow'); if (nextArrow) nextArrow.onclick = () => { if (sm.exIndex < sm.exercises.length - 1) { sm.exIndex++; persistSm(); renderSessionMode(profile); } };
-    root.querySelectorAll('[data-sm-weight]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smWeight)].weight = inp.value; persistSm(); });
-    root.querySelectorAll('[data-sm-reps]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smReps)].reps = inp.value; persistSm(); });
-    root.querySelectorAll('[data-sm-pain]').forEach(inp => inp.oninput = () => { sm.values[sm.exIndex][Number(inp.dataset.smPain)].pain = inp.value; persistSm(); });
-    root.querySelectorAll('[data-sm-done]').forEach(btn => btn.onclick = () => smLogSet(profile, Number(btn.dataset.smDone)));
-    root.querySelectorAll('[data-sm-edit]').forEach(btn => btn.onclick = () => { smEditing = { ex: sm.exIndex, set: Number(btn.dataset.smEdit) }; renderSessionMode(profile); });
-    if (smEditing) {
-      const { ex, set } = smEditing;
-      wireSetEditor(root, {
-        onSave: vals => smEditSet(profile, ex, set, vals),
-        onDelete: () => smDeleteSet(profile, ex, set),
-        onCancel: () => { smEditing = null; renderSessionMode(profile); },
-      });
-    }
-  }
-
-  // DEC-009: marca/desmarca un ejercicio para sustituir según el dolor
-  // registrado. Dolor >5 marca (o reconfirma la marca). Dolor ≤5 solo
-  // desmarca después de 2 sesiones DISTINTAS seguidas sin pasarse de 5.
-  function logPain(profile, pattern, pain) {
-    profile.painFlags = profile.painFlags || {};
-    // DEC-011: la lógica vive en engine.js (pura y testeada); además de la marca
-    // guarda las sesiones con dolor para el aviso de consultar a un profesional.
-    profile.painFlags[pattern] = ENGINE.applyPainReading(profile.painFlags[pattern], pain, sm.sessionId, todayIso());
-  }
-
-  function smLogSet(profile, setIdx) {
-    const ex = sm.exercises[sm.exIndex], st = ex.sets[setIdx], v = sm.values[sm.exIndex][setIdx];
-    const reps = parseInt(v.reps, 10);
-    if (!reps || reps <= 0) { toast('Poné las repeticiones hechas.'); return; }
-    if (v.done) return; // ya registrada: no se vuelve a registrar (sin duplicados)
-    const weight = parseFloat(v.weight) || 0;
-    let pain = null;
-    if (ex.painScale) { pain = v.pain === '' || v.pain == null ? null : Math.min(10, Math.max(0, parseInt(v.pain, 10))); if (pain != null) logPain(profile, ex.pattern, pain); }
-    SS.markDone(sm, sm.exIndex, setIdx, { weight, reps, pain }, Date.now());
-    // Primero la fila del historial (clave estable: upsert, nunca duplica) y después la sesión.
-    // Si se corta entre las dos escrituras, SS.reconcile lo repara al reanudar.
-    profile.workouts = profile.workouts || [];
-    SS.upsertWorkout(profile.workouts, SS.workoutRow(sm, sm.exIndex, setIdx, todayIso()));
-    profile.updatedAt = todayIso();
-    save();
-    persistSm();
-    renderSessionMode(profile);
-    startRestTimer(st.restLabel);
-    if (st.setType === 'top') maybeShowRecord(profile, ex, weight, reps);
-  }
-
-  /* Fase 5: "nuevo récord" es puramente informativo para motivar en el
-   * momento (no toca el plan ni ninguna regla): compara el 1RM estimado
-   * del top set recién logueado, con la fórmula de Epley, contra el
-   * mejor 1RM estimado del mismo ejercicio en sesiones ANTERIORES
-   * (nunca la actual). Máximo una vez por ejercicio y por sesión. */
-  function maybeShowRecord(profile, ex, weight, reps) {
-    sm.recordShown = sm.recordShown || [];
-    if (sm.recordShown.includes(ex.name) || !weight) return;
-    const prior = (profile.workouts || []).filter(w => w.exercise === ex.name && w.setType === 'top' && w.sessionId !== sm.sessionId);
-    if (!prior.length) return;
-    const epley = (w, r) => w * (1 + r / 30);
-    const priorBest = Math.max(...prior.map(w => epley(w.weight, w.reps)));
-    if (epley(weight, reps) <= priorBest) return;
-    sm.recordShown.push(ex.name);
-    persistSm();
-    showRecordMoment(profile, weight, reps);
-  }
-
-  function showRecordMoment(profile, weight, reps) {
-    if (navigator.vibrate) navigator.vibrate([90, 70, 90]);
-    const bar = document.getElementById('platebar-top');
-    if (bar) { bar.classList.add('plate-bounce'); setTimeout(() => bar.classList.remove('plate-bounce'), 550); }
-    const root = document.getElementById('session-mode-root');
-    if (!root) return;
-    const unit = profile.data.plateUnit || 'kg';
-    const banner = document.createElement('div');
-    banner.className = 'record-banner';
-    banner.innerHTML = `${icon('trophy')}<span>Nuevo récord: ${n1(weight)} ${unit} × ${reps}</span>`;
-    root.appendChild(banner);
-    requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('show')));
-    setTimeout(() => { banner.classList.remove('show'); setTimeout(() => banner.remove(), 300); }, 2000);
-  }
-
-  const TIMER_RING_R = 52;
-  const TIMER_RING_C = 2 * Math.PI * TIMER_RING_R;
-
-  /* DEC-015 (Paso 3) · tono al llegar a cero con Web Audio. El AudioContext se crea y se reanuda dentro del
-   * gesto que inicia el descanso (tocar "Hecha"): los navegadores no dejan sonar audio sin un gesto previo. */
-  let audioCtx = null;
-  function unlockAudio() {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      if (!audioCtx) audioCtx = new AC();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    } catch (e) { /* sin audio: queda la vibración */ }
-  }
-  function playRestTone() {
-    try {
-      if (!audioCtx) return;
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const t0 = audioCtx.currentTime + 0.02;
-      [0, 0.28, 0.56].forEach((dt, i) => {
-        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-        osc.type = 'sine'; osc.frequency.value = i === 2 ? 1175 : 880;
-        gain.gain.setValueAtTime(0.0001, t0 + dt);
-        gain.gain.exponentialRampToValueAtTime(0.35, t0 + dt + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.2);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(t0 + dt); osc.stop(t0 + dt + 0.22);
-      });
-    } catch (e) { /* noop */ }
-  }
-
-  // El descanso es un timestamp de fin guardado en la sesión: ver SS.startRest.
-  function startRestTimer(restLabel) {
-    SS.startRest(sm, parseRestSeconds(restLabel), Date.now());
-    persistSm();
-    unlockAudio();
-    showRestOverlay();
-  }
-
-  function showRestOverlay() {
-    if (!sm || !sm.rest) return;
-    const root = document.getElementById('session-mode-root');
-    if (!root) return;
-    closeTimer();
-    const ov = document.createElement('div'); ov.className = 'timer-overlay'; ov.id = 'sm-timer';
-    ov.innerHTML = `<div class="timer-label">Descanso</div>
-      <div class="timer-ring-wrap" id="sm-timer-ring-wrap">
-        <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="ring-bg" cx="60" cy="60" r="${TIMER_RING_R}"></circle>
-          <circle class="ring-fg" id="sm-timer-ring-fg" cx="60" cy="60" r="${TIMER_RING_R}" stroke-dasharray="${TIMER_RING_C.toFixed(1)}" stroke-dashoffset="0"></circle>
-        </svg>
-        <div class="timer-num-wrap"><div class="timer-num" id="sm-timer-num" role="timer">${fmtTimer(SS.restRemaining(sm, Date.now()))}</div></div>
-      </div>
-      <div class="timer-actions"><button class="btn btn-lg" id="sm-timer-plus30">+30 s</button><button class="btn btn-primary btn-lg" id="sm-timer-skip">Saltar</button></div>
-      <p class="help timer-note">Con la pantalla bloqueada el aviso al llegar a cero puede no sonar ni vibrar; al desbloquear verás el tiempo correcto.</p>`;
-    root.appendChild(ov);
-    $('#sm-timer-plus30').onclick = () => { SS.extendRest(sm, 30); persistSm(); tickRest(); };
-    $('#sm-timer-skip').onclick = () => { SS.clearRest(sm); persistSm(); closeTimer(); };
-    tickRest();
-    if (sm && sm.rest) smTimerInterval = setInterval(tickRest, 250);
-  }
-
-  // Cada tick (y cada vez que la pantalla vuelve a ser visible) se recalcula lo que falta desde el timestamp de fin.
-  function tickRest(opts) {
-    if (!sm || !sm.rest) { closeTimer(); return; }
-    const r = SS.restRemaining(sm, Date.now());
-    const numEl = document.getElementById('sm-timer-num'); if (numEl) numEl.textContent = fmtTimer(r);
-    const fg = document.getElementById('sm-timer-ring-fg');
-    if (fg) fg.style.strokeDashoffset = (TIMER_RING_C * (1 - Math.min(1, r / sm.rest.total))).toFixed(1);
-    const ring = document.querySelector('#sm-timer .timer-ring'); if (ring) ring.classList.toggle('urgent', r <= 10 && r > 0);
-    if (r > 0) return;
-    // Llegó a cero. Si se cumplió con la pantalla oculta o la app cerrada, no suena tarde: solo se cierra.
-    const late = opts && opts.silent;
-    SS.clearRest(sm); persistSm();
-    if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
-    if (!late) {
-      playRestTone();
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      const wrap = document.getElementById('sm-timer-ring-wrap');
-      if (wrap) { wrap.classList.add('pulse'); setTimeout(closeTimer, 500); return; }
-    }
-    closeTimer();
-  }
-  function closeTimer() {
-    if (smTimerInterval) { clearInterval(smTimerInterval); smTimerInterval = null; }
-    const ov = document.getElementById('sm-timer'); if (ov) ov.remove();
-  }
-
-  // Al volver a la app (desbloquear, cambiar de pestaña): el Wake Lock se libera solo al ocultarse, así que
-  // se vuelve a pedir, y el descanso se recalcula de inmediato con el reloj real.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible' || !sm || sm.status !== SS.STATUS.ACTIVE || sm.finished) return;
-    requestWakeLock();
-    if (sm.rest) {
-      if (!document.getElementById('sm-timer') && SS.restRemaining(sm, Date.now()) > 0) showRestOverlay();
-      else tickRest({ silent: true });
-    }
-  });
-
-  function priorTopWeightFor(profile, exerciseName) {
-    const all = (profile.workouts || []).filter(w => w.exercise === exerciseName && w.setType === 'top' && w.sessionId !== sm.sessionId);
-    if (!all.length) return null;
-    let last = all[0];
-    all.forEach(w => { if (w.savedAt > last.savedAt) last = w; });
-    return last.weight;
-  }
-
-  function htmlSmSummary(profile) {
-    const flatVals = sm.values.flat();
-    const doneCount = flatVals.filter(v => v.done).length;
-    const totalCount = flatVals.length;
-    const pending = sm.exercises.filter((e, i) => sm.values[i].some(v => !v.done)).map(e => e.name);
-    const durationMin = Math.max(1, Math.round((Date.now() - sm.startedAt) / 60000));
-    const topSets = [];
-    sm.exercises.forEach((e, i) => e.sets.forEach((st, j) => {
-      const v = sm.values[i][j];
-      if (st.setType === 'top' && v.done) topSets.push({ name: e.name, weight: v.weight, reps: v.reps, prior: priorTopWeightFor(profile, e.name) });
-    }));
-    const topSetRow = t => {
-      let cmp = '';
-      if (t.prior != null) {
-        const diff = round2(t.weight - t.prior);
-        const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
-        const ic = dir === 'up' ? 'arrow-up' : dir === 'down' ? 'arrow-down' : 'arrow-flat';
-        cmp = `<span class="topset-cmp cmp-${dir}">${icon(ic)} ${diff === 0 ? 'igual' : (diff > 0 ? '+' : '') + n1(diff) + ' kg'}</span>`;
-      }
-      return `<li><b>${esc(t.name)}</b>: ${n1(t.weight)} kg × ${t.reps} ${cmp}</li>`;
-    };
-    return `<div class="session-mode">
-      <div class="session-mode-head"><div></div><div class="prog">Resumen de la sesión</div><div></div></div>
-      <div class="session-mode-body">
-        <div class="card accent">
-          <h2>${esc(sm.dayName)} ${sm.short ? '· versión corta' : ''}</h2>
-          <div class="grid">
-            <div class="stat"><div class="v">${doneCount}/${totalCount}</div><div class="l">series hechas</div></div>
-            <div class="stat"><div class="v">${durationMin}</div><div class="l">min reales</div></div>
-          </div>
-        </div>
-        ${topSets.length ? `<div class="card"><h3>Top sets del día</h3><ul>${topSets.map(topSetRow).join('')}</ul></div>` : ''}
-        ${pending.length ? `<div class="card"><h3>Ejercicios con series sin terminar</h3><ul>${pending.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '<div class="card"><p class="muted">Todas las series quedaron registradas. ¡Bien ahí!</p></div>'}
-        <button class="btn btn-primary btn-block btn-lg" id="sm-back-to-plan">Volver al plan</button>
-      </div>
-    </div>`;
-  }
-  function wireSmSummary() { $('#sm-back-to-plan').onclick = () => { endSessionMode(); render(); }; }
-
-  /* Fase 6: encabezado de Progreso con 4 métricas derivadas del log (vista
-   * pura, no participan de ningún cálculo del plan). */
   function htmlProgressHeader(log, plan) {
     const t = plan.targets;
     let avg7 = null, totalChange = null, realRate = null;
@@ -1484,9 +530,6 @@
     if (!p) { view.innerHTML = `<div class="empty"><div class="big">${icon('trend-down')}</div><p>Abre un perfil para registrar su progreso.</p></div>`; return; }
     const plan = ENGINE.buildPlan(p.data, todayIso());
     const log = (p.log || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-    const workouts = p.workouts || [];
-    const exNames = [...new Set(workouts.map(w => w.exercise))];
-    if (!ui.strengthExercise || !exNames.includes(ui.strengthExercise)) ui.strengthExercise = exNames[0] || null;
     view.innerHTML = `
       <div class="card accent">
         <h2>Progreso · ${esc(p.data.name)}</h2>
@@ -1513,11 +556,7 @@
         ${weightChart(log, plan)}
         <p class="help">${rateLabel(plan)}</p>
       </div>
-      <div class="card">
-        <h3>Fuerza</h3>
-        ${strengthSection(workouts)}
-      </div>
-      ${htmlSessionHistory(p)}
+      <div id="progreso-variante"></div>
       <div class="card">
         <h3>Historial</h3>
         ${log.length ? `<table><tr><th>Fecha</th><th class="num">Peso</th><th class="num">% grasa</th><th class="num">Cintura</th><th></th></tr>
@@ -1537,9 +576,8 @@
       const idx = Number(b.dataset.del); const sorted = log; const target = sorted[idx];
       p.log = p.log.filter(x => x !== target); save(); renderProgress();
     });
-    wireSessionHistory(p);
-    const sel = $('#strength-exercise-select');
-    if (sel) sel.onchange = () => { ui.strengthExercise = sel.value; renderProgress(); };
+    // Fuerza por variante y sesiones registradas: los pinta core-v2/pantallas/progreso.js.
+    montarNucleo('progreso', null, $('#progreso-variante'));
     const apply = $('#btn-apply');
     if (apply) apply.onclick = async () => {
       const ok = await confirmModal('Esto recalcula calorías y proteína del plan. ¿Continuar?', { confirmLabel: 'Recalcular', cancelLabel: 'Cancelar' });
@@ -1606,87 +644,6 @@
     </svg>`;
   }
 
-  /* DEC-015 (Paso 2) · historial de sesiones: tocar una serie para editar peso y repeticiones o borrarla. */
-  let histEditing = null; // rowId de la serie en edición
-  let histOpen = null; // sesión desplegada (se conserva al guardar o borrar)
-  const HISTORY_LIMIT = 30;
-  function htmlSessionHistory(p) {
-    const activeRec = SS.loadActive(localStorage);
-    const list = SS.listSessions(p.workouts || [], p.sessions || [], activeRec ? activeRec.sessionId : null);
-    const unit = p.data.plateUnit || 'kg';
-    if (!list.length) return `<div class="card"><h3>Sesiones registradas</h3><p class="muted">Todavía no registraste ninguna sesión.</p></div>`;
-    const row = w => {
-      const id = SS.rowId(w);
-      const label = { top: 'Top set', backoff: 'Back-off', normal: `Serie ${w.setNumber}` }[w.setType] || `Serie ${w.setNumber}`;
-      if (histEditing === id) return `<li class="hist-row editing"><div class="muted">${esc(w.exercise)} · ${esc(label)}</div>${setEditorHtml('hist', id, w.weight, w.reps, unit)}</li>`;
-      return `<li class="hist-row"><button class="btn btn-ghost" data-hist-edit="${esc(id)}" aria-label="Editar o borrar: ${esc(w.exercise)}, ${esc(label)}"><b>${esc(w.exercise)}</b> · ${esc(label)} · ${n1(w.weight)} ${esc(unit)} × ${w.reps}${w.editedAt ? ' <span class="muted">(editada)</span>' : ''}</button></li>`;
-    };
-    return `<div class="card"><h3>Sesiones registradas</h3>
-      <p class="help">Toca una serie para corregir su peso o repeticiones, o para borrarla.</p>
-      ${list.slice(0, HISTORY_LIMIT).map(x => `<details class="hist-session" data-sid="${esc(x.sessionId)}"${x.sessionId === histOpen || x.rows.some(r => SS.rowId(r) === histEditing) ? ' open' : ''}>
-        <summary>${fmtDate(x.date)} · ${esc(x.dayName)} · ${x.rows.length} series${x.status === 'sin_estado' ? ' <span class="muted">(sin estado)</span>' : ''}</summary>
-        <ul class="hist-rows">${x.rows.length ? x.rows.map(row).join('') : '<li class="muted">Sin series.</li>'}</ul>
-      </details>`).join('')}
-      ${list.length > HISTORY_LIMIT ? `<p class="muted">Se muestran las ${HISTORY_LIMIT} sesiones más recientes.</p>` : ''}
-    </div>`;
-  }
-  function wireSessionHistory(p) {
-    view.querySelectorAll('.hist-session').forEach(d => d.ontoggle = () => { if (d.open) histOpen = d.dataset.sid; else if (histOpen === d.dataset.sid) histOpen = null; });
-    view.querySelectorAll('[data-hist-edit]').forEach(btn => btn.onclick = () => { histEditing = btn.dataset.histEdit; renderProgress(); });
-    if (!histEditing) return;
-    const id = histEditing;
-    wireSetEditor(view, {
-      onSave: vals => {
-        const r = SS.editRow(p.workouts || [], id, vals, Date.now());
-        if (r.ok) { p.updatedAt = todayIso(); save(); histEditing = null; renderProgress(); }
-        return r;
-      },
-      onDelete: () => {
-        const r = SS.deleteRow(p.workouts || [], p.sessions = p.sessions || [], id, Date.now());
-        if (!r.ok) { toast(r.error); return; }
-        p.updatedAt = todayIso(); save(); histEditing = null; toast('Serie borrada'); renderProgress();
-      },
-      onCancel: () => { histEditing = null; renderProgress(); },
-    });
-  }
-
-  function strengthSection(workouts) {
-    if (!workouts.length) return '<p class="muted">Completá dos sesiones para ver tu evolución de fuerza.</p>';
-    const names = [...new Set(workouts.map(w => w.exercise))];
-    const selector = `<select id="strength-exercise-select">${names.map(n => `<option value="${esc(n)}" ${n === ui.strengthExercise ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
-    const points = strengthPointsFor(workouts, ui.strengthExercise);
-    if (points.length < 2) return `${selector}<p class="muted">Completá dos sesiones para ver tu evolución de fuerza.</p>`;
-    return `${selector}${strengthChart(points)}<p class="help">Marca hueca = sesión corta.</p>`;
-  }
-
-  function strengthPointsFor(workouts, exerciseName) {
-    const byDate = {};
-    workouts.filter(w => w.exercise === exerciseName).forEach(w => { (byDate[w.date] = byDate[w.date] || []).push(w); });
-    return Object.keys(byDate).sort().map(date => {
-      const sets = byDate[date];
-      const best = sets.find(s => s.setType === 'top') || sets.slice().sort((a, b) => b.weight - a.weight)[0];
-      return { date, weight: best.weight, reps: best.reps, short: sets.some(s => s.short) };
-    });
-  }
-
-  function strengthChart(points) {
-    const W = 340, H = 160, L = 36, R = 8, T = 10, B = 24;
-    const xs = points.map(p => new Date(p.date + 'T00:00:00').getTime());
-    const ys = points.map(p => p.weight);
-    const x0 = Math.min(...xs), x1 = Math.max(...xs, x0 + 7 * 86400000);
-    const yMin = Math.min(...ys) - 2.5, yMax = Math.max(...ys) + 2.5;
-    const X = x => L + (x - x0) / (x1 - x0) * (W - L - R);
-    const Y = y => T + (yMax - y) / (yMax - yMin) * (H - T - B);
-    const path = points.map((p, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join(' ');
-    const dots = points.map((p, i) => `<circle class="${p.short ? 'dot-short' : 'dot'}" cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="3.5"><title>${fmtDate(p.date)}: ${n1(p.weight)} kg × ${p.reps}${p.short ? ' (sesión corta)' : ''}</title></circle>`).join('');
-    const ticks = [yMin + 1, (yMin + yMax) / 2, yMax - 1].map(v => `<text x="${L - 4}" y="${Y(v) + 3}" text-anchor="end">${n1(v)}</text>`).join('');
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del top set">
-      <line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/><line class="axis" x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}"/>
-      ${ticks}<path class="line" pathLength="100" d="${path}"/>${dots}
-      <text x="${L}" y="${H - 6}">${fmtDate(points[0].date)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${fmtDate(points[points.length - 1].date)}</text>
-    </svg>`;
-  }
-
   /* ---------- Fuentes ---------- */
   function renderSources() {
     const list = Object.values(KNOWLEDGE.SOURCES);
@@ -1725,18 +682,20 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
 
+  /* ---------- Modo sesión ----------
+   * La pantalla de sesión es la del núcleo nuevo (core-v2/pantallas/sesion.js): registra por VARIANTE y
+   * guarda la sesión en curso en su propia clave de sessionStore.js (DEC-015). */
+  const sesion = SESION_PANTALLA.crearSesion({
+    doc: document, storage: storageOrNull(), perfiles: () => state.profiles, guardar: save,
+    ahora: todayIso, reloj: () => Date.now(), id: uid, aviso: toast,
+    confirmar: (msg, opciones) => confirmModal(msg, opciones),
+    alTerminar: () => { ui.planTab = 'training'; go('plan'); },
+  });
+
   /* ---------- Arranque ---------- */
-  // DEC-016: la aceptación de sesiones largas era solo una fecha; se migra al formato con firma y máximo
-  // tomados del plan vigente. Se guarda una sola vez: después ya no hay campo viejo que migrar.
-  (function migrateAcceptances() {
-    let changed = false;
-    state.profiles.forEach(p => {
-      if (!p.data || !p.data.longSessionAcceptedOn || p.data.longSessionAcceptance) return;
-      try { const next = ENGINE.migrateLongSessionAcceptance(p.data, todayIso()); if (next !== p.data) { p.data = next; changed = true; } } catch (e) { /* un perfil ilegible no frena el arranque */ }
-    });
-    if (changed) save();
-  })();
+  // Todo perfil tiene su plan guardado: si falta o era ilegible, se genera al abrir (DEC-023: sin migraciones).
+  if (state.profiles.map(p => ALMACEN.asegurarPlan(p, { planId: uid(), ahora: todayIso() })).some(Boolean)) save();
   if (active()) ui.tab = 'plan';
   go(ui.tab);
-  offerResume(); // DEC-015
+  sesion.ofrecerReanudar(); // DEC-015
 })();

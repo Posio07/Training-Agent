@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.2: aviso único (B-039). No tocan el motor actual ni la interfaz. */
+/* Tests del núcleo v2, paso 3.2: aviso único (B-039). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const AVISO = require('../js/core-v2/aviso.js');

@@ -1,8 +1,8 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.8). Pantalla de PROGRESO POR VARIANTE del núcleo nuevo: lo único de la pestaña Progreso que cambia con el registro por
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.8). Pantalla de PROGRESO POR VARIANTE del núcleo nuevo: lo único de la pestaña Progreso que cambia con el registro por
  * variante (el `exerciseId` de cada serie es el id de la variante): la sección "Fuerza" (selector de variante y gráfico del top set) y las "Sesiones registradas"
  * (historial con editor de series). Copiado y adaptado de `app.js` (`strengthSection`, `strengthChart`, `htmlSessionHistory`, `wireSessionHistory`), que se borra en el
- * corte. El peso, las medidas y el gráfico de peso NO cambian y se quedan en `app.js` (no se copian). NO está conectado a la app: lo monta la página de prueba
- * (tests/pagina-nucleo-v2.html) y el corte lo conecta dentro de la pestaña Progreso. */
+ * corte. El peso, las medidas y el gráfico de peso NO cambian y se quedan en `app.js` (no se copian): `app.js` monta esta sección
+ * dentro de su pestaña Progreso. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('../../sessionStore.js'), require('../catalogo.js'), require('./comun.js'), require('./editor.js'));
   else root.CORE_V2_PROGRESO = factory(root.SESSION_STORE, root.CORE_V2_CATALOGO, root.CORE_V2_COMUN, root.CORE_V2_EDITOR);
@@ -124,5 +124,5 @@
     return { render };
   }
 
-  return { variantesRegistradas, puntosDeFuerza, htmlFuerza, htmlHistorial, graficoFuerza, montarProgreso };
+  return { variantesRegistradas, puntosDeFuerza, htmlFuerza, htmlHistorial, montarProgreso };
 });

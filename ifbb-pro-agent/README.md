@@ -9,7 +9,8 @@ Es una **PWA** (aplicación web progresiva): se instala en Android como una app 
 - **Perfiles ilimitados**: crea, abre, duplica, elimina, exporta e importa perfiles (JSON). Útil para distintas fases o distintas personas.
 - **Datos**: sexo, edad, estatura, peso, % de grasa medido o estimado por circunferencias (método US Navy), actividad, experiencia, días de entreno, división IFBB Pro League, fase (definición / volumen / mantenimiento), fecha objetivo y % de grasa objetivo.
 - **Plan de dieta**: calorías, proteína, carbohidratos, grasas, fibra, agua, reparto por comidas, guía de alimentos y reglas de ajuste semanal.
-- **Plan de entrenamiento**: rutina completa según días disponibles (3 a 6), con ejercicios, series, repeticiones, RIR y descansos; volumen semanal por músculo ajustado a la división; cardio; progresión y descargas.
+- **Plan de entrenamiento**: rutina completa según días disponibles (3 a 6) y el tiempo que tienes en cada sesión, con ejercicios, series, repeticiones, RIR y descansos; volumen semanal por músculo ajustado a la división; cardio; progresión y descargas. El plan se guarda y solo se regenera cuando cambia algo que lo define o cuando lo pides.
+- **Modo sesión**: la sesión del día para usar en el gimnasio, con elección de variante por ejercicio, "hoy tengo X min", cronómetro de descanso, discos de la barra y registro de cada serie (que se puede reanudar si cierras la app).
 - **Medidas objetivo**: peso y % de grasa en tarima, masa magra a conservar, cintura de referencia, FFMI, límite de peso de Classic Physique y calendario con fecha estimada.
 - **Progreso**: registro de mediciones, gráfica de peso frente al objetivo y recálculo del plan con la última medición.
 - **Avisos de seguridad**: fecha no alcanzable sin superar 1 %/semana, objetivo por debajo de la grasa esencial, calorías por debajo del gasto en reposo, menores de edad, etc.
@@ -26,8 +27,8 @@ Alternativa sin publicar: copia la carpeta al teléfono y abre `index.html` con 
 ## Desarrollo
 
 ```bash
-# Pruebas del motor de cálculo (sin dependencias)
-node --test ifbb-pro-agent/tests/engine.test.js
+# Pruebas unitarias (sin dependencias)
+node --test ifbb-pro-agent/tests/*.test.js
 
 # Recorrido completo en Chromium móvil (requiere playwright instalado globalmente)
 NODE_PATH=$(npm root -g) node ifbb-pro-agent/tests/e2e.js
@@ -43,11 +44,13 @@ Estructura:
 
 | Archivo | Contenido |
 |---|---|
-| `js/knowledge.js` | Base de conocimiento: fuentes, divisiones, factores de actividad, biblioteca de ejercicios, suplementos |
-| `js/engine.js` | Motor de cálculo (funciones puras): composición corporal, calorías, macros, rutina, objetivos y avisos |
-| `js/app.js` | Interfaz, navegación, perfiles en `localStorage`, exportar/importar, gráfica, PWA |
+| `js/knowledge.js` | Base de conocimiento: fuentes, divisiones, factores de actividad, suplementos, discos |
+| `js/engine.js` | Motor de cálculo (funciones puras): composición corporal, calorías, macros, medidas objetivo, tamizaje de salud y avisos |
+| `js/core-v2/` | Núcleo del generador de entrenamiento: registro de reglas, catálogo (patrones y variantes), reparto, plan guardado, sesión y sus pantallas |
+| `js/app.js` | Interfaz, navegación, perfiles en `localStorage`, exportar/importar, gráfica de peso, PWA |
+| `js/sessionStore.js` | Estado de la sesión en curso (reanudable) y del historial de series |
 | `sw.js` / `manifest.webmanifest` | Funcionamiento sin conexión e instalación |
-| `tests/` | Pruebas unitarias, recorrido E2E y generador de iconos |
+| `tests/` | Pruebas unitarias, recorridos E2E y generador de iconos |
 
 Sube `CACHE_VERSION` en `sw.js` cada vez que despliegues cambios para que los teléfonos ya instalados reciban la versión nueva.
 
@@ -61,7 +64,8 @@ Sube `CACHE_VERSION` en `sw.js` cada vez que despliegues cambios para que los te
 | Preparación de competición (entreno y cardio) | Helms et al. 2015, J Sports Med Phys Fitness |
 | Off-season | Iraki et al. 2019, Sports |
 | Proteína, dietas, creatina, cafeína, beta-alanina | Posicionamientos oficiales de la International Society of Sports Nutrition (2015-2021) |
-| Volumen y frecuencia de entrenamiento | Metaanálisis de Schoenfeld et al. 2016 y 2017; ACSM Position Stand 2009 |
+| Volumen y frecuencia de entrenamiento | Metaanálisis de Schoenfeld et al. 2016 y 2017; ACSM Position Stand 2009 y postura de 2026 |
+| Conteo de series fraccionadas | Pelland et al. 2026, Sports Med (convención global: directa 1, indirecta 0,5) |
 | Límite natural de masa magra (FFMI) | Kouri et al. 1995 |
 | Grasa en tarima | Estudios de caso con DXA (Rossow 2013, Kistler 2014 y otros) |
 | Grasa esencial, cintura, fibra, agua | ACE, Ashwell 2012, Institute of Medicine 2005, EFSA 2010 |

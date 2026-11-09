@@ -1,33 +1,14 @@
-/* Recorrido en Chromium móvil de la pantalla de SESIÓN del núcleo nuevo (B-039, paso 3.7) sobre la página de prueba (tests/pagina-nucleo-v2.html): registro por
- * variante, back-off válido (A5), dolor por zona (A6) con propuesta de cambio, elegir variante, "hoy tengo X min" y reanudar. Se borra con la página en el corte.
+/* Recorrido en Chromium móvil de la pantalla de SESIÓN del núcleo nuevo, sobre la app real: registro por variante,
+ * back-off válido (A5), dolor por zona (A6) con propuesta de cambio, elegir variante, "hoy tengo X min" y reanudar.
  * Uso: NODE_PATH=/opt/node22/lib/node_modules node ifbb-pro-agent/tests/e2e-sesion.js */
-const path = require('path');
-const http = require('http');
-const fs = require('fs');
 const assert = require('node:assert/strict');
-const { chromium, devices } = require('playwright');
-
-const root = path.join(__dirname, '..');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
-const server = http.createServer((req, res) => {
-  const f = path.join(root, decodeURIComponent(req.url.split('?')[0]));
-  if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
-  res.writeHead(200, { 'Content-Type': mime[path.extname(f)] || 'application/octet-stream' });
-  fs.createReadStream(f).pipe(res);
-});
+const { abrir, leer, leerSesion } = require('./e2e-comun.js');
 
 (async () => {
-  await new Promise(r => server.listen(0, r));
-  const url = `http://localhost:${server.address().port}/tests/pagina-nucleo-v2.html`;
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
-  const page = await ctx.newPage();
-  const errores = [];
-  page.on('pageerror', e => errores.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error' && !/fonts|Failed to load resource/.test(m.text())) errores.push('console: ' + m.text()); });
-  await page.goto(url);
-  const act = () => page.evaluate(() => JSON.parse(Object.values(window.__storage)[0] || 'null'));
-  const perfil = () => page.evaluate(() => window.__almacen.profiles[0]);
+  const { page, errores, cerrar } = await abrir({});
+  const act = () => leerSesion(page);
+  const perfil = async () => (await leer(page)).profiles[0];
+  const irAEntreno = async () => { await page.click('[data-tab=plan]'); await page.click('[data-pt=training]'); await page.waitForSelector('[data-start-session="1"]'); };
   const hecha = async (i, peso, reps, dolor) => {
     await page.fill(`[data-sm-weight="${i}"]`, String(peso)); await page.fill(`[data-sm-reps="${i}"]`, String(reps));
     if (dolor != null) await page.fill(`[data-sm-pain="${i}"]`, String(dolor));
@@ -37,17 +18,19 @@ const server = http.createServer((req, res) => {
   };
 
   // Perfil de definición, 4 días: el día 2 es pierna con sentadilla (top set).
+  await page.click('#btn-new');
   await page.waitForSelector('#form');
   await page.fill('input[name="name"]', 'Prueba'); await page.selectOption('#sex', 'M');
   await page.fill('input[name="age"]', '30'); await page.fill('input[name="heightCm"]', '178'); await page.fill('input[name="weightKg"]', '85');
   await page.selectOption('select[name="level"]', 'intermediate'); await page.selectOption('select[name="daysPerWeek"]', '4'); await page.selectOption('select[name="goal"]', 'cut');
   await page.fill('input[name="tiempoDisponibleMin"]', '90');
   await page.click('button[type="submit"]');
-  await page.waitForSelector('[data-start-session="1"]');
+  await page.waitForSelector('#plan-body .stat');
+  await irAEntreno();
   await page.click('[data-toggle-day="1"]');
 
   // 1. Empezar el día de pierna: el primer ejercicio es la sentadilla trasera con top set y back-offs, registrada por variante.
-  await page.click('[data-start-session="1"]');
+  await page.click('#day-body-1 [data-start-session]');
   await page.waitForSelector('.sm-exname');
   assert.match(await page.textContent('.sm-exname'), /Sentadilla trasera/);
   let s = await act();
@@ -97,7 +80,7 @@ const server = http.createServer((req, res) => {
   const nuevo = await otra.getAttribute('data-sm-variante');
   assert.notEqual(nuevo, antes);
   await otra.click();
-  await page.waitForFunction(id => JSON.parse(Object.values(window.__storage)[0]).exercises[1].exerciseId === id, nuevo);
+  await page.waitForFunction(id => JSON.parse(localStorage.getItem(window.SESSION_STORE.STORAGE_KEY)).exercises[1].exerciseId === id, nuevo);
   await hecha(0, 120, 10);
   p = await perfil();
   assert.equal(p.workouts[p.workouts.length - 1].exerciseId, nuevo, 'el progreso se registra por variante');
@@ -109,38 +92,42 @@ const server = http.createServer((req, res) => {
   assert.match(await page.textContent('#session-mode-root'), /Top sets del día/);
   await page.click('#sm-back-to-plan');
   await page.waitForSelector('[data-start-session="1"]');
-  assert.equal((await page.evaluate(() => Object.keys(window.__storage).length)), 0, 'la sesión terminada ya no es reanudable');
+  assert.equal(await act(), null, 'la sesión terminada ya no es reanudable');
 
   // 6. Con la zona lumbar marcada, la próxima sentadilla ya no lleva top set y propone una variante más suave, con confirmación.
   await page.click('[data-toggle-day="1"]');
-  await page.click('[data-start-session="1"]');
+  await page.click('#day-body-1 [data-start-session]');
   await page.waitForSelector('.sm-exname');
   s = await act();
   assert.equal(s.exercises[0].sets.every(x => x.setType !== 'top'), true, 'sin top set con la zona marcada');
   assert.match(await page.textContent('#session-mode-root'), /zona lumbar/);
   assert.ok(await page.locator('[data-sm-variante]').count() > 0);
 
-  // 7. Cerrar sin terminar deja la sesión reanudable.
-  await page.evaluate(() => { window.__confirmar = true; });
-  await page.click('#sm-close'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
-  await page.evaluate(() => window.__sesion.ofrecerReanudar());
+  // 7. Cerrar sin terminar deja la sesión reanudable: al recargar la app, aparece el aviso de reanudar.
+  await page.click('#sm-close'); await page.click('#modal-confirm');
+  await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('#resume-yes'); await page.click('#resume-yes');
   await page.waitForSelector('.sm-exname');
-  await page.click('#sm-close'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
-  await page.evaluate(() => window.__sesion.ofrecerReanudar());
+  await page.click('#sm-close'); await page.click('#modal-confirm');
+  await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await page.reload({ waitUntil: 'networkidle' });
   await page.waitForSelector('#resume-no'); await page.click('#resume-no');
+  await page.click('#modal-confirm');
   await page.waitForSelector('#resume-prompt', { state: 'detached' });
-  assert.equal((await page.evaluate(() => Object.keys(window.__storage).length)), 0);
+  assert.equal(await act(), null);
 
   // 7b. Una sesión guardada por el modo sesión anterior (sin el plan de la sesión) no se puede reanudar: se descarta con un aviso, sin romper.
-  await page.evaluate(() => { const rec = { version: 1, status: 'en_curso', sessionId: 'vieja', profileId: window.__almacen.profiles[0].id, dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1, updatedAt: 1, exIndex: 0, finished: false, exercises: [{ name: 'X', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8', restLabel: '90 s' }] }], values: [[{ weight: '', reps: '', done: false, pain: '', doneAt: null }]], recordShown: [], deletedKeys: [], rest: null }; window.__storage[window.SESSION_STORE.STORAGE_KEY] = JSON.stringify(rec); });
-  await page.evaluate(() => window.__sesion.ofrecerReanudar());
+  await page.evaluate(id => { const rec = { version: 1, status: 'en_curso', sessionId: 'vieja', profileId: id, dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1, updatedAt: 1, exIndex: 0, finished: false, exercises: [{ name: 'X', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8', restLabel: '90 s' }] }], values: [[{ weight: '', reps: '', done: false, pain: '', doneAt: null }]], recordShown: [], deletedKeys: [], rest: null }; localStorage.setItem(window.SESSION_STORE.STORAGE_KEY, JSON.stringify(rec)); }, (await perfil()).id);
+  await page.reload({ waitUntil: 'networkidle' });
   await page.waitForFunction(() => /versión anterior/.test(document.getElementById('toast').textContent));
   assert.equal(await page.locator('#resume-prompt').count(), 0);
-  assert.equal(await page.evaluate(() => Object.keys(window.__storage).length), 0);
+  assert.equal(await act(), null);
 
   // 8. "Hoy tengo 25 min": la misma sesión con menos ejercicios, sin tocar el plan guardado.
   const planId = (await perfil()).planGuardado.id;
+  await irAEntreno();
+  await page.click('[data-toggle-day="1"]');
   await page.fill('[data-hoy-min="1"]', '25');
   await page.click('[data-start-session-short="1"]');
   await page.waitForSelector('.sm-exname');
@@ -148,11 +135,11 @@ const server = http.createServer((req, res) => {
   assert.equal(s.short, true);
   assert.ok(s.exercises.length < 5 && s.exercises.length >= 1);
   assert.match(await page.textContent('.prog'), /Rutina corta/);
-  await page.evaluate(() => { window.__confirmar = true; });
-  await page.click('#sm-close'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await page.click('#sm-close'); await page.click('#modal-confirm');
+  await page.waitForSelector('#session-mode-root', { state: 'detached' });
   assert.equal((await perfil()).planGuardado.id, planId);
 
   assert.deepEqual(errores, [], errores.join('\n'));
-  await browser.close(); server.close();
-  console.log('e2e sesión: OK');
+  await cerrar();
+  console.log('e2e sesión sobre la app real: OK');
 })().catch(e => { console.error(e); process.exit(1); });

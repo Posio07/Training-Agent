@@ -1,5 +1,5 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.1). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del
- * corte lo conecta (docs/specs/nucleo-v2.md, "Plan guardado" y "El corte").
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.1). Conectado a la app en el corte
+ * (docs/specs/nucleo-v2.md, "Plan guardado" y "El corte").
  *
  * Plan guardado: el plan generado se GUARDA (con un identificador, la fecha y la versión del motor que lo generó). Hoy se
  * recalcula cada vez que se muestra; en el núcleo nuevo solo se regenera cuando:
@@ -114,5 +114,5 @@
     return ok ? x : null;
   }
 
-  return { VERSION_MOTOR, CAMPOS, CAMPOS_ACEPTACION, perfilParaReparto, firmaDelPerfil, camposCambiados, crearPlan, estadoDelPlan, regenerar, aceptarSesion, aceptacionVigente, leerPlanGuardado };
+  return { VERSION_MOTOR, CAMPOS, crearPlan, estadoDelPlan, regenerar, aceptarSesion, aceptacionVigente, leerPlanGuardado };
 });

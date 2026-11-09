@@ -1,5 +1,5 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.7). Editor mínimo de una serie (peso y repeticiones; Guardar, Borrar y Cancelar), copiado de `app.js`
- * (DEC-015, paso 2). Lo comparten la pantalla de sesión y la de progreso (historial de sesiones). Se borra de `app.js` en el corte.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.7). Editor mínimo de una serie (peso y repeticiones; Guardar, Borrar y Cancelar), copiado de `app.js`
+ * (DEC-015, paso 2). Lo comparten la pantalla de sesión y la de progreso (historial de sesiones); el corte lo borró de `app.js`.
  * Los avisos y la confirmación de borrado los pone quien lo conecta (`ctx.aviso`, `ctx.confirmar`). */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./comun.js'));

@@ -1,5 +1,5 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.6). Utilidades de las pantallas nuevas, copiadas de `app.js` (esc, n1, icon): `app.js` las
- * pierde en el corte y usa estas. Este módulo NO está conectado a la app: lo monta la página de prueba (tests/pagina-nucleo-v2.html). */
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.6). Utilidades compartidas de las pantallas (esc, n1, icon). Vienen de `app.js`, que las
+ * perdió en el corte y usa estas. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.CORE_V2_COMUN = factory();

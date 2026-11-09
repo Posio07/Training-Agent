@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests de la pantalla de progreso por variante del núcleo v2, paso 3.8: las funciones puras. El recorrido en el navegador está en tests/e2e-progreso.js. */
+/* Tests de la pantalla de progreso por variante del núcleo v2, paso 3.8: las funciones puras. El recorrido en el navegador está en tests/e2e-progreso.js. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const P = require('../js/core-v2/pantallas/progreso.js');

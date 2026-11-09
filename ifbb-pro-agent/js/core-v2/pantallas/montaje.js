@@ -1,12 +1,17 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.6). Monta las pantallas de PERFIL y de PLAN (pestaña Entreno) del núcleo nuevo sobre un elemento del DOM y
- * conecta sus eventos. El formulario y su cableado (división por sexo, discos, zonas de lesión) están copiados de `renderData` de `app.js`, que se
- * borra en el corte. NO está conectado a la app: lo usa la página de prueba (tests/pagina-nucleo-v2.html); el corte hace que `app.js` solo llame
- * a `montar`.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.6). Monta las pantallas de PERFIL (pestaña Datos), PLAN (pestaña Entreno) y PROGRESO POR
+ * VARIANTE del núcleo nuevo sobre un elemento del DOM y conecta sus eventos. El formulario y su cableado (división por sexo, discos, zonas de
+ * lesión) vienen de `renderData` de `app.js`, que el corte borró: desde el corte `app.js` solo llama a `montar`.
  *
  * `ctx`: { almacen: el estado de `core-v2/almacen.js` (`{ profiles, activeId }`), guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
- *          aviso(texto), reloj() → ms, sesionActivaId() → id de la sesión en curso o null, confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos) }.
- * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea (síntomas,
- * o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a esta función. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
+ *          aviso(texto), reloj() → ms, sesionActivaId() → id de la sesión en curso o null, confirmar(mensaje) → booleano o promesa,
+ *          pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos), vista: la pantalla a mostrar ('perfil' | 'plan' |
+ *          'progreso'), editandoId: el perfil que abre el formulario, navegar(vista, id): quién manda en la navegación }.
+ * `vista` y `navegar` existen porque la app tiene su propia barra de pestañas: con `navegar`, cambiar de pantalla desde acá (guardar el perfil,
+ * cancelar) se delega en el anfitrión, que cambia de pestaña y vuelve a montar con la `vista` que corresponde. Sin `navegar`, la navegación es
+ * interna (un test puede montar el módulo suelto).
+ * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea
+ * (síntomas, o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a
+ * esta función. El almacenamiento lo pone quien monta. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../almacen.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./progreso.js'), require('./comun.js'));
   else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_ALMACEN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_PROGRESO, root.CORE_V2_COMUN);
@@ -19,11 +24,13 @@
     const q = sel => raiz.querySelector(sel);
     const activo = () => alm.profiles.find(p => p.id === alm.activeId) || null;
     const guardar = () => ctx.guardar(alm);
-    // Un plan guardado ilegible se regenera al abrir (DEC-023: sin migraciones).
-    if (alm.profiles.map(p => ALMACEN.asegurarPlan(p, { planId: ctx.id(), ahora: ctx.ahora() })).some(Boolean)) guardar();
-    let vista = alm.profiles.length ? 'plan' : 'perfil', editandoId = null;
+    let vista = ctx.vista || (alm.profiles.length ? 'plan' : 'perfil'), editandoId = ctx.editandoId || null;
 
-    function ir(v, id) { vista = v; editandoId = id || null; render(); }
+    // Cambiar de pantalla: si el anfitrión manda la navegación (la barra de pestañas de `app.js`), se la delega.
+    function ir(v, id) {
+      if (ctx.navegar) { ctx.navegar(v, id || null); return; }
+      vista = v; editandoId = id || null; render();
+    }
     function render() { (vista === 'perfil' ? renderPerfil : vista === 'progreso' ? renderProgreso : renderPlan)(); }
 
     /* ---------- Perfil ---------- */
@@ -77,8 +84,7 @@
 
     /* ---------- Progreso por variante (la sección de peso y medidas sigue en app.js) ---------- */
     function renderProgreso() {
-      raiz.innerHTML = '<div class="btn-row"><button class="btn" id="btn-volver">Volver al plan</button></div><div id="progreso"></div>';
-      q('#btn-volver').onclick = () => ir('plan');
+      raiz.innerHTML = '<div id="progreso"></div>';
       PROGRESO.montarProgreso(q('#progreso'), { perfil: activo, guardar, ahora: ctx.ahora, reloj: ctx.reloj, aviso: ctx.aviso, confirmar: ctx.confirmar, sesionActivaId: ctx.sesionActivaId || (() => null) });
     }
 
@@ -86,14 +92,11 @@
     function renderPlan() {
       const p = activo();
       if (!p) { raiz.innerHTML = '<div class="empty"><p>Crea un perfil para ver su plan.</p><button class="btn btn-primary" id="e-new">Nuevo perfil</button></div>'; q('#e-new').onclick = () => ir('perfil'); return; }
-      // DEC-009: si el tamizaje bloquea, no se muestra el plan.
-      const salud = ENGINE.computeHealthScreen(p.data);
+      // DEC-009: si el tamizaje bloquea, no se muestra el plan. Se normaliza primero, porque un perfil guardado puede
+      // no traer `health` (por ejemplo, uno importado) y el tamizaje lo necesita armado.
+      const salud = ENGINE.computeHealthScreen(ENGINE.normalizeProfile(p.data));
       if (salud.blocked) { raiz.innerHTML = ''; ctx.pantallaBloqueo(raiz, p, salud); return; }
-      raiz.innerHTML = `<div class="btn-row"><button class="btn" id="btn-editar">Editar perfil</button><button class="btn" id="btn-nuevo">Nuevo perfil</button><button class="btn" id="btn-progreso">Progreso</button></div>
-        <div id="entreno">${ENTRENO.htmlEntreno({ datos: p.data, guardado: p.planGuardado, siguiente: ctx.siguiente ? ctx.siguiente(p) : 0 })}</div>`;
-      q('#btn-editar').onclick = () => ir('perfil', p.id);
-      q('#btn-nuevo').onclick = () => ir('perfil');
-      q('#btn-progreso').onclick = () => ir('progreso');
+      raiz.innerHTML = `<div id="entreno">${ENTRENO.htmlEntreno({ datos: p.data, guardado: p.planGuardado, siguiente: ctx.siguiente ? ctx.siguiente(p) : 0 })}</div>`;
       const regenerar = () => { p.planGuardado = PLAN.regenerar(p.data, { id: ctx.id(), ahora: ctx.ahora() }); p.updatedAt = ctx.ahora(); guardar(); ctx.aviso('Plan regenerado'); renderPlan(); };
       raiz.querySelectorAll('[data-regenerar], [data-aplicar-version]').forEach(b => b.onclick = regenerar);
       raiz.querySelectorAll('[data-salida]').forEach(b => b.onclick = () => {

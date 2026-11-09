@@ -4,7 +4,7 @@ PWA offline de planes de entrenamiento y dieta con un validador basado en eviden
 
 ## Mapa del repo
 
-- `ifbb-pro-agent/`: la app. `js/engine.js` (plan y validador), `js/knowledge.js` (catálogo y `VALIDATOR_RULES`), `js/sessionStore.js` (sesión en curso, DEC-015), `js/app.js` (interfaz), `sw.js` (service worker).
+- `ifbb-pro-agent/`: la app. `js/core-v2/` (el núcleo del generador: `registro.js` con todas las reglas y sus números, `catalogo.js` con patrones y variantes, `reparto.js`, `plan.js` con el plan guardado, `sesion.js`, `aviso.js`, `dolor.js`, `almacen.js`, y `pantallas/` con perfil, entreno, sesión y progreso), `js/engine.js` (nutrición, métricas, medidas objetivo y tamizaje de salud; el entrenamiento ya no vive acá, B-047), `js/knowledge.js` (fuentes, divisiones, etiquetas, suplementos), `js/sessionStore.js` (sesión en curso, DEC-015), `js/app.js` (interfaz: perfiles, resumen, dieta, medidas, suplementos, progreso de peso y fuentes; monta las pantallas del núcleo), `sw.js` (service worker).
 - `data/*.csv`: fuente de verdad ejercicio-músculo. `js/exerciseMuscles.js` es **generado**: no se edita a mano.
 - `docs/decisions/DEC-XXX.md`: un archivo por DEC, fuente de verdad de la lógica de negocio (`DECISIONS.md` solo explica el formato). `docs/specs/validador.md`: spec del validador.
 - `docs/backlog/B-XXX.md`: un archivo por pendiente (`docs/BACKLOG.md` solo trae las reglas). No hay índices guardados: GitHub lista las carpetas por nombre, y `node scripts/generar-indices.js` genera uno a pedido en `docs/indices.generado.md` (ignorado por git). `docs/VISION.md`: visión (solo la edita Emanuel). `docs/research/`: lecturas de fuentes.
@@ -12,15 +12,24 @@ PWA offline de planes de entrenamiento y dieta con un validador basado en eviden
 ## Comandos
 
 ```
-node --test ifbb-pro-agent/tests/engine.test.js ifbb-pro-agent/tests/regression.test.js ifbb-pro-agent/tests/core-v2*.test.js   # tests (el CI corre engine.test.js y todos los core-v2*.test.js)
-node ifbb-pro-agent/tests/e2e.js                      # recorrido en Chromium
-node ifbb-pro-agent/tests/e2e-aceptacion.js           # E2E de la aceptación del tope E4
-node ifbb-pro-agent/tests/e2e-pantallas.js        # E2E de las pantallas del núcleo v2 sobre la página de prueba (se borra en el corte)
+node --test ifbb-pro-agent/tests/*.test.js            # tests unitarios (lo mismo que corre el CI)
+node ifbb-pro-agent/tests/e2e.js                      # recorrido general en Chromium, sobre la app real
+node ifbb-pro-agent/tests/e2e-recorrido.js            # recorrido de punta a punta del núcleo (prueba de aceptación)
+node ifbb-pro-agent/tests/e2e-pantallas.js            # pantallas de perfil y plan
+node ifbb-pro-agent/tests/e2e-sesion.js               # pantalla de sesión (variantes, A5, A6, reanudar)
+node ifbb-pro-agent/tests/e2e-progreso.js             # progreso por variante e historial de sesiones
+node ifbb-pro-agent/tests/e2e-aceptacion.js           # aceptación del aviso único y sus tres salidas
+node ifbb-pro-agent/tests/e2e-agua.js                 # tarjeta de agua (DEC-019)
+node ifbb-pro-agent/tests/e2e-import.js               # export → import con entrenamiento (B-001)
+node scripts/aceptacion-nucleo-v2.js [--escribir]     # prueba de aceptación del núcleo sobre el barrido de 360 planes
 node scripts/build-exercise-muscles.js [--check]      # regenera/comprueba el módulo de los CSV
-node scripts/build-perfil-articular-variantes.js [--check]   # perfil articular de las variantes partidas (core-v2)
+node scripts/build-perfil-articular.js [--check]      # perfil articular del catálogo
+node scripts/build-perfil-articular-variantes.js [--check]   # perfil articular de las variantes partidas
 node scripts/generar-indices.js [--validar]   # genera docs/indices.generado.md (ignorado por git) o valida los archivos de DEC y backlog
-node scripts/snapshot-plan-hashes.js                  # huellas de los 30 planes: solo si el cambio de salida es intencional y tiene DEC
+node scripts/snapshot-core-v2.js                      # huellas de los 10 planes de referencia: solo si el cambio de salida es intencional y tiene DEC
 ```
+
+Los E2E necesitan Playwright: `NODE_PATH=/opt/node22/lib/node_modules node ...` (o `NODE_PATH=$(npm root -g)`). Lo que comparten (servidor, navegador, siembra del almacenamiento) está en `tests/e2e-comun.js`.
 
 Si cambia la app, sube `CACHE_VERSION` en `sw.js`.
 
@@ -39,8 +48,8 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 ## Reglas de trabajo
 
 1. **Cada cambio de comportamiento lleva un DEC.** El agente lo crea con estado `Propuesto`; solo Emanuel lo pasa a `Aceptado`. Un DEC `Propuesto` no es base para otro trabajo. **La aceptación de un DEC la confirma el usuario con un comentario en el PR, desde su cuenta**: lo que se dice en el chat no basta, y el agente deja el DEC `Propuesto` hasta que ese comentario exista. Con el comentario, el agente edita el archivo del DEC en `docs/decisions/` (estado y "Decidido por") y cita el comentario.
-2. **Si cambia el plan generado**, el PR lleva la tabla de antes y después con los 10 perfiles de referencia (`tests/fixtures/plan-identity-baseline.json`), con series y minutos por sesión.
-3. **Toda regla numérica lleva nivel de evidencia (E1 a E4), fuente y estado** (`implementada` o `pendiente`) en `VALIDATOR_RULES`. Un test comprueba el estado contra el uso real.
+2. **Si cambia el plan generado**, el PR lleva la tabla de antes y después con los 10 perfiles de referencia (`tests/fixtures/core-v2-plan-hashes.json`), con series y minutos por sesión.
+3. **Toda regla numérica lleva nivel de evidencia (E1 a E4), fuente, DEC de origen y estado** (`implementada` o `pendiente`) en el registro de reglas (`js/core-v2/registro.js`). Un test comprueba el estado contra el uso real. El registro es para reglas de entrenamiento: las constantes de interfaz, las conversiones de unidad y las tolerancias numéricas no entran.
 4. **La evidencia solo mueve relaciones entre categorías** (ninguna ↔ indirecta ↔ directa), como máximo un paso por estudio. Nunca pesos a medida por ejercicio.
 5. **Privacidad según DEC-009.** Los datos de salud y el dolor por serie no salen del dispositivo ni entran al export.
 6. **El registro funciona sin conexión; el server nunca es una dependencia.** Durante el año de prueba no se escriben migraciones de datos (DEC-023, ver abajo).
@@ -49,9 +58,13 @@ Cómo se escala: se describe el hallazgo, la opción recomendada y el costo de c
 9. **No toques** `docs/VISION.md` ni el estado de un DEC `Aceptado`; no edites a mano `js/exerciseMuscles.js`.
 10. **Al explicarle algo a Emanuel, usa lenguaje simple:** qué cambia, por qué importa y qué tiene que decidir. Los detalles técnicos (rutas, funciones, tablas, mutaciones, identificadores) van en el PR, no en el resumen. Lo que devuelven los subagentes es técnico: tradúcelo antes de contárselo.
 
+## El corte al núcleo nuevo (hecho)
+
+El corte (B-039, paso 3.9) ya ocurrió: `app.js` monta las pantallas de `js/core-v2/`, el motor viejo de entrenamiento y su catálogo se borraron, y el almacenamiento usa la clave `ifbb-agent:v2` (DEC-032). Los datos de la clave vieja (`ifbb-agent:v1`) quedan en el dispositivo, ignorados, hasta que un PR aparte los borre (B-046). Las cláusulas de DEC-015 (filas sin `setKey`), DEC-016 (migración de la aceptación) y DEC-018 (importar archivos viejos) ya no tienen código.
+
 ## Año de prueba (DEC-023, Aceptado el 2026-11-07; DEC-030 reemplaza su cláusula de exportación)
 
-Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: el formato del almacenamiento y del plan puede cambiar sin migración. **El reset del corte es completo y sin exportación** (DEC-030): Emanuel lleva su propio registro fuera de la app, y los perfiles se recrean después del corte. **El código que una decisión deja muerto se elimina en el mismo PR**: migraciones, campos legados, caminos sin uso y los tests que solo fijaban ese detalle; los tests de comportamiento se conservan. No se parchea el motor actual: el núcleo del generador se reconstruye a partir de `docs/research/inventario-generador.md` y de la spec del núcleo que escribe Emanuel (B-039). Las cláusulas de DEC-015 (filas sin `setKey`), DEC-016 (migración de la aceptación) y DEC-018 (importar archivos viejos) siguen vigentes **hasta el corte** al núcleo nuevo; su código se elimina en el PR del corte.
+Durante el año de prueba **la retrocompatibilidad de datos no es requisito**: el formato del almacenamiento y del plan puede cambiar sin migración. **El reset del corte es completo y sin exportación** (DEC-030): Emanuel lleva su propio registro fuera de la app, y los perfiles se recrean después del corte. **El código que una decisión deja muerto se elimina en el mismo PR**: migraciones, campos legados, caminos sin uso y los tests que solo fijaban ese detalle; los tests de comportamiento se conservan.
 
 ## Fuentes e identificadores
 

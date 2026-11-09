@@ -1,6 +1,6 @@
 /* GENERADO por scripts/build-perfil-articular-variantes.js a partir de data/perfil-articular-variantes.csv (B-031).
  * No editar a mano: cambiar el CSV y volver a correr `node scripts/build-perfil-articular-variantes.js`.
- * Un test comprueba que este archivo coincide con el CSV. EN CONSTRUCCIÓN: núcleo v2 (B-039). */
+ * Un test comprueba que este archivo coincide con el CSV. Núcleo del generador · núcleo v2 (B-039). */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.CORE_V2_PERFIL_ARTICULAR_VARIANTES = factory();

@@ -1,6 +1,6 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.6). Pantalla de PERFIL del núcleo nuevo: el formulario (copiado de `renderData` de `app.js`, que se
- * borra en el corte) con los campos nuevos (tiempo disponible por sesión y por día, ejercicios prioritarios) y la lectura de sus campos
- * como funciones puras. NO está conectado a la app: lo monta la página de prueba (tests/pagina-nucleo-v2.html) y el corte lo conecta.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.6). Pantalla de PERFIL (la pestaña Datos de la app): el formulario (viene de `renderData` de `app.js`,
+ * que el corte borró) con los campos nuevos (tiempo disponible por sesión y por día, ejercicios prioritarios) y la lectura de sus
+ * campos como funciones puras.
  *
  * El perfil guarda, además de lo que ya normaliza el motor (`ENGINE.normalizeProfile`), `tiempoDisponibleMin` (general), `tiempoPorDia`
  * ({ día: min }) y `prioritarios` (ids de variantes); `core-v2/plan.js` los lee tal cual. La aceptación de sesiones largas (DEC-016) ya no
@@ -211,5 +211,5 @@
     return { errores: [], datos: norm };
   }
 
-  return { htmlPerfil, leerPerfil, prioritariasPosibles, platesCheckboxes, injuryZoneRow, CAMPOS_LISTA };
+  return { htmlPerfil, leerPerfil, platesCheckboxes, CAMPOS_LISTA };
 });

@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.9: el almacenamiento definitivo (core-v2/almacen.js). El recorrido con recarga está en tests/e2e-pantallas.js. */
+/* Tests del núcleo v2, paso 3.9: el almacenamiento definitivo (core-v2/almacen.js). El recorrido con recarga está en tests/e2e-pantallas.js. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const A = require('../js/core-v2/almacen.js');
@@ -6,6 +6,8 @@ const PLAN = require('../js/core-v2/plan.js');
 const E = require('../js/engine.js');
 const SS = require('../js/sessionStore.js');
 
+// El estado vacío: lo que devuelve `cargar` sobre un almacenamiento vacío (B-057: `estadoVacio` se borró en el corte).
+const VACIO = () => A.cargar({ getItem: () => null, setItem: () => {} });
 const datos = { name: 'Ana', sex: 'F', age: 30, heightCm: 165, weightKg: 60, bodyFatPct: 0, level: 'intermediate', daysPerWeek: 4, division: 'bikini_w', goal: 'cut', activity: 'moderate', healthGoal: false, barbellRow: false, laggingMuscles: [] };
 const opciones = { id: 'p1', planId: 'pl1', ahora: '2026-11-09' };
 const memoria = () => { const m = {}; return { m, getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); } }; };
@@ -20,7 +22,7 @@ test('un perfil nuevo trae la forma definitiva: datos, medición inicial, series
 });
 
 test('guardar y cargar devuelven el mismo estado, en la clave definitiva (distinta de la de la app actual)', () => {
-  const st = memoria(), e = A.estadoVacio();
+  const st = memoria(), e = A.cargar(memoria());
   e.profiles.push(A.crearPerfil(datos, opciones)); e.activeId = 'p1';
   assert.equal(A.guardar(st, e), true);
   assert.deepEqual(Object.keys(st.m), ['ifbb-agent:v2']); assert.notEqual(A.CLAVE, 'ifbb-agent:v1');
@@ -31,14 +33,14 @@ test('guardar y cargar devuelven el mismo estado, en la clave definitiva (distin
 
 test('sin migraciones: lo ilegible, de otra versión o de la clave vieja se ignora y se empieza vacío', () => {
   const st = memoria();
-  assert.deepEqual(A.cargar(st), A.estadoVacio());
-  st.m['ifbb-agent:v2'] = '{no es json'; assert.deepEqual(A.cargar(st), A.estadoVacio());
-  st.m['ifbb-agent:v2'] = JSON.stringify({ version: 1, profiles: [{ id: 'x', data: {} }] }); assert.deepEqual(A.cargar(st), A.estadoVacio());
-  st.m['ifbb-agent:v2'] = JSON.stringify({ profiles: 'no' }); assert.deepEqual(A.cargar(st), A.estadoVacio());
+  assert.deepEqual(A.cargar(st), VACIO());
+  st.m['ifbb-agent:v2'] = '{no es json'; assert.deepEqual(A.cargar(st), VACIO());
+  st.m['ifbb-agent:v2'] = JSON.stringify({ version: 1, profiles: [{ id: 'x', data: {} }] }); assert.deepEqual(A.cargar(st), VACIO());
+  st.m['ifbb-agent:v2'] = JSON.stringify({ profiles: 'no' }); assert.deepEqual(A.cargar(st), VACIO());
   const viejo = memoria(); viejo.m['ifbb-agent:v1'] = JSON.stringify({ profiles: [{ id: 'v', data: datos }], activeId: 'v' });
-  assert.deepEqual(A.cargar(viejo), A.estadoVacio(), 'los datos de la clave vieja no se leen');
-  assert.ok(!A.guardar({ getItem: () => null, setItem: () => { throw new Error('lleno'); } }, A.estadoVacio()), 'guardar avisa si no se puede');
-  assert.deepEqual(A.cargar({ getItem: () => { throw new Error('bloqueado'); } }), A.estadoVacio());
+  assert.deepEqual(A.cargar(viejo), VACIO(), 'los datos de la clave vieja no se leen');
+  assert.ok(!A.guardar({ getItem: () => null, setItem: () => { throw new Error('lleno'); } }, VACIO()), 'guardar avisa si no se puede');
+  assert.deepEqual(A.cargar({ getItem: () => { throw new Error('bloqueado'); } }), VACIO());
 });
 
 test('un perfil sin id o sin datos se descarta; lo que falta se completa; una activa inexistente cae en el primero', () => {
@@ -51,7 +53,7 @@ test('un perfil sin id o sin datos se descarta; lo que falta se completa; una ac
 });
 
 test('un plan guardado inválido se descarta al leer y se regenera con asegurarPlan; uno válido se conserva', () => {
-  const st = memoria(), e = A.estadoVacio();
+  const st = memoria(), e = A.cargar(memoria());
   e.profiles.push(A.crearPerfil(datos, opciones), Object.assign(A.crearPerfil(datos, { id: 'p2', planId: 'pl2', ahora: '2026-11-09' }), { planGuardado: { id: 'roto' } }));
   A.guardar(st, e);
   const r = A.cargar(st);
@@ -80,12 +82,12 @@ test('privacidad (DEC-009): el export del motor sigue excluyendo las banderas de
 
 test('la sesión en curso sigue en su propia clave de sessionStore, distinta de la del estado', () => {
   assert.notEqual(SS.STORAGE_KEY, A.CLAVE);
-  const st = memoria(); A.guardar(st, A.estadoVacio());
+  const st = memoria(); A.guardar(st, VACIO());
   assert.equal(SS.loadActive(st), null);
 });
 
 test('el guardador avisa si el almacenamiento está lleno o bloqueado y no avisa si todo va bien', () => {
-  const avisos = [], estado = A.estadoVacio();
+  const avisos = [], estado = A.cargar(memoria());
   const lleno = A.guardador({ getItem: () => null, setItem: () => { throw new Error('lleno'); } }, estado, m => avisos.push(m));
   assert.equal(lleno(), false); assert.equal(avisos.length, 1); assert.match(avisos[0], /No se pudo guardar/);
   const bien = A.guardador(memoria(), estado, m => avisos.push(m));

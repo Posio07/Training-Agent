@@ -1,9 +1,8 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.7). Pantalla de SESIÓN del núcleo nuevo: el modo sesión de `app.js` (que se borra en el corte)
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.7). Pantalla de SESIÓN del núcleo nuevo: el modo sesión de `app.js` (que el corte borró)
  * rehecho sobre `core-v2/sesion.js` y `core-v2/dolor.js`: la sesión sale del plan guardado y se registra POR VARIANTE (el id de la variante es el
  * `exerciseId` de cada serie). Trae lo nuevo de la spec: elegir la variante de cada ejercicio (por defecto, la última usada), "hoy tengo X min",
  * back-off válido (A5), bandera de dolor por zona (A6, DEC-034) con propuesta de cambio y confirmación, y tope de hombro (A4).
- * El cronómetro de descanso, el bloqueo de pantalla, el tono, las tarjetas de discos, el récord y el resumen están copiados de `app.js`.
- * NO está conectado a la app: lo monta la página de prueba (tests/pagina-nucleo-v2.html) y el corte lo conecta.
+ * El cronómetro de descanso, el bloqueo de pantalla, el tono, las tarjetas de discos, el récord y el resumen vienen de `app.js`.
  *
  * Privacidad (DEC-009): las banderas de dolor se guardan en `perfil.painFlags` (por zona), la misma clave que el export ya excluye. */
 (function (root, factory) {
@@ -75,21 +74,25 @@
     </div>`;
   }
 
+  // La carga en discos se dibuja por VARIANTE (`variante.barra` del catálogo), no por patrón: un mismo patrón mezcla
+  // barra, mancuernas y máquina (el press banca con barra y el press de pecho en máquina son el mismo patrón).
+  const conBarra = varianteId => { const v = CATALOGO.variantePorId(varianteId); return !!(v && v.barra); };
+
   function htmlPlateBarsForExercise(profile, ex, last) {
-    if (!K.BARBELL_PATTERNS.has(ex.pattern)) return '';
+    if (!conBarra(ex.exerciseId)) return '';
     const hasTop = ex.sets.some(s => s.setType === 'top');
     const findLast = (type, num) => last && last.sets.find(s => s.setType === type && s.setNumber === num);
     if (hasTop) {
       const topW = findLast('top', 1); const boW = findLast('backoff', 1);
-      return `<div class="card" id="platebar-top" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Top set</h3>${htmlPlateBar(profile, ex.pattern, topW && topW.weight)}</div>` +
-        (ex.sets.some(s => s.setType === 'backoff') ? `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Back-off</h3>${htmlPlateBar(profile, ex.pattern, boW && boW.weight)}</div>` : '');
+      return `<div class="card" id="platebar-top" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Top set</h3>${htmlPlateBar(profile, ex.exerciseId, topW && topW.weight)}</div>` +
+        (ex.sets.some(s => s.setType === 'backoff') ? `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Back-off</h3>${htmlPlateBar(profile, ex.exerciseId, boW && boW.weight)}</div>` : '');
     }
     const firstW = findLast('normal', 1);
-    return `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga sugerida</h3>${htmlPlateBar(profile, ex.pattern, firstW && firstW.weight)}</div>`;
+    return `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga sugerida</h3>${htmlPlateBar(profile, ex.exerciseId, firstW && firstW.weight)}</div>`;
   }
 
-  function htmlPlateBar(profile, pattern, weight) {
-    if (!K.BARBELL_PATTERNS.has(pattern)) return '';
+  function htmlPlateBar(profile, varianteId, weight) {
+    if (!conBarra(varianteId)) return '';
     if (!weight || weight <= 0) return `<div class="platebar-wrap"><p class="platebar-note">Registrá tu primera sesión para ver la carga.</p></div>`;
     const unit = profile.data.plateUnit || 'kg';
     const bar = profile.data.barWeight || (unit === 'lb' ? 45 : 20);
@@ -184,7 +187,7 @@
       ${ex.restriccion && ex.restriccion.sustituciones.length && !hechas ? `<div class="card"><p>Variantes más suaves para ${esc(ZONAS_ETIQUETA[ex.restriccion.zona])}:</p><div class="btn-row" style="flex-wrap:wrap">${ex.restriccion.sustituciones.map(s => `<button class="btn" data-sm-variante="${esc(s.varianteId)}">${esc(s.nombre)}</button>`).join('')}</div></div>` : ''}
       ${htmlExerciseImage(ex)}
       ${ultima ? `<div class="sm-last ${ultima.sets.some(s => s.setType === 'top') ? 'sm-last-top' : ''}"><b>Última vez</b> (${fmtDate(ultima.date)}): ${ultima.sets.map(s => `${s.setType === 'top' ? icon('trophy') + ' ' : ''}<span class="v">${n1(s.weight)} ${esc(unit)} × ${esc(s.reps)}</span>`).join(' · ')}</div>` : '<div class="sm-last">Primera vez que registras esta variante.</div>'}
-      ${htmlPlateBarsForExercise(perfil, { pattern: ex.pattern, sets: ex.sets }, ultima)}
+      ${htmlPlateBarsForExercise(perfil, { exerciseId: ex.exerciseId, sets: ex.sets }, ultima)}
       <label class="help" for="sm-zona">Zona del dolor, si lo registras</label>
       <select id="sm-zona" data-sm-zona><option value="">—</option>${DOLOR.ZONAS.map(z => `<option value="${z}" ${ex.zonaDolor === z ? 'selected' : ''}>${esc(ZONAS_ETIQUETA[z])}</option>`).join('')}</select>
       ${ex.sets.map((st, i) => htmlSerie(st, i, vals[i], unit, ctxEd)).join('')}`;
