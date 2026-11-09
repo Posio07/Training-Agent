@@ -66,18 +66,28 @@ const server = http.createServer((req, res) => {
   assert.deepEqual(p.workouts.map(w => [w.exerciseId, w.setType]).slice(0, 3), [['quads.squat_back', 'top'], ['quads.squat_back', 'normal'], ['quads.squat_back', 'backoff']]);
 
   // 3. Dolor lumbar de 8 en la tercera serie: la zona queda marcada (A6) con la misma clave que el export ya excluye (painFlags).
+  await page.fill('[data-sm-weight="3"]', '90'); await page.fill('[data-sm-reps="3"]', '7'); await page.fill('[data-sm-pain="3"]', '8');
+  await page.click('[data-sm-done="3"]');
+  assert.match(await page.textContent('#toast'), /zona del dolor/);
+  assert.equal((await act()).values[0][3].done, false, 'sin zona no se registra un dolor');
   await page.selectOption('[data-sm-zona]', 'lumbar');
   await hecha(3, 90, 7, 8);
   p = await perfil();
   assert.equal(p.painFlags.lumbar.marcada, true);
 
-  // 3b. Corregir una serie ya hecha con el editor: el historial se actualiza; borrarla pide confirmación.
+  // 3b. Corregir una serie ya hecha con el editor: el historial se actualiza; un back-off corregido a más del 90 % pasa a serie de trabajo (A5).
   await page.click('[data-sm-edit="0"]');
   await page.fill('.set-editor input[name="weight"]', '105');
   await page.click('.set-editor button[type="submit"]');
   await page.waitForSelector('.set-editor', { state: 'detached' });
   p = await perfil();
   assert.equal(p.workouts[0].weight, 105);
+  await page.click('[data-sm-edit="2"]');
+  await page.fill('.set-editor input[name="weight"]', '104');
+  await page.click('.set-editor button[type="submit"]');
+  await page.waitForSelector('.set-editor', { state: 'detached' });
+  assert.equal((await act()).exercises[0].sets[2].setType, 'normal', 'A5 también al corregir el peso de un back-off');
+  assert.equal((await perfil()).workouts.find(w => w.setNumber === 2 && w.exerciseId === 'quads.squat_back').setType, 'normal');
 
   // 4. Elegir otra variante del siguiente ejercicio: queda registrada con su propio id.
   await page.click('#sm-next');
@@ -121,6 +131,13 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('#resume-no'); await page.click('#resume-no');
   await page.waitForSelector('#resume-prompt', { state: 'detached' });
   assert.equal((await page.evaluate(() => Object.keys(window.__storage).length)), 0);
+
+  // 7b. Una sesión guardada por el modo sesión anterior (sin el plan de la sesión) no se puede reanudar: se descarta con un aviso, sin romper.
+  await page.evaluate(() => { const rec = { version: 1, status: 'en_curso', sessionId: 'vieja', profileId: window.__almacen.perfiles[0].id, dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1, updatedAt: 1, exIndex: 0, finished: false, exercises: [{ name: 'X', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8', restLabel: '90 s' }] }], values: [[{ weight: '', reps: '', done: false, pain: '', doneAt: null }]], recordShown: [], deletedKeys: [], rest: null }; window.__storage[window.SESSION_STORE.STORAGE_KEY] = JSON.stringify(rec); });
+  await page.evaluate(() => window.__sesion.ofrecerReanudar());
+  await page.waitForFunction(() => /versión anterior/.test(document.getElementById('toast').textContent));
+  assert.equal(await page.locator('#resume-prompt').count(), 0);
+  assert.equal(await page.evaluate(() => Object.keys(window.__storage).length), 0);
 
   // 8. "Hoy tengo 25 min": la misma sesión con menos ejercicios, sin tocar el plan guardado.
   const planId = (await perfil()).planGuardado.id;

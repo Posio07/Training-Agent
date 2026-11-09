@@ -16,14 +16,19 @@ test('la sesión sale del plan guardado con el id de la variante en cada ejercic
   const r = S.prepararSesion(perfil(), DIA_SENTADILLA, { hoy });
   assert.equal(r.ejercicios[0].exerciseId, 'quads.squat_back');
   assert.deepEqual(r.ejercicios[0].sets.map(x => x.setType), ['top', 'backoff', 'backoff', 'backoff']);
-  assert.equal(r.ejercicios[0].zonaDolor, 'lumbar');
+  assert.equal(r.ejercicios[0].zonaDolor, null, 'no se supone una zona de dolor');
   r.ejercicios.forEach(e => assert.ok(e.muscleLabel && e.sets.length > 0));
 });
 
-test('por defecto entra la última variante que usó el usuario, si sigue habilitada', () => {
-  const filas = [{ exerciseId: 'quads.squat_hack', date: '2026-11-01', savedAt: 1, sessionId: 's0', setType: 'normal', weight: 100, reps: 8, setNumber: 1 }];
+test('por defecto entra la última variante que usó el usuario, si sigue habilitada, en lugar de la planificada', () => {
+  const plan = S.prepararSesion(perfil(), DIA_SENTADILLA, { hoy });
+  const planificada = plan.ejercicios.find(e => e.exerciseId === 'hamstrings.leg_curl_seated');
+  assert.ok(planificada, 'el plan trae el curl femoral sentado');
+  const filas = [{ exerciseId: 'hamstrings.leg_curl_lying', date: '2026-11-01', savedAt: 1, sessionId: 's0', setType: 'normal', weight: 40, reps: 10, setNumber: 1 }];
   const r = S.prepararSesion(perfil({ workouts: filas }), DIA_SENTADILLA, { hoy });
-  assert.ok(r.ejercicios.some(e => e.exerciseId === 'quads.squat_hack'));
+  assert.ok(r.ejercicios.some(e => e.exerciseId === 'hamstrings.leg_curl_lying') && !r.ejercicios.some(e => e.exerciseId === 'hamstrings.leg_curl_seated'));
+  assert.equal(r.ejercicios.find(e => e.exerciseId === 'hamstrings.leg_curl_lying').cambiadaDe, planificada.name);
+  assert.equal(r.elecciones[r.ejercicios.findIndex(e => e.exerciseId === 'hamstrings.leg_curl_lying')], 'hamstrings.leg_curl_lying');
 });
 
 test('"hoy tengo X min": menos ejercicios, dentro del tiempo, y no toca el plan guardado', () => {
@@ -93,4 +98,26 @@ test('el selector de variante: sin series registradas ofrece las opciones; con s
   assert.match(libre, /data-sm-variante="a"/); assert.match(libre, /data-sm-variante="b"/); assert.match(libre, /la última vez/);
   assert.ok(!/data-sm-variante/.test(S.htmlVariantes(op, true)));
   assert.equal(S.htmlVariantes([op[0]], false), '');
+});
+
+test('A6 y A4 se evalúan sobre la variante elegida: la hack (más suave) no lleva la restricción de la sentadilla trasera, y al revés', () => {
+  const b = DOLOR.registrarDolor({}, { zona: 'lumbar', dolor: 8 }, 's1', '2026-11-01');
+  const conHack = S.prepararSesion(perfil({ painFlags: b }), DIA_SENTADILLA, { hoy, elecciones: { 0: 'quads.squat_hack' } });
+  assert.equal(conHack.ejercicios[0].exerciseId, 'quads.squat_hack');
+  assert.equal(conHack.ejercicios[0].restriccion, null);
+  assert.ok(!conHack.restricciones.some(r => r.indice === 0));
+  const trasera = S.prepararSesion(perfil({ painFlags: b }), DIA_SENTADILLA, { hoy });
+  assert.equal(trasera.ejercicios[0].restriccion.zona, 'lumbar');
+});
+
+test('el resumen muestra la diferencia exacta contra el top set anterior de la misma variante', () => {
+  const p = perfil();
+  const prep = S.prepararSesion(p, DIA_SENTADILLA, { hoy });
+  const sm = SS.newSession({ profileId: 'p1', sessionId: 'nueva', dayIndex: 1, dayName: 'Día 2', short: false, exercises: prep.ejercicios, now: 0 });
+  sm.values[0][0] = { weight: '110', reps: '5', done: true };
+  p.workouts = [{ exerciseId: 'quads.squat_back', setType: 'top', weight: 100, reps: 5, sessionId: 'vieja', date: '2026-11-01', savedAt: 1, setNumber: 1 }];
+  assert.match(S.htmlResumen(sm, p, 60000), /\+10 kg/);
+  p.workouts[0].weight = 115;
+  assert.match(S.htmlResumen(sm, p, 60000), /cmp-down/);
+  assert.ok(!/<img/.test(S.htmlEjercicioSesion(Object.assign(sm, { exIndex: 0 }), p, null, [], { date: '"><img src=x>', sets: [{ setType: 'normal', weight: 1, reps: '<img src=y>' }] })));
 });

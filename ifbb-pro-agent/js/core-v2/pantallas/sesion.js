@@ -14,7 +14,7 @@
   const { esc, n1, icon } = COMUN;
   const { setEditorHtml, wireSetEditor } = EDITOR;
   const IMAGENES = (typeof EXERCISE_IMAGES !== 'undefined') ? EXERCISE_IMAGES : null;
-  const fmtDate = iso => { const d = new Date(iso + 'T00:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const fmtDate = iso => { const d = new Date(iso + 'T00:00:00'); return esc(isNaN(d) ? iso : d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })); };
 
   /* ---------- Copiado de app.js: descansos, barra cargada, imagen ---------- */
   function parseRestSeconds(label) {
@@ -106,12 +106,6 @@
   /* ---------- Preparar la sesión (puro) ---------- */
 
   const ZONAS_ETIQUETA = { lumbar: 'zona lumbar', hombro: 'hombro', rodilla: 'rodilla' };
-  // Zona donde el ejercicio exige más: la primera con demanda alta, si no media, si no la primera zona.
-  function zonaPorDefecto(varianteId) {
-    const p = CATALOGO.perfilArticularDe(varianteId);
-    return ['alta', 'media'].map(n => DOLOR.ZONAS.find(z => (p[z] || {}).nivel === n)).find(Boolean) || DOLOR.ZONAS[0];
-  }
-
   // La sesión lista para registrar, sin DOM. `perfil`: { data, planGuardado, workouts, painFlags }. `opciones`: { minutos, hoy, elecciones }.
   // Devuelve { planSesion, ejercicios, avisos, restricciones }:
   //  - `planSesion`: la sesión del plan guardado, o la de "hoy tengo X min" (el plan guardado no se toca);
@@ -125,19 +119,21 @@
     const workouts = perfil.workouts || [], banderas = perfil.painFlags || {};
     const elecciones = Object.assign({}, o.elecciones);
     base.ejercicios.forEach((e, i) => { if (!elecciones[i]) { const v = SESION.varianteInicial(base, i, perfil.data, workouts); if (v !== e.varianteId) elecciones[i] = v; } });
-    const restricciones = DOLOR.restriccionesPorDolor(base, banderas, perfil.data);
+    // El dolor (A6) y el tope de hombro (A4) se evalúan sobre las variantes ELEGIDAS, no sobre las del plan.
+    const elegidas = Object.assign({}, base, { ejercicios: base.ejercicios.map((e, i) => (elecciones[i] ? Object.assign({}, e, { varianteId: elecciones[i] }) : e)) });
+    const restricciones = DOLOR.restriccionesPorDolor(elegidas, banderas, perfil.data);
     // Sin top set en lo que la zona marcada exige mucho (DEC-009).
     const sinTop = new Set(restricciones.map(r => r.indice));
     const planSesion = Object.assign({}, base, { ejercicios: base.ejercicios.map((e, i) => (sinTop.has(i) ? Object.assign({}, e, { topSet: null }) : e)) });
     const ejercicios = SESION.ejerciciosParaSesion(planSesion, elecciones).map((e, i) => {
       const r = restricciones.find(x => x.indice === i);
       return Object.assign(e, {
-        muscleLabel: K.MUSCLE_LABELS[e.muscle] || 'Funcional', zonaDolor: r ? r.zona : zonaPorDefecto(e.exerciseId),
+        muscleLabel: K.MUSCLE_LABELS[e.muscle] || 'Funcional', zonaDolor: r ? r.zona : null, // sin zona: se elige al registrar un dolor (no se supone una)
         restriccion: r ? { zona: r.zona, texto: r.texto, sustituciones: r.sustituciones } : null,
         painAdvice: r && DOLOR.recomendarProfesional(banderas[r.zona], o.hoy).recomendar ? { zona: r.zona, sesiones: DOLOR.recomendarProfesional(banderas[r.zona], o.hoy).sesiones } : null,
       });
     });
-    const avisos = [].concat(base.avisos || [], [DOLOR.avisoTopeHombro(planSesion, banderas)].filter(Boolean));
+    const avisos = [].concat(base.avisos || [], [DOLOR.avisoTopeHombro(elegidas, banderas)].filter(Boolean));
     return { planSesion, ejercicios, avisos, restricciones, elecciones };
   }
 
@@ -187,10 +183,10 @@
       ${htmlVariantes(opcionesVariante, hechas)}
       ${ex.restriccion && ex.restriccion.sustituciones.length && !hechas ? `<div class="card"><p>Variantes más suaves para ${esc(ZONAS_ETIQUETA[ex.restriccion.zona])}:</p><div class="btn-row" style="flex-wrap:wrap">${ex.restriccion.sustituciones.map(s => `<button class="btn" data-sm-variante="${esc(s.varianteId)}">${esc(s.nombre)}</button>`).join('')}</div></div>` : ''}
       ${htmlExerciseImage(ex)}
-      ${ultima ? `<div class="sm-last ${ultima.sets.some(s => s.setType === 'top') ? 'sm-last-top' : ''}"><b>Última vez</b> (${fmtDate(ultima.date)}): ${ultima.sets.map(s => `${s.setType === 'top' ? icon('trophy') + ' ' : ''}<span class="v">${n1(s.weight)} ${esc(unit)} × ${s.reps}</span>`).join(' · ')}</div>` : '<div class="sm-last">Primera vez que registras esta variante.</div>'}
+      ${ultima ? `<div class="sm-last ${ultima.sets.some(s => s.setType === 'top') ? 'sm-last-top' : ''}"><b>Última vez</b> (${fmtDate(ultima.date)}): ${ultima.sets.map(s => `${s.setType === 'top' ? icon('trophy') + ' ' : ''}<span class="v">${n1(s.weight)} ${esc(unit)} × ${esc(s.reps)}</span>`).join(' · ')}</div>` : '<div class="sm-last">Primera vez que registras esta variante.</div>'}
       ${htmlPlateBarsForExercise(perfil, { pattern: ex.pattern, sets: ex.sets }, ultima)}
       <label class="help" for="sm-zona">Zona del dolor, si lo registras</label>
-      <select id="sm-zona" data-sm-zona>${DOLOR.ZONAS.map(z => `<option value="${z}" ${ex.zonaDolor === z ? 'selected' : ''}>${esc(ZONAS_ETIQUETA[z])}</option>`).join('')}</select>
+      <select id="sm-zona" data-sm-zona><option value="">—</option>${DOLOR.ZONAS.map(z => `<option value="${z}" ${ex.zonaDolor === z ? 'selected' : ''}>${esc(ZONAS_ETIQUETA[z])}</option>`).join('')}</select>
       ${ex.sets.map((st, i) => htmlSerie(st, i, vals[i], unit, ctxEd)).join('')}`;
   }
 
@@ -309,7 +305,10 @@
       if (v.done) return;
       const peso = parseFloat(v.weight) || 0;
       let dolor = null;
-      if (v.pain !== '' && v.pain != null) { dolor = Math.min(10, Math.max(0, parseInt(v.pain, 10) || 0)); logDolor(ex, dolor); }
+      if (v.pain !== '' && v.pain != null) {
+        if (!ex.zonaDolor) { ctx.aviso('Elige la zona del dolor (lumbar, hombro o rodilla) o borra el número.'); return; }
+        dolor = Math.min(10, Math.max(0, parseInt(v.pain, 10) || 0)); logDolor(ex, dolor);
+      }
       const t = tipoDeSerie(ex, sm.values[sm.exIndex], setIdx, peso);
       if (t.aviso) { ctx.aviso(t.aviso); st.setType = 'normal'; } // A5: queda como serie de trabajo
       SS.markDone(sm, sm.exIndex, setIdx, { weight: peso, reps, pain: dolor }, ctx.reloj());
@@ -337,6 +336,9 @@
     function editarSerie(ex, set, vals) {
       const r = SS.editActiveSet(sm, ex, set, vals, ctx.reloj());
       if (!r.ok) return r;
+      // A5 también al corregir el peso de un back-off.
+      const t = tipoDeSerie(sm.exercises[ex], sm.values[ex], set, parseFloat(sm.values[ex][set].weight) || 0);
+      if (t.aviso) { ctx.aviso(t.aviso); sm.exercises[ex].sets[set].setType = 'normal'; }
       persistir(); SS.syncRow(sm, perfil.workouts = perfil.workouts || [], ex, set, ctx.ahora());
       perfil.updatedAt = ctx.ahora(); ctx.guardar(); editando = null; render(); return r;
     }
@@ -389,7 +391,7 @@
       r.querySelectorAll('[data-sm-weight]').forEach(i => i.oninput = () => { sm.values[sm.exIndex][Number(i.dataset.smWeight)].weight = i.value; persistir(); });
       r.querySelectorAll('[data-sm-reps]').forEach(i => i.oninput = () => { sm.values[sm.exIndex][Number(i.dataset.smReps)].reps = i.value; persistir(); });
       r.querySelectorAll('[data-sm-pain]').forEach(i => i.oninput = () => { sm.values[sm.exIndex][Number(i.dataset.smPain)].pain = i.value; persistir(); });
-      const zona = $('[data-sm-zona]'); if (zona) zona.onchange = () => { sm.exercises[sm.exIndex].zonaDolor = zona.value; persistir(); };
+      const zona = $('[data-sm-zona]'); if (zona) zona.onchange = () => { sm.exercises[sm.exIndex].zonaDolor = zona.value || null; persistir(); };
       r.querySelectorAll('[data-sm-done]').forEach(b => b.onclick = () => registrarSerie(Number(b.dataset.smDone)));
       r.querySelectorAll('[data-sm-edit]').forEach(b => b.onclick = () => { editando = { ex: sm.exIndex, set: Number(b.dataset.smEdit) }; render(); });
       r.querySelectorAll('[data-sm-variante]').forEach(b => b.onclick = () => cambiarVariante(sm.exIndex, b.dataset.smVariante));
@@ -412,6 +414,8 @@
       if (SS.peekCorrupt(ctx.storage)) { ctx.aviso('Hay una sesión guardada que no se pudo leer.'); return; }
       const rec = SS.loadActive(ctx.storage);
       if (!rec) return;
+      // Una sesión guardada por el modo sesión anterior no trae el plan de la sesión: no se puede reanudar (DEC-023: sin migraciones).
+      if (!rec.planSesion || !Array.isArray(rec.planSesion.ejercicios)) { const pv = ctx.perfiles().find(x => x.id === rec.profileId); if (pv) SS.discard(rec, pv.workouts = pv.workouts || []); SS.clearActive(ctx.storage); ctx.aviso('Había una sesión guardada de una versión anterior y se descartó.'); return; }
       const p = ctx.perfiles().find(x => x.id === rec.profileId);
       if (!p) { SS.clearActive(ctx.storage); return; }
       const pr = SS.progress(rec);
@@ -437,5 +441,5 @@
     return { iniciar, ofrecerReanudar, estado: () => sm };
   }
 
-  return { crearSesion, htmlVariantes, prepararSesion, tipoDeSerie, htmlSerie, htmlEjercicioSesion, htmlResumen, platesForWeight, parseRestSeconds, zonaPorDefecto };
+  return { crearSesion, htmlVariantes, prepararSesion, tipoDeSerie, htmlSerie, htmlEjercicioSesion, htmlResumen, platesForWeight, parseRestSeconds };
 });
