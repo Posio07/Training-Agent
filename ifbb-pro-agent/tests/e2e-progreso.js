@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/fonts|Failed to load resource/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.goto(url);
-  const perfil = () => page.evaluate(() => window.__almacen.perfiles[0]);
+  const perfil = () => page.evaluate(() => window.__almacen.profiles[0]);
 
   await page.waitForSelector('#form');
   await page.fill('input[name="name"]', 'Prueba'); await page.selectOption('#sex', 'M');
@@ -42,7 +42,7 @@ const server = http.createServer((req, res) => {
 
   // Series de dos variantes en tres sesiones (las filas llevan el id de la variante, como las que guarda la pantalla de sesión).
   await page.evaluate(() => {
-    const p = window.__almacen.perfiles[0];
+    const p = window.__almacen.profiles[0];
     const f = (sessionId, date, exerciseId, exercise, setType, setNumber, weight, reps, savedAt) => ({ sessionId, date, exerciseId, exercise, setType, setNumber, weight, reps, savedAt, setKey: `${sessionId}|${exerciseId}|${setType}|${setNumber}` });
     p.workouts = [
       f('s1', '2026-11-01', 'quads.squat_back', 'Sentadilla trasera', 'top', 1, 100, 5, 1), f('s1', '2026-11-01', 'chest.bench_press_barbell', 'Press banca con barra', 'normal', 1, 60, 8, 2),
@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
   assert.equal((await perfil()).workouts.filter(w => w.sessionId === 's2').length, 1, 'cancelar no borra');
   await page.evaluate(() => { window.__confirmar = true; });
   await page.click('[data-editor-delete]');
-  await page.waitForFunction(() => !window.__almacen.perfiles[0].workouts.some(w => w.sessionId === 's2'));
+  await page.waitForFunction(() => !window.__almacen.profiles[0].workouts.some(w => w.sessionId === 's2'));
   await page.waitForSelector('.set-editor', { state: 'detached' });
   assert.ok(!(await page.locator('svg.chart').count()));
 

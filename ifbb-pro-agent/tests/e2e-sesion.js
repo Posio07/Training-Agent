@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
   page.on('console', m => { if (m.type() === 'error' && !/fonts|Failed to load resource/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.goto(url);
   const act = () => page.evaluate(() => JSON.parse(Object.values(window.__storage)[0] || 'null'));
-  const perfil = () => page.evaluate(() => window.__almacen.perfiles[0]);
+  const perfil = () => page.evaluate(() => window.__almacen.profiles[0]);
   const hecha = async (i, peso, reps, dolor) => {
     await page.fill(`[data-sm-weight="${i}"]`, String(peso)); await page.fill(`[data-sm-reps="${i}"]`, String(reps));
     if (dolor != null) await page.fill(`[data-sm-pain="${i}"]`, String(dolor));
@@ -133,7 +133,7 @@ const server = http.createServer((req, res) => {
   assert.equal((await page.evaluate(() => Object.keys(window.__storage).length)), 0);
 
   // 7b. Una sesión guardada por el modo sesión anterior (sin el plan de la sesión) no se puede reanudar: se descarta con un aviso, sin romper.
-  await page.evaluate(() => { const rec = { version: 1, status: 'en_curso', sessionId: 'vieja', profileId: window.__almacen.perfiles[0].id, dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1, updatedAt: 1, exIndex: 0, finished: false, exercises: [{ name: 'X', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8', restLabel: '90 s' }] }], values: [[{ weight: '', reps: '', done: false, pain: '', doneAt: null }]], recordShown: [], deletedKeys: [], rest: null }; window.__storage[window.SESSION_STORE.STORAGE_KEY] = JSON.stringify(rec); });
+  await page.evaluate(() => { const rec = { version: 1, status: 'en_curso', sessionId: 'vieja', profileId: window.__almacen.profiles[0].id, dayIndex: 0, dayName: 'Día 1', short: false, startedAt: 1, updatedAt: 1, exIndex: 0, finished: false, exercises: [{ name: 'X', sets: [{ setType: 'normal', setNumber: 1, repsLabel: '8', restLabel: '90 s' }] }], values: [[{ weight: '', reps: '', done: false, pain: '', doneAt: null }]], recordShown: [], deletedKeys: [], rest: null }; window.__storage[window.SESSION_STORE.STORAGE_KEY] = JSON.stringify(rec); });
   await page.evaluate(() => window.__sesion.ofrecerReanudar());
   await page.waitForFunction(() => /versión anterior/.test(document.getElementById('toast').textContent));
   assert.equal(await page.locator('#resume-prompt').count(), 0);
