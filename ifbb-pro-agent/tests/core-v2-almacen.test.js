@@ -83,3 +83,20 @@ test('la sesión en curso sigue en su propia clave de sessionStore, distinta de 
   const st = memoria(); A.guardar(st, A.estadoVacio());
   assert.equal(SS.loadActive(st), null);
 });
+
+test('el guardador avisa si el almacenamiento está lleno o bloqueado y no avisa si todo va bien', () => {
+  const avisos = [], estado = A.estadoVacio();
+  const lleno = A.guardador({ getItem: () => null, setItem: () => { throw new Error('lleno'); } }, estado, m => avisos.push(m));
+  assert.equal(lleno(), false); assert.equal(avisos.length, 1); assert.match(avisos[0], /No se pudo guardar/);
+  const bien = A.guardador(memoria(), estado, m => avisos.push(m));
+  assert.equal(bien(), true); assert.equal(avisos.length, 1);
+});
+
+test('privacidad (DEC-009): el export no lleva el plan guardado, que trae las lesiones declaradas', () => {
+  const p = A.crearPerfil(Object.assign({}, datos, { injuryZones: ['knee'], injuryDiagnosed: [], injuryPainNow: [] }), opciones);
+  assert.ok(p.planGuardado.plan.perfil.zonas.includes('knee'), 'el plan guardado sí lleva la lesión');
+  const out = E.exportProfile(p);
+  assert.ok(!('planGuardado' in out));
+  const texto = JSON.stringify(out);
+  assert.ok(!/"zonas"|"lesiones"/.test(texto), 'ni zonas ni lesiones en el export');
+});

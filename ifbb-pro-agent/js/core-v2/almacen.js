@@ -51,6 +51,12 @@
     try { storage.setItem(clave || CLAVE, JSON.stringify(Object.assign({}, estado, { version: VERSION }))); return true; } catch (e) { return false; }
   }
 
+  // Un guardado que avisa si falla (almacenamiento lleno o bloqueado): es lo que `app.js` hace hoy con su `save()`. Devuelve una función sin argumentos que guarda
+  // `estado` y devuelve true o false.
+  function guardador(storage, estado, aviso, clave) {
+    return () => { const ok = guardar(storage, estado, clave); if (!ok) aviso('No se pudo guardar: almacenamiento no disponible.'); return ok; };
+  }
+
   const activo = estado => estado.profiles.find(p => p.id === estado.activeId) || null;
 
   // La primera medición de un perfil nuevo: sus datos iniciales.
@@ -77,5 +83,5 @@
     return false;
   }
 
-  return { CLAVE, VERSION, estadoVacio, leerPerfil, cargar, guardar, activo, medicionInicial, crearPerfil, asegurarPlan, actualizarDatos };
+  return { CLAVE, VERSION, estadoVacio, leerPerfil, cargar, guardar, guardador, activo, medicionInicial, crearPerfil, asegurarPlan, actualizarDatos };
 });

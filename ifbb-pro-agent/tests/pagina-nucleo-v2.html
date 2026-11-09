@@ -56,11 +56,12 @@
     window.__storage = mem;
     const confirmar = msg => Promise.resolve(window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar);
     const aviso = msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); };
-    const sesion = CORE_V2_SESION_PANTALLA.crearSesion({ doc: document, storage, perfiles: () => almacen.profiles, guardar: () => CORE_V2_ALMACEN.guardar(disco, almacen, CLAVE_PRUEBA), ahora: () => '2026-11-09', reloj: () => Date.now() + (window.__reloj || 0), id: () => 'ses' + (++n), aviso, confirmar, alTerminar: () => window.__montaje.ir('plan') });
+    const guardar = CORE_V2_ALMACEN.guardador(disco, almacen, aviso, CLAVE_PRUEBA);
+    const sesion = CORE_V2_SESION_PANTALLA.crearSesion({ doc: document, storage, perfiles: () => almacen.profiles, guardar, ahora: () => '2026-11-09', reloj: () => Date.now() + (window.__reloj || 0), id: () => 'ses' + (++n), aviso, confirmar, alTerminar: () => window.__montaje.ir('plan') });
     window.__sesion = sesion;
     window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
       almacen,
-      guardar: () => CORE_V2_ALMACEN.guardar(disco, almacen, CLAVE_PRUEBA),
+      guardar,
       reloj: () => Date.now(),
       sesionActivaId: () => { const s = sesion.estado(); return s ? s.sessionId : null; },
       ahora: () => '2026-11-09',

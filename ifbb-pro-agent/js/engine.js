@@ -1414,10 +1414,11 @@
 
   // Copia del perfil lista para exportar: sin `health` (tamizaje, diabetes,
   // lesiones y fechas de autorización por zona), sin `painFlags` y sin el
-  // dolor registrado en cada serie (`workouts[].pain`). No muta el original.
+  // dolor registrado en cada serie (`workouts[].pain`). Tampoco lleva `planGuardado` (core-v2): el plan trae las lesiones declaradas (`perfil.zonas`),
+  // que son salud; al importar se regenera. No muta el original.
   function exportProfile(profile) {
     const out = {};
-    Object.keys(profile).forEach(k => { if (k !== 'painFlags') out[k] = profile[k]; });
+    Object.keys(profile).forEach(k => { if (k !== 'painFlags' && k !== 'planGuardado') out[k] = profile[k]; });
     out.data = stripHealthFields(profile.data || {});
     if (Array.isArray(profile.workouts)) out.workouts = profile.workouts.map(w => { const c = Object.assign({}, w); delete c.pain; return c; });
     return JSON.parse(JSON.stringify(out));
