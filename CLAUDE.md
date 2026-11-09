@@ -15,6 +15,7 @@ PWA offline de planes de entrenamiento y dieta con un validador basado en eviden
 node --test ifbb-pro-agent/tests/engine.test.js ifbb-pro-agent/tests/regression.test.js ifbb-pro-agent/tests/core-v2*.test.js   # tests (el CI corre engine.test.js y todos los core-v2*.test.js)
 node ifbb-pro-agent/tests/e2e.js                      # recorrido en Chromium
 node ifbb-pro-agent/tests/e2e-aceptacion.js           # E2E de la aceptación del tope E4
+node ifbb-pro-agent/tests/e2e-pantallas.js        # E2E de las pantallas del núcleo v2 sobre la página de prueba (se borra en el corte)
 node scripts/build-exercise-muscles.js [--check]      # regenera/comprueba el módulo de los CSV
 node scripts/build-perfil-articular-variantes.js [--check]   # perfil articular de las variantes partidas (core-v2)
 node scripts/generar-indices.js [--validar]   # genera docs/indices.generado.md (ignorado por git) o valida los archivos de DEC y backlog

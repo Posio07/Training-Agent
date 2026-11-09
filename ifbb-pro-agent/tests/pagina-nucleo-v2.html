@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Página de prueba · núcleo v2 (se borra en el corte)</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <!-- Página de prueba de las pantallas del núcleo nuevo (B-039, paso 3.6). No es parte de la app: monta perfil y plan sobre un almacenamiento en
+       memoria, sin tocar los datos reales. El sprite de íconos se toma de index.html para no duplicarlo. Se borra en el corte. -->
+  <div id="sprite" aria-hidden="true"></div>
+  <header class="topbar"><div class="brand"><div><h1>Núcleo v2 · prueba</h1><p id="estado">En memoria</p></div></div></header>
+  <main id="view" class="view"></main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="../js/exerciseMuscles.js"></script>
+  <script src="../js/perfilArticular.js"></script>
+  <script src="../js/knowledge.js"></script>
+  <script src="../js/engine.js"></script>
+  <script src="../js/core-v2/registro.js"></script>
+  <script src="../js/core-v2/perfilArticularVariantes.js"></script>
+  <script src="../js/core-v2/catalogo.js"></script>
+  <script src="../js/core-v2/reparto.js"></script>
+  <script src="../js/core-v2/plan.js"></script>
+  <script src="../js/core-v2/aviso.js"></script>
+  <script src="../js/core-v2/textos.js"></script>
+  <script src="../js/core-v2/cardio.js"></script>
+  <script src="../js/core-v2/pantallas/comun.js"></script>
+  <script src="../js/core-v2/pantallas/perfil.js"></script>
+  <script src="../js/core-v2/pantallas/entreno.js"></script>
+  <script src="../js/core-v2/pantallas/montaje.js"></script>
+  <script>
+    // Sprite de íconos de la app real.
+    fetch('../index.html').then(r => r.text()).then(t => { const m = t.match(/<svg width="0"[\s\S]*?<\/svg>/); if (m) document.getElementById('sprite').innerHTML = m[0]; });
+    let n = 0;
+    const almacen = { perfiles: [], activoId: null };
+    window.__almacen = almacen; // para que las pruebas de punta a punta lo lean
+    window.__sesionesIniciadas = [];
+    let t;
+    window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
+      almacen,
+      guardar: () => {},
+      ahora: () => '2026-11-09',
+      id: () => 'id' + (++n),
+      aviso: msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); },
+      confirmar: msg => window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar,
+      pantallaBloqueo: (raiz, p, salud) => { raiz.innerHTML = '<div class="card" id="bloqueo"><h2>Plan en pausa</h2><p>' + (salud.blockReason || salud.injuryBlockReason || '') + '</p></div>'; window.__bloqueos = (window.__bloqueos || 0) + 1; },
+      alIniciarSesion: (i, p) => { window.__sesionesIniciadas.push(i); },
+    });
+  </script>
+</body>
+</html>
