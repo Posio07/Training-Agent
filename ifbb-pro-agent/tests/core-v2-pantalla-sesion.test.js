@@ -121,3 +121,15 @@ test('el resumen muestra la diferencia exacta contra el top set anterior de la m
   assert.match(S.htmlResumen(sm, p, 60000), /cmp-down/);
   assert.ok(!/<img/.test(S.htmlEjercicioSesion(Object.assign(sm, { exIndex: 0 }), p, null, [], { date: '"><img src=x>', sets: [{ setType: 'normal', weight: 1, reps: '<img src=y>' }] })));
 });
+
+test('A4 con la bandera de hombro se evalúa sobre las variantes elegidas: tres de demanda alta avisan; cambiar una por una más suave quita el aviso', () => {
+  const p = perfil(), plan = JSON.parse(JSON.stringify(p.planGuardado));
+  const ej = id => ({ varianteId: id, nombre: id, patron: 'empuje_horizontal', grupo: 'chest', tipo: 'multiarticular', series: 3, unilateral: false, topSet: null });
+  plan.plan.sesiones[0].ejercicios = ['chest.bench_press_barbell', 'chest.incline_press_db', 'chest.dip_parallel'].map(ej);
+  const conPlan = Object.assign({}, p, { planGuardado: plan, painFlags: DOLOR.registrarDolor({}, { zona: 'hombro', dolor: 8 }, 's1', '2026-11-01') });
+  const r = S.prepararSesion(conPlan, 0, { hoy });
+  assert.ok(r.avisos.some(a => a.regla === 'A4'), 'tres ejercicios de demanda alta de hombro');
+  const suave = S.prepararSesion(conPlan, 0, { hoy, elecciones: { 2: 'shoulders.press_landmine' } });
+  assert.ok(!suave.avisos.some(a => a.regla === 'A4'), 'con una variante elegida más suave ya no avisa');
+  assert.ok(!S.prepararSesion(Object.assign({}, conPlan, { painFlags: {} }), 0, { hoy }).avisos.some(a => a.regla === 'A4'), 'sin la bandera no avisa');
+});
