@@ -20,7 +20,7 @@
   // Versión del motor que generó el plan. Se sube a mano cada vez que cambia la salida del reparto, del registro o del catálogo; un test
   // con las huellas de 10 perfiles de referencia (tests/fixtures/core-v2-plan-hashes.json) falla si la salida cambia sin que se regenere
   // esa huella, y scripts/snapshot-core-v2.js no la regenera si esta versión no subió.
-  const VERSION_MOTOR = 'core-v2.1';
+  const VERSION_MOTOR = 'core-v2.2';
 
   /* Campos del perfil que, al cambiar, regeneran el plan. La lista de la spec (tiempo, días, objetivo, nivel, división, rezagados,
    * prioritarios, lesiones, remo con barra) más `healthGoal` (bandera salud/funcional): el reparto habilita los funcionales con ella,

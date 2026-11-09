@@ -145,7 +145,7 @@
     const diasGrupo = {}; // sesiones de la semana donde aparece cada grupo chico
     const cubierto = {}, directas = {};
     MUSCULOS.forEach(m => { cubierto[m] = 0; directas[m] = 0; diasGrupo[m] = new Set(); });
-    const avisos = { obligatoriosSinLugar: [], seguridad: [], prioritariosSinLugar: [], a2: [], r1Excedido: [], principalReducido: [], sinDirecto: [] };
+    const avisos = { obligatoriosSinLugar: [], seguridad: [], prioritariosSinLugar: [], a2: [], r1Excedido: [], principalReducido: [], sinDirecto: [], funcionalesSinLugar: [] };
 
     // A3 (DEC-022): sentadilla y bisagra pesadas en días distintos; el tipo de sesión excluye el patrón contrario.
     const excluyeA3 = (ses, patron) => valor('SEPARACION_SENTADILLA_BISAGRA') && ses.spec.excluidos.includes(patron);
@@ -212,6 +212,30 @@
         agregar(ses, v, series, topSet);
       });
     });
+
+    // Paso 3 (estructura) · con la bandera salud/funcional, un ejercicio funcional entra FIJO en cada día que entrena cuádriceps (DEC-005, DEC-035),
+    // con el mismo mecanismo de los prioritarios pero sin ocupar sus lugares: búlgara y step-up rotan y el paseo del granjero va el último día de la
+    // semana. Búlgara y step-up cuentan como volumen (cuádriceps y glúteo, como cualquier ejercicio); el paseo no aporta a ningún grupo (DEC-010):
+    // 2 series aparte que solo gastan tiempo. Si no caben en el tiempo del día no entran y el aviso lo dice (el tope por sesión R1 no se comprueba: 2 series de búlgara o step-up no lo alcanzan en ninguno de los 3456 planes del barrido, y la estructura va antes del relleno).
+    if (perfil.healthGoal) {
+      const diasCuadriceps = sesiones.filter(ses => ses.spec.grupos.includes('quads'));
+      const rotan = ['functional.bulgarian_db', 'functional.step_up'].map(id => cat.variantePorId(id)).filter(v => v && elegible(v));
+      const paseo = cat.variantePorId('functional.farmer_carry');
+      diasCuadriceps.forEach((ses, k) => {
+        const ultimo = k === diasCuadriceps.length - 1;
+        const v = ultimo && paseo && elegible(paseo) ? paseo : (rotan.length ? rotan[k % rotan.length] : null);
+        if (!v) return;
+        const sinVolumen = !!v.sinAporte;
+        const series = sinVolumen ? valor('SERIES_EXTRA_FUNCIONAL_SIN_VOLUMEN') : valor('SERIES_MIN_POR_EJERCICIO');
+        if (ses.seg + series * segSerie(v) > ses.capacidadSeg + EPS) { avisos.funcionalesSinLugar.push({ sesion: ses.nombre, varianteId: v.id, motivo: 'no cabe en el tiempo de la sesión' }); return; }
+        if (sinVolumen) {
+          ses.ejercicios.push({ v, series, topSet: false, pesos: pesos[v.id] });
+          ses.patrones.add(v.patron);
+          ses.seg += series * segSerie(v);
+          uso[v.id] = (uso[v.id] || 0) + 1;
+        } else agregar(ses, v, series, false);
+      });
+    }
 
     // Paso 3 (estructura) · todo grupo del perfil lleva por semana al menos un ejercicio directo con el mínimo de series (DEC-029; equivalente
     // en core-v2 de la regla de DEC-020: nunca se quita el último ejercicio directo de un grupo). Se ubica en la sesión compatible con más
