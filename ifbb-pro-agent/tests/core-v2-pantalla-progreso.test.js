@@ -22,6 +22,9 @@ test('los puntos de fuerza son de UNA variante, uno por día: el top set (o la s
   assert.deepEqual(p.map(x => [x.date, x.weight, x.short]), [['2026-11-01', 100, false], ['2026-11-05', 105, true]]);
   assert.deepEqual(P.puntosDeFuerza(filas, 'quads.squat_hack').map(x => x.weight), [120]); // no mezcla con la sentadilla trasera
   assert.deepEqual(P.puntosDeFuerza(filas, 'no.existe'), []);
+  // el top set manda aunque otra serie del mismo día pese más
+  const conTop = [f('a', '2026-11-01', 'x.y', 'X', 'top', 100, 5), f('a', '2026-11-01', 'x.y', 'X', 'normal', 120, 8)];
+  assert.equal(P.puntosDeFuerza(conTop, 'x.y')[0].weight, 100);
   const sinTop = [f('a', '2026-11-01', 'x.y', 'X', 'normal', 50, 10), f('a', '2026-11-01', 'x.y', 'X', 'normal', 70, 6)];
   assert.equal(P.puntosDeFuerza(sinTop, 'x.y')[0].weight, 70);
 });
