@@ -15,7 +15,7 @@
   'use strict';
 
   const valor = id => REGISTRO.valor(id);
-  const fmtSeg = s => (s % 60 === 0 ? `${s / 60} min` : (s > 120 ? `${String(s / 60).replace('.', ',')} min` : `${s} s`));
+  const fmtSeg = s => (s % 60 === 0 ? `${s / 60} min` : (s > 2 * 60 ? `${String(s / 60).replace('.', ',')} min` : `${s} s`));
 
   // ¿La variante está habilitada para este perfil? Mismas reglas que el reparto (casillas del perfil y lesiones declaradas).
   function habilitada(v, perfil, cat) {
@@ -112,7 +112,7 @@
   }
 
   // Progreso de una variante: por sesión, la mejor serie por 1RM estimado (Epley), de la más vieja a la más nueva.
-  const epley = (w, r) => w * (1 + r / 30);
+  const epley = (w, r) => w * (1 + r / valor('DIVISOR_1RM_EPLEY'));
   function progreso(workouts, varianteId) {
     const porSesion = {};
     (workouts || []).filter(w => w.exerciseId === varianteId && w.weight > 0 && w.reps > 0).forEach(w => {

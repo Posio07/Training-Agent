@@ -156,12 +156,12 @@ El núcleo está listo para el corte cuando, en el barrido de 360 planes:
 - [ ] Ningún músculo supera 11 series fraccionadas por sesión (DEC-025), o queda sin cubrir con el aviso único.
 - [ ] Se reporta el **porcentaje de planes** (de los 360) en que R1 deja necesidad semanal sin cubrir, por músculo y por número de días; Emanuel lo revisa en la primera simulación del núcleo nuevo.
 - [ ] La aceptación de una sesión se guarda en el plan y caduca al regenerarlo o al cambiar tiempo, días u objetivo del perfil.
-- [ ] La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único.
+- [ ] La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único. La frecuencia mínima de los grupos mayores (2 sesiones por semana) es un **aviso** dentro del aviso único, no una restricción del reparto (DEC-036).
 - [ ] Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada.
 - [ ] El patrón principal de cada sesión tiene al menos 4 series de trabajo, o el aviso único dice que no cupo en el tiempo (DEC-029).
 - [ ] Todo grupo del perfil tiene por semana un ejercicio directo con 2 series o más, o el aviso único lo dice (DEC-029).
 - [ ] Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031).
-- [ ] No queda ningún número fuera del registro ni código muerto.
+- [ ] No queda ningún número de **entrenamiento** fuera del registro ni código muerto. El registro es para reglas de entrenamiento (series, repeticiones, descansos, tiempos, días, evidencia): las constantes de interfaz (medidas de gráficos, tamaños), las conversiones de unidad (60 s, 1000 ms) y las tolerancias numéricas (1e-9) no entran. Los rangos de repeticiones del catálogo sí, como E4 si no tienen fuente. Las funciones exportadas sin uso se borran en el corte (B-057).
 - [ ] El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos.
 
 **Decisiones tomadas por Emanuel (7 nov 2026)**

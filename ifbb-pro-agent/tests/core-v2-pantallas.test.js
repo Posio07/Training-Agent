@@ -12,7 +12,7 @@ const CAT = require('../js/core-v2/catalogo.js');
 
 const campos = o => Object.assign({ name: 'Ana', sex: 'F', age: '30', heightCm: '165', weightKg: '60', level: 'intermediate', daysPerWeek: '4', division: 'bikini_w', goal: 'cut', activity: 'moderate' }, o);
 const apretado = { sex: 'M', level: 'advanced', daysPerWeek: 3, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 45 };
-const holgado = { sex: 'F', level: 'novice', daysPerWeek: 4, division: 'bikini_w', goal: 'maintain', tiempoDisponibleMin: 120 };
+const holgado = { sex: 'F', level: 'novice', daysPerWeek: 3, division: 'bikini_w', goal: 'maintain', tiempoDisponibleMin: 120 };
 const guardado = (d, id) => PLAN.crearPlan(d, { id: id || 'p1', ahora: '2026-11-09' });
 
 /* ---------- Perfil ---------- */

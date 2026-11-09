@@ -18,7 +18,8 @@
   const valor = id => REGISTRO.valor(id);
   const ZONAS = ['lumbar', 'hombro', 'rodilla'];
   const ETIQUETA_ZONA = { lumbar: 'la zona lumbar', hombro: 'el hombro', rodilla: 'la rodilla' };
-  const ORDEN_NIVEL = { ninguna: 0, baja: 1, media: 2, alta: 3 };
+  const NIVELES = ['ninguna', 'baja', 'media', 'alta'];
+  const ORDEN_NIVEL = NIVELES.reduce((o, n, i) => Object.assign(o, { [n]: i }), {});
 
   /* ---------- A5: back-off válido ---------- */
 

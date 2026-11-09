@@ -5,7 +5,7 @@ const AVISO = require('../js/core-v2/aviso.js');
 const PLAN = require('../js/core-v2/plan.js');
 
 const apretado = () => ({ sex: 'M', level: 'advanced', daysPerWeek: 3, division: 'classic_m', goal: 'bulk' });
-const holgado = () => ({ sex: 'F', level: 'beginner', daysPerWeek: 4, division: 'bikini_w', goal: 'maintain', tiempoDisponibleMin: 120 });
+const holgado = () => ({ sex: 'F', level: 'beginner', daysPerWeek: 3, division: 'bikini_w', goal: 'maintain', tiempoDisponibleMin: 120 });
 const nuevo = p => PLAN.crearPlan(p, { id: 'p1', ahora: '2026-11-08' });
 
 test('un plan que entra completo no muestra aviso', () => {
