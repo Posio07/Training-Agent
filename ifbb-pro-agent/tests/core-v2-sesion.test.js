@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.3: sesión por variantes y "hoy tengo X min" (B-039). No tocan el motor actual ni la interfaz. */
+/* Tests del núcleo v2, paso 3.3: sesión por variantes y "hoy tengo X min" (B-039). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const SES = require('../js/core-v2/sesion.js');
@@ -109,7 +109,7 @@ test('elegir otra variante cambia el ejercicio de la sesión: nombre, id, repeti
   assert.equal(mismo[k].cambiadaDe, null);
 });
 
-test('la barra cargada con discos solo se marca en las variantes con barra (como BARBELL_PATTERNS del motor actual)', () => {
+test('la barra cargada con discos solo se marca en las variantes con barra', () => {
   const marcadas = C.VARIANTES.filter(v => v.barra).map(v => v.id).sort();
   assert.deepEqual(marcadas, ['back.row_barbell', 'back.row_pendlay', 'chest.bench_press_barbell', 'glutes.hip_thrust', 'hamstrings.rdl', 'quads.squat_back', 'shoulders.press_overhead_barbell']);
   const s = plan().sesiones.find(x => x.principal === 'empuje_horizontal');
@@ -161,10 +161,10 @@ test('la última vez de una variante desempata por hora cuando hay dos sesiones 
 });
 
 test('la rutina corta nunca pasa del tiempo fijado, en los 10 perfiles de referencia y con 20, 30 y 45 minutos', () => {
-  const base = require('./fixtures/plan-identity-baseline.json').cases;
-  Object.values(base).forEach(({ profile }) => [20, 30, 45].forEach(min => {
+  const base = require('./fixtures/core-v2-plan-hashes.json').perfiles;
+  Object.entries(base).forEach(([clave, profile]) => [20, 30, 45].forEach(min => {
     const dias = REP.generarPlan(profile).sesiones.length;
-    for (let i = 0; i < dias; i++) { const s = SES.sesionConTiempo(profile, i, min); assert.ok(s.minutos <= min, `${profile.name} día ${i + 1} con ${min} min: ${s.minutos}`); }
+    for (let i = 0; i < dias; i++) { const s = SES.sesionConTiempo(profile, i, min); assert.ok(s.minutos <= min, `${clave} día ${i + 1} con ${min} min: ${s.minutos}`); }
   }));
 });
 

@@ -1,25 +1,25 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.5: números de intensidad, progresión y descarga en el registro (B-039). */
+/* Tests del núcleo v2, paso 3.5: números de intensidad, progresión y descarga en el registro (B-039). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const T = require('../js/core-v2/textos.js');
 const R = require('../js/core-v2/registro.js');
 const K = require('../js/knowledge.js');
-const E = require('../js/engine.js');
+// Las reglas que arman los tres textos: las de DEC-033 (B-057: la lista `IDS` de textos.js se borró en el corte).
+const IDS = () => R.REGLAS.filter(r => r.dec === 'DEC-033').map(r => r.id);
 
-test('hasta el corte: los tres textos armados desde el registro son idénticos a los del motor actual', () => {
-  const t = E.buildPlan({ name: 'T', sex: 'M', age: 30, heightCm: 178, weightKg: 85, level: 'intermediate', daysPerWeek: 4, division: 'general_m', goal: 'bulk' }, '2026-11-08').training;
-  assert.equal(T.intensidad(), t.intensity);
-  assert.equal(T.progresion(), t.progression);
-  assert.equal(T.descarga(), t.deload);
+test('los tres textos armados desde el registro son los que mostraba el motor viejo, palabra por palabra (el corte no cambió lo que lee el usuario)', () => {
+  assert.equal(T.intensidad(), 'La mayoría de series en 6-12 repeticiones al 70-80 % del 1RM, terminando a 1-3 repeticiones del fallo (RIR). Aislamientos hasta 15 repeticiones.');
+  assert.equal(T.progresion(), 'Doble progresión: cuando completes el rango alto de repeticiones en todas las series con buena técnica, sube la carga 2-5 % (tren superior) o 5-10 % (tren inferior) y vuelve al rango bajo.');
+  assert.equal(T.descarga(), 'Cada 4-6 semanas, o cuando el rendimiento caiga 2 sesiones seguidas, reduce el volumen a la mitad durante una semana manteniendo la carga.');
 });
 
 test('cada número de los textos es una regla del registro: E4, con fuente, DEC-033 y estado implementada', () => {
-  T.IDS.forEach(id => {
+  IDS().forEach(id => {
     const r = R.regla(id);
     assert.equal(r.nivel, 'E4', id); assert.equal(r.dec, 'DEC-033', id); assert.equal(r.estado, 'implementada', id);
     assert.ok(r.fuente.length > 20, `${id}: sin fuente`); assert.equal(r.paso, 'fuera', id);
   });
-  assert.equal(T.IDS.length, 11);
+  assert.equal(IDS().length, 11);
 });
 
 test('los valores son los del motor actual (se registran tal cual; los cambios son de nivel 2)', () => {
@@ -45,14 +45,14 @@ test('las fuentes de los textos son ids de KNOWLEDGE.SOURCES y salen solo de las
   assert.deepEqual(f, ['ACSM_RT', 'HELMS_TRAIN']);
   f.forEach(id => assert.ok(K.SOURCES[id], id));
   // Si ninguna regla activa respalda una fuente, no aparece: se simula desactivando las reglas con una condición que el perfil no cumple.
-  const guardado = T.IDS.map(id => [R.regla(id), R.regla(id).cuando]);
+  const guardado = IDS().map(id => [R.regla(id), R.regla(id).cuando]);
   try { guardado.forEach(([r]) => { r.cuando = { goal: 'nunca' }; }); assert.deepEqual(T.fuentesDeTextos({ goal: 'bulk' }), []); } finally { guardado.forEach(([r, c]) => { r.cuando = c; }); }
 });
 
 test('cada valor del registro llega a su texto: cambiar cualquiera cambia algún texto (nada escrito a mano en textos.js)', () => {
   const textos = () => [T.intensidad(), T.progresion(), T.descarga()].join('|');
   const base = textos();
-  T.IDS.forEach(id => {
+  IDS().forEach(id => {
     const r = R.regla(id), original = r.valor;
     if (typeof original === 'boolean') return; // PROGRESION_DOBLE se prueba aparte
     try {

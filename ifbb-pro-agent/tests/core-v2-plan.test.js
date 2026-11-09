@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 3.1: plan guardado (B-039). No tocan el motor actual ni la interfaz. */
+/* Tests del núcleo v2, paso 3.1: plan guardado (B-039). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const PLAN = require('../js/core-v2/plan.js');

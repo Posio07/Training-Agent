@@ -1,5 +1,5 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.3). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del corte
- * lo conecta (docs/specs/nucleo-v2.md, "Modelo de datos" y "Rutina corta").
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.3). Conectado a la app en el corte
+ * (docs/specs/nucleo-v2.md, "Modelo de datos" y "Rutina corta").
  *
  * Sesión por variantes: lo que la pantalla de sesión necesita del núcleo nuevo, como funciones puras.
  *   - la variante de cada ejercicio (por defecto, la última que usó el usuario; el usuario puede elegir otra del mismo patrón);

@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2: aviso de frecuencia mínima de los grupos mayores (DEC-036). Es un aviso dentro del aviso único, no una restricción. */
+/* Tests del núcleo v2: aviso de frecuencia mínima de los grupos mayores (DEC-036). Es un aviso dentro del aviso único, no una restricción. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const R = require('../js/core-v2/reparto.js');

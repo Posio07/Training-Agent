@@ -2,6 +2,11 @@
 
 Nov 5, 2026 · Emanuel Miranda
 
+> **Nota del corte al núcleo nuevo (2026-11-09, agregada por el agente; el texto de abajo no se tocó).** A1, A2, A3, A4, A5, A6 y el perfil
+> articular están implementados en el núcleo nuevo (`js/core-v2/reparto.js` y `js/core-v2/dolor.js`), no en el validador que describe esta spec.
+> `node scripts/simular-reglas-articulares.js`, que se cita más abajo, se borró en el corte: el barrido vigente es
+> `node scripts/aceptacion-nucleo-v2.js` sobre los 90 perfiles de `scripts/perfiles-barrido.js`.
+
 **Estado:** aprobada por Emanuel el 2026-11-07 con las correcciones de esta versión. **No se implementa hasta que esté mergeado el PASO 1 del mínimo para grupos chicos** (rama `minimo-grupos-chicos`).
 
 Cada ejercicio recibe un perfil de demanda en tres articulaciones (lumbar, hombro, rodilla) y el validador lo usa para ordenar la sesión, limitar la fatiga acumulada y filtrar ejercicios ante lesiones declaradas.

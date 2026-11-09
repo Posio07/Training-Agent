@@ -1,6 +1,6 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.9). El ALMACENAMIENTO definitivo del núcleo nuevo: la clave, la forma de los datos y cómo se leen y se guardan. Lo usan la página
- * de prueba (tests/pagina-nucleo-v2.html) y, en el corte, `app.js`, que solo llama a estas funciones (sin lógica de almacenamiento propia). Tiene la misma forma de estado que
- * `app.js` (`{ profiles, activeId }`) para que el corte sea mecánico: cambia la clave (DEC-032) y el perfil gana el plan guardado.
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.9). El ALMACENAMIENTO del núcleo nuevo: la clave, la forma de los datos y cómo se leen y se guardan. Lo usa
+ * `app.js`, que solo llama a estas funciones (sin lógica de almacenamiento propia). Tiene la misma forma de estado que tenía `app.js`
+ * (`{ profiles, activeId }`): el corte cambió la clave (DEC-032) y el perfil ganó el plan guardado.
  *
  * Perfil: { id, createdAt, updatedAt, data, log, workouts, sessions, painFlags, planGuardado }
  *   - `data`: lo que normaliza el motor más los campos nuevos (tiempo disponible, prioritarios);
@@ -83,5 +83,5 @@
     return false;
   }
 
-  return { CLAVE, VERSION, estadoVacio, leerPerfil, cargar, guardar, guardador, activo, medicionInicial, crearPerfil, asegurarPlan, actualizarDatos };
+  return { CLAVE, VERSION, leerPerfil, cargar, guardar, guardador, activo, crearPerfil, asegurarPlan, actualizarDatos };
 });

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* EN CONSTRUCCIÓN · núcleo v2, paso 3.10 (B-039). Prueba de aceptación del núcleo nuevo: evalúa, uno por uno, los criterios de aceptación de
+/* Núcleo del generador · núcleo v2, paso 3.10 (B-039). Prueba de aceptación del núcleo nuevo: evalúa, uno por uno, los criterios de aceptación de
  * `docs/specs/nucleo-v2.md` ("Criterios de aceptación") sobre el barrido de 360 planes (90 perfiles × 3, 4, 5 y 6 días) y escribe el informe.
  * Solo LEE: no corrige nada. Si un criterio no se cumple, el informe lo dice y la decisión es de Emanuel.
  *
@@ -26,7 +26,7 @@ const ETQ = { chest: 'Pecho', back: 'Espalda', shoulders: 'Hombros', quads: 'Cu�
 const pct = (n, t) => `${Math.round(n / t * 1000) / 10} %`;
 const nombrePlan = f => `${f.d} días · ${f.p.sex}/${f.p.division}/${f.p.level}/${f.p.goal}${(f.p.laggingMuscles || []).length ? '/rezagados' : ''}`;
 
-// El barrido: los 90 perfiles de `scripts/simular-reglas-articulares.js` × 3, 4, 5 y 6 días, con el reparto nuevo y el catálogo nuevo.
+// El barrido: los 90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días, con el reparto nuevo y el catálogo nuevo.
 function barrido(perfiles, opciones) {
   const filas = [];
   DIAS.forEach(d => perfiles.forEach(p => {
@@ -236,15 +236,18 @@ function evaluar(filas, ctx) {
 /* ---------- Criterio 14: lectura del código ---------- */
 // Decidido por Emanuel (2026-11-09): las exportaciones que nadie usa se borran en el corte; de las que solo usan los tests, se borran las que no prueban
 // comportamiento real. Las listas están en docs/backlog/B-057.md. Si aparece una exportación sin uso que no está declarada, el criterio no cumple.
-const DECLARADAS_PARA_BORRAR = [
-  'almacen.js: `medicionInicial`', 'aviso.js: `ETIQUETAS`', 'aviso.js: `limitadaPorTiempo`', 'pantallas/entreno.js: `htmlSesion`', 'pantallas/entreno.js: `htmlEjercicio`', 'pantallas/entreno.js: `htmlAviso`',
-  'pantallas/perfil.js: `prioritariasPosibles`', 'pantallas/progreso.js: `graficoFuerza`', 'plan.js: `CAMPOS_ACEPTACION`', 'plan.js: `perfilParaReparto`', 'plan.js: `firmaDelPerfil`', 'plan.js: `camposCambiados`', 'registro.js: `reglasActivas`',
-  'almacen.js: `estadoVacio`', 'textos.js: `IDS`',
-];
+// Las 16 exportaciones declaradas en B-057 se borraron en el corte: la lista queda vacía y el criterio no vuelve a tolerar ninguna.
+const DECLARADAS_PARA_BORRAR = [];
 const SOLO_TESTS_QUE_SE_QUEDAN = [ // prueban comportamiento real: se conservan
   'aviso.js: `bloqueMinimoMin`', 'catalogo.js: `PATRONES`', 'dolor.js: `clasificarBackoff`', 'dolor.js: `aplicarLectura`', 'dolor.js: `zonasMarcadas`', 'pantallas/entreno.js: `avisosDelPlan`', 'pantallas/progreso.js: `variantesRegistradas`',
   'pantallas/progreso.js: `puntosDeFuerza`', 'pantallas/progreso.js: `htmlFuerza`', 'pantallas/progreso.js: `htmlHistorial`', 'pantallas/sesion.js: `htmlVariantes`', 'pantallas/sesion.js: `prepararSesion`', 'pantallas/sesion.js: `tipoDeSerie`',
   'pantallas/sesion.js: `htmlSerie`', 'pantallas/sesion.js: `htmlEjercicioSesion`', 'pantallas/sesion.js: `htmlResumen`', 'plan.js: `CAMPOS`', 'registro.js: `REGLAS`', 'reparto.js: `GRUPOS_CHICOS`', 'sesion.js: `ultimaVariante`',
+  // Quedan solo en los tests desde el corte (antes las usaban la página de prueba y la vista previa del reparto, borradas): todas prueban comportamiento real.
+  'almacen.js: `CLAVE`', 'catalogo.js: `variantesDePatron`', 'pantallas/sesion.js: `platesForWeight`', 'pantallas/sesion.js: `parseRestSeconds`',
+  'reparto.js: `SPLITS`', 'reparto.js: `TIPOS`', 'reparto.js: `MUSCULOS`', 'reparto.js: `GRUPOS_MAYORES`', 'reparto.js: `pesosDe`',
+  // `sesion.js: progreso` también es solo de los tests, pero esta lectura no lo ve: busca el nombre suelto y la palabra
+  // "progreso" aparece en prosa en app.js. Se declara igual para que la lista diga la verdad.
+  'sesion.js: `progreso`',
 ];
 // Números escritos en el código de core-v2 fuera del registro (se ignoran 0, 1, 2, -1, los índices y los que están en comentarios o cadenas) y funciones exportadas
 // que nadie usa. Es una lectura aproximada: lista candidatos para que una persona los revise.
@@ -272,7 +275,9 @@ function codigo() {
   const todos = {};
   r.archivos.forEach(f => { todos[f] = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); });
   const leer = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); } catch (e) { return ''; } };
-  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'ifbb-pro-agent/tests/pagina-nucleo-v2.html', 'scripts/vista-previa-reparto.js', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
+  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
+  // Ni este archivo ni index.html entran en la lista: el primero nombra las exportaciones en sus listas de declaradas y
+  // el segundo las nombraría por casualidad en las rutas de sus <script> (`almacen.js` contiene "almacen", etc.).
   const tests = fs.readdirSync(path.join(__dirname, '..', 'ifbb-pro-agent', 'tests')).filter(t => /\.(js|html)$/.test(t)).map(t => leer('ifbb-pro-agent/tests/' + t)).join('\n');
   const sinUso = [], soloTests = [];
   r.archivos.forEach(f => {
@@ -305,7 +310,7 @@ function informe(filas, resultados, extra) {
   const L = [];
   L.push('# Prueba de aceptación del núcleo v2 (paso 3.10, B-039)', '');
   L.push(`Generado por \`node scripts/aceptacion-nucleo-v2.js --escribir\`. Solo lee: **no corrige nada**. Si un criterio no se cumple, este informe lo dice y la decisión es de Emanuel.`, '');
-  L.push(`Criterios de \`docs/specs/nucleo-v2.md\` ("Criterios de aceptación") evaluados sobre el barrido de **${filas.length} planes** (90 perfiles de \`scripts/simular-reglas-articulares.js\` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (${REG.valor('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN')} min por sesión). Motor del plan guardado: \`${PLAN.VERSION_MOTOR}\`.`, '');
+  L.push(`Criterios de \`docs/specs/nucleo-v2.md\` ("Criterios de aceptación") evaluados sobre el barrido de **${filas.length} planes** (90 perfiles de \`scripts/perfiles-barrido.js\` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (${REG.valor('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN')} min por sesión). Motor del plan guardado: \`${PLAN.VERSION_MOTOR}\`.`, '');
   L.push(`**Resultado: ${cuenta('cumple')} cumplen · ${cuenta('cumple con aviso')} cumplen con aviso · ${cuenta('no cumple')} no cumplen · ${cuenta('informe')} son un informe.**`, '');
   L.push('| # | Criterio | Resultado |', '| --- | --- | --- |');
   resultados.forEach(r => L.push(`| ${r.id} | ${r.titulo} | ${marca[r.estado]} ${r.estado} |`));
@@ -320,7 +325,7 @@ function informe(filas, resultados, extra) {
 }
 
 function ejecutar() {
-  const { profiles } = require('./simular-reglas-articulares.js');
+  const { profiles } = require('./perfiles-barrido.js');
   const filas = barrido(profiles);
   const emanuelPerfil = require(path.join(__dirname, '..', 'ifbb-pro-agent', 'tests', 'fixtures', 'core-v2-plan-hashes.json')).perfiles.emanuel_legs_cut_4d;
   const casoCincoNov = emanuelPerfil ? { pl: REP.generarPlan(emanuelPerfil) } : null;

@@ -1,5 +1,4 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, DEC-023). Este módulo NO está conectado a la interfaz ni al motor
- * actual: el PR del corte lo conecta y borra el motor viejo (docs/specs/nucleo-v2.md, "El corte").
+/* Núcleo del generador (B-039, DEC-023).
  *
  * Catálogo en dos niveles (docs/specs/nucleo-v2.md, "Modelo de datos"):
  *   - Patrón: el movimiento. El generador planifica por patrón.
@@ -12,11 +11,11 @@
  * - Aporte por músculo: las variantes partidas HEREDAN las filas del ejercicio original (`hereda`) y se
  *   conservan el estado de verificación del ejercicio original, con la marca `heredadoDe` para rastrearlas (no cuentan 0 por
  *   estar heredadas: la vista previa del reparto no debe mezclar efectos de datos con efectos de diseño); no se inventó ningún dato.
- * En el PR del corte las filas heredadas se materializan en los CSV de data/.
+ * Las filas heredadas se materializan en los CSV de data/ en un PR aparte (B-059).
  *
- * Los rangos de repeticiones son datos del catálogo (como en el motor actual), no reglas del registro.
- * Pendientes del corte: el campo `cue` del curl femoral (cita de Maeo 2021, hoy solo `preferida: true`) y
- * `defaultOnly` del remo con apoyo de pecho (DEC-022, hoy lo cubre `habilitaPor` del remo con barra).
+ * Los rangos de repeticiones son datos del catálogo, no reglas del registro. Pendientes de B-059: el campo
+ * `cue` del curl femoral (cita de Maeo 2021, hoy solo `preferida: true`) y `defaultOnly` del remo con apoyo
+ * de pecho (DEC-022, hoy lo cubre `habilitaPor` del remo con barra).
  *
  * Los números (descansos, tiempo de ejecución, factor de unilaterales) salen del registro de reglas. */
 (function (root, factory) {
@@ -57,7 +56,7 @@
   ];
 
   const M = 'multiarticular', A = 'aislamiento';
-  // v(): una variante. `hereda` = id del ejercicio del motor actual de donde salen sus filas de datos;
+  // v(): una variante. `hereda` = id del ejercicio base de los CSV de donde salen sus filas de datos;
   // las variantes que no se partieron conservan su id y heredan de sí mismas (`heredado` = false).
   const v = (id, nombre, patron, tipo, reps, hereda, extra) => Object.assign({ id, nombre, patron, tipo, reps, hereda: hereda || id, heredado: !!hereda && hereda !== id }, extra);
 
@@ -145,7 +144,9 @@
     'shoulders.press_overhead_db_seated', 'hamstrings.rdl', 'back.row_barbell', 'back.row_pendlay', 'back.pull_up', 'back.lat_pulldown'];
   VARIANTES.forEach(x => { x.topSetElegible = TOPSET_ELEGIBLES.includes(x.id); });
 
-  // Variantes con barra cargada con discos: la pantalla de sesión les muestra la barra con la carga (hoy BARBELL_PATTERNS del catálogo viejo).
+  // Variantes con barra cargada con discos: la pantalla de sesión les muestra la barra con la carga (Fase 5). Traduce a
+  // ids de variante la lista de patrones que usaba el catálogo viejo: con el catálogo en dos niveles, un patrón mezcla
+  // barra, mancuernas y máquina, así que la variante es lo que decide.
   const CON_BARRA = ['quads.squat_back', 'chest.bench_press_barbell', 'shoulders.press_overhead_barbell', 'hamstrings.rdl', 'back.row_barbell', 'back.row_pendlay', 'glutes.hip_thrust'];
   VARIANTES.forEach(x => { x.barra = CON_BARRA.includes(x.id); });
 
@@ -201,42 +202,5 @@
     return (zonas || []).some(z => (mapa[z] || []).includes(id));
   };
 
-  /* Catálogo viejo emulado (solo para la vista previa del reparto, hasta el corte): cada ejercicio del motor actual
-   * como UNA entrada, con los datos del original (músculos, perfil articular de la variante más exigente) y los
-   * mismos indicadores (remo con barra opcional, remo con apoyo solo sin esa casilla, sustitutos por lesión,
-   * funcionales). Permite separar en la comparación lo que cambia por el reparto de lo que cambia por el catálogo. */
-  function catalogoViejoEmulado(K) {
-    const viejos = [];
-    [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.keys(g).forEach(m => g[m].forEach(e => viejos.push(e))));
-    const variantes = viejos.map(o => {
-      const rep = VARIANTES.find(x => x.hereda === o.id);
-      const v = Object.assign({}, rep, { id: o.id, nombre: o.name, hereda: o.id, heredado: false, reps: o.reps, tipo: o.type === 'compound' ? M : A, unilateral: !!o.unilateral, viejo: true });
-      delete v.habilitaPor; delete v.soloConLesion; delete v.sinTopSet; delete v.preferida;
-      if (o.optIn) v.habilitaPor = 'remoConBarra';
-      if (o.defaultOnly) v.soloSinRemoConBarra = true;
-      if (o.injuryOnly) { v.soloConLesion = o.injuryOnly; v.sinTopSet = true; }
-      if (K.FUNCTIONAL_EXERCISES && Object.keys(K.FUNCTIONAL_EXERCISES).some(m => K.FUNCTIONAL_EXERCISES[m].some(f => f.id === o.id))) v.habilitaPor = 'healthGoal';
-      if (o.cue) v.preferida = false;
-      return v;
-    });
-    const porId = {};
-    variantes.forEach(v => { porId[v.id] = v; });
-    const repDe = id => VARIANTES.find(x => x.hereda === id);
-    return {
-      nombre: 'viejo', PATRONES, VARIANTES: variantes,
-      patronPorId: id => PATRON_POR_ID[id] || null,
-      variantePorId: id => porId[id] || null,
-      aportesDe: id => EXERCISE_MUSCLES.rows.filter(r => r.exerciseId === id).map(r => Object.assign({}, r)),
-      grupoDe: id => EXERCISE_MUSCLES.buckets[id] || null,
-      perfilArticularDe: id => { const out = {}; PERFIL_ARTICULAR.rows.filter(r => r.exerciseId === id).forEach(r => { out[r.articulacion] = r; }); return out; },
-      segundosPorSerie: id => {
-        const x = porId[id];
-        const descanso = x.tipo === M ? REGISTRO.valor('DESCANSO_MULTIARTICULAR_S') : REGISTRO.valor('DESCANSO_AISLAMIENTO_S');
-        return (x.unilateral ? REGISTRO.valor('FACTOR_UNILATERAL') : 1) * (descanso + REGISTRO.valor('SEGUNDOS_EJECUCION_SERIE'));
-      },
-      excluidaPorLesion: (id, zonas) => excluidaPorLesion(repDe(id).id, zonas),
-    };
-  }
-
-  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, perfilArticularDe, segundosPorSerie, excluidaPorLesion, catalogoViejoEmulado };
+  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, perfilArticularDe, segundosPorSerie, excluidaPorLesion };
 });

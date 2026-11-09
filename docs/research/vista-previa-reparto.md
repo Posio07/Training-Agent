@@ -1,5 +1,9 @@
 # Vista previa del reparto nuevo (paso 2)
 
+> **Nota del corte al núcleo nuevo (2026-11-09).** `scripts/vista-previa-reparto.js` se borró en el corte: comparaba el reparto nuevo contra el
+> motor viejo y su catálogo, que ya no existen. Este informe se conserva como registro de las decisiones que se tomaron con él a la vista (B-042,
+> DEC-029, DEC-031). El barrido vigente es `node scripts/aceptacion-nucleo-v2.js`.
+
 Generada con `node scripts/vista-previa-reparto.js --md`. A = motor actual · B = reparto nuevo con el catálogo viejo emulado · C = reparto nuevo con el catálogo nuevo. **A→B es el efecto del reparto; B→C es el efecto del catálogo.** Las series de "cubierto" son fraccionadas (directa 1, indirecta 0,5). Los perfiles de referencia no son los datos reales de Emanuel ni de su pareja (viven en el dispositivo); para verlos, exportar el perfil a JSON y pasarlo como argumento.
 
 ## Emanuel (referencia: perfil de engine.test.js) · 5 días · physique_m · cut · intermediate · rezagados: Cuádriceps, Isquiotibiales, Glúteos

@@ -1,36 +1,28 @@
-/* Recorrido de punta a punta del núcleo nuevo en Chromium móvil (paso 3.10, prueba de aceptación), sobre la página de prueba y el almacenamiento definitivo:
- * perfil → plan → aviso único y aceptación → regenerar → sesión (top set, A5, A6) → recargar → progreso por variante → privacidad del export → reanudar.
- * Cada tramo dice qué criterio de aceptación de docs/specs/nucleo-v2.md toca. Se borra con la página en el corte (las pruebas de punta a punta pasan a la app real).
+/* Recorrido de punta a punta del núcleo nuevo en Chromium móvil (prueba de aceptación), sobre la APP REAL y su
+ * almacenamiento: perfil → plan → aviso único y aceptación → regenerar → sesión (top set, A5, A6) → recargar →
+ * progreso por variante → privacidad del export → reanudar.
+ * Cada tramo dice qué criterio de aceptación de docs/specs/nucleo-v2.md toca.
  * Uso: NODE_PATH=/opt/node22/lib/node_modules node ifbb-pro-agent/tests/e2e-recorrido.js */
-const path = require('path');
-const http = require('http');
-const fs = require('fs');
 const assert = require('node:assert/strict');
-const { chromium, devices } = require('playwright');
-
-const root = path.join(__dirname, '..');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
-const server = http.createServer((req, res) => {
-  const f = path.join(root, decodeURIComponent(req.url.split('?')[0]));
-  if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
-  res.writeHead(200, { 'Content-Type': mime[path.extname(f)] || 'application/octet-stream' });
-  fs.createReadStream(f).pipe(res);
-});
+const { abrir, leer, leerSesion, CLAVE, CLAVE_VIEJA } = require('./e2e-comun.js');
 
 (async () => {
-  await new Promise(r => server.listen(0, r));
-  const url = `http://localhost:${server.address().port}/tests/pagina-nucleo-v2.html`;
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
-  const page = await ctx.newPage();
-  const errores = [];
-  page.on('pageerror', e => errores.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error' && !/fonts|Failed to load resource/.test(m.text())) errores.push('console: ' + m.text()); });
-  await page.goto(url);
-  const perfil = () => page.evaluate(() => window.__almacen.profiles[0]);
-  const act = () => page.evaluate(() => JSON.parse(window.__storage[window.SESSION_STORE.STORAGE_KEY] || 'null'));
-  const guardado = () => page.evaluate(() => JSON.parse(localStorage.getItem(window.__claveAlmacen)));
-  const editar = async cambios => { await page.click('#btn-editar'); await page.waitForSelector('#form'); await cambios(); await page.click('button[type="submit"]'); await page.waitForSelector('[data-start-session="0"]'); };
+  const { page, errores, cerrar } = await abrir({});
+  const perfil = async () => (await leer(page)).profiles[0];
+  const act = () => leerSesion(page);
+  const irAEntreno = async () => { await page.click('[data-tab=plan]'); await page.click('[data-pt=training]'); await page.waitForSelector('[data-start-session="0"]'); };
+  const editar = async cambios => {
+    await page.click('[data-tab=profiles]'); await page.click('#btn-edit'); await page.waitForSelector('#form');
+    await cambios();
+    await page.click('button[type="submit"]'); await page.waitForSelector('#plan-body .stat');
+    await irAEntreno();
+  };
+  const descartarSesion = async () => {
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('#resume-no'); await page.click('#resume-no'); await page.click('#modal-confirm');
+    await page.waitForSelector('#resume-prompt', { state: 'detached' });
+    await irAEntreno();
+  };
   const hecha = async (i, peso, reps, dolor) => {
     await page.fill(`[data-sm-weight="${i}"]`, String(peso)); await page.fill(`[data-sm-reps="${i}"]`, String(reps));
     if (dolor != null) await page.fill(`[data-sm-pain="${i}"]`, String(dolor));
@@ -38,12 +30,14 @@ const server = http.createServer((req, res) => {
   };
 
   // 1. Perfil con los campos nuevos y la bandera de salud; el plan sale del núcleo nuevo.
+  await page.click('#btn-new');
   await page.waitForSelector('#form');
   await page.fill('input[name="name"]', 'Recorrido'); await page.selectOption('#sex', 'M');
   await page.fill('input[name="age"]', '30'); await page.fill('input[name="heightCm"]', '178'); await page.fill('input[name="weightKg"]', '85');
   await page.selectOption('select[name="level"]', 'intermediate'); await page.selectOption('select[name="daysPerWeek"]', '4'); await page.selectOption('select[name="goal"]', 'cut');
   await page.fill('input[name="tiempoDisponibleMin"]', '90'); await page.selectOption('select[name="prioritarios"] >> nth=0', 'quads.squat_back'); await page.check('input[name="healthGoal"]');
-  await page.click('button[type="submit"]'); await page.waitForSelector('[data-start-session="3"]');
+  await page.click('button[type="submit"]'); await page.waitForSelector('#plan-body .stat');
+  await irAEntreno();
   let p = await perfil();
   assert.equal(p.planGuardado.plan.sesiones.length, 4);
   // criterios 1, 3 y 11: la capacidad se respeta, el top set es del patrón principal y el principal tiene 4 series o más
@@ -65,42 +59,46 @@ const server = http.createServer((req, res) => {
   await editar(async () => { await page.fill('input[name="tiempoDisponibleMin"]', '90'); await page.selectOption('select[name="goal"]', 'cut'); });
 
   // 3. Sesión de pierna: top set, A5 (back-off de más), A6 (dolor lumbar con su zona), registro por variante.
-  await page.click('[data-toggle-day="1"]'); await page.click('[data-start-session="1"]'); await page.waitForSelector('.sm-exname');
+  await page.click('[data-toggle-day="1"]'); await page.click('#day-body-1 [data-start-session]'); await page.waitForSelector('.sm-exname');
   await hecha(0, 100, 5);
   await page.fill('[data-sm-weight="1"]', '98'); await page.fill('[data-sm-reps="1"]', '8'); await page.click('[data-sm-done="1"]'); await page.waitForSelector('#sm-timer'); await page.click('#sm-timer-skip');
   assert.equal((await act()).exercises[0].sets[1].setType, 'normal', 'A5');
   await page.selectOption('[data-sm-zona]', 'lumbar'); await hecha(2, 85, 8, 8);
   assert.equal((await perfil()).painFlags.lumbar.marcada, true, 'A6');
-  await page.click('#sm-finish'); await page.waitForSelector('#sm-back-to-plan'); await page.click('#sm-back-to-plan'); await page.waitForSelector('[data-start-session="1"]');
+  await page.click('#sm-finish'); await page.waitForSelector('#sm-back-to-plan'); await page.click('#sm-back-to-plan'); await page.waitForSelector('.subtabs');
 
-  // 4. Recargar: todo persiste en el almacenamiento definitivo; el progreso es por variante.
-  await page.reload(); await page.waitForSelector('[data-start-session="1"]');
+  // 4. Recargar: todo persiste en el almacenamiento de la app; el progreso es por variante.
+  await page.reload({ waitUntil: 'networkidle' });
   p = await perfil();
   assert.ok(p.workouts.length >= 3 && p.workouts.every(w => w.exerciseId), 'las series quedan por variante');
-  await page.click('#btn-progreso'); await page.waitForSelector('#strength-exercise-select');
+  await page.click('[data-tab=progress]'); await page.waitForSelector('#strength-exercise-select');
   assert.ok((await page.locator('#strength-exercise-select option').allTextContents()).includes('Sentadilla trasera'));
-  assert.ok(await page.locator('.hist-session').count() >= 1); await page.click('#btn-volver'); await page.waitForSelector('[data-start-session="1"]');
+  assert.ok(await page.locator('.hist-session').count() >= 1);
+  await irAEntreno();
 
   // 5. Con la zona lumbar marcada, la próxima sentadilla ya no lleva top set (DEC-009) y la rutina corta cabe en el tiempo (criterio 4).
-  await page.click('[data-toggle-day="1"]'); await page.click('[data-start-session="1"]'); await page.waitForSelector('.sm-exname');
+  await page.click('[data-toggle-day="1"]'); await page.click('#day-body-1 [data-start-session]'); await page.waitForSelector('.sm-exname');
   assert.ok((await act()).exercises[0].sets.every(x => x.setType !== 'top'), 'sin top set con la zona marcada');
-  await page.evaluate(() => { window.__confirmar = true; }); await page.click('#sm-close'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
-  await page.evaluate(() => window.__sesion.ofrecerReanudar()); await page.waitForSelector('#resume-no'); await page.click('#resume-no'); await page.waitForSelector('#resume-prompt', { state: 'detached' });
+  await page.click('#sm-close'); await page.click('#modal-confirm'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await descartarSesion();
+  await page.click('[data-toggle-day="1"]');
   await page.fill('[data-hoy-min="1"]', '25'); await page.click('[data-start-session-short="1"]'); await page.waitForSelector('.sm-exname');
   const corta = await act(); assert.equal(corta.short, true); assert.ok(corta.planSesion.minutos <= 25 + 1e-9, 'criterio 4');
-  await page.click('#sm-close'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
-  await page.evaluate(() => window.__sesion.ofrecerReanudar()); await page.waitForSelector('#resume-no'); await page.click('#resume-no'); await page.waitForSelector('#resume-prompt', { state: 'detached' });
+  await page.click('#sm-close'); await page.click('#modal-confirm'); await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  await descartarSesion();
 
-  // 6. Privacidad (DEC-009): el export del motor no lleva las banderas de dolor, ni la salud, ni el plan guardado con las lesiones.
-  const exp = await page.evaluate(() => window.ENGINE.exportProfile(window.__almacen.profiles[0]));
+  // 6. Privacidad (DEC-009): el export no lleva las banderas de dolor, ni la salud, ni el plan guardado con las lesiones.
+  await page.click('[data-tab=profiles]');
+  const exp = await page.evaluate(([clave]) => window.ENGINE.exportProfile(JSON.parse(localStorage.getItem(clave)).profiles[0]), [CLAVE]);
   assert.ok(!('painFlags' in exp) && !('planGuardado' in exp) && !('health' in exp.data));
   assert.ok(!/"zonas"|"lesiones"|"pain"/.test(JSON.stringify(exp)));
-  // 7. El almacenamiento definitivo no tocó las claves de la app actual.
-  const claves = await page.evaluate(() => ({ v1: localStorage.getItem('ifbb-agent:v1'), v2: localStorage.getItem('ifbb-agent:v2') }));
-  assert.equal(claves.v1, null); assert.equal(claves.v2, null);
-  assert.ok((await guardado()).profiles[0].planGuardado);
+
+  // 7. El reset del corte (DEC-032): la app solo usa su clave nueva y no escribe la de la app anterior.
+  assert.deepEqual(await page.evaluate(() => Object.keys(localStorage).sort()), [CLAVE]);
+  assert.equal(await page.evaluate(k => localStorage.getItem(k), CLAVE_VIEJA), null);
+  assert.ok((await perfil()).planGuardado, 'el plan guardado vive en el almacenamiento de la app');
 
   assert.deepEqual(errores, [], errores.join('\n'));
-  await browser.close(); server.close();
-  console.log('e2e recorrido de punta a punta: OK');
+  await cerrar();
+  console.log('e2e recorrido de punta a punta sobre la app real: OK');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests de la prueba de aceptación del núcleo v2 (paso 3.10): cada criterio de scripts/aceptacion-nucleo-v2.js tiene que FALLAR cuando se rompe la regla
+/* Tests de la prueba de aceptación del núcleo v2 (paso 3.10): cada criterio de scripts/aceptacion-nucleo-v2.js tiene que FALLAR cuando se rompe la regla
  * (si no, la prueba de aceptación no vale). El resultado real sobre los 360 planes lo escribe el script en docs/research/aceptacion-nucleo-v2.md. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,7 +7,7 @@ const A = require('../../scripts/aceptacion-nucleo-v2.js');
 const REP = require('../js/core-v2/reparto.js');
 const SES = require('../js/core-v2/sesion.js');
 const PLAN = require('../js/core-v2/plan.js');
-const { profiles } = require('../../scripts/simular-reglas-articulares.js');
+const { profiles } = require('../../scripts/perfiles-barrido.js');
 
 const muestra = [profiles[0], profiles[17], profiles[40], profiles[75]];
 const fresco = () => JSON.parse(JSON.stringify(A.barrido(muestra).map(f => ({ d: f.d, p: f.p, pl: f.pl, claves: f.claves }))));

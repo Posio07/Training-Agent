@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests de la pantalla de sesión del núcleo v2, paso 3.7: la preparación de la sesión y el HTML como funciones puras. El recorrido en el
+/* Tests de la pantalla de sesión del núcleo v2, paso 3.7: la preparación de la sesión y el HTML como funciones puras. El recorrido en el
  * navegador está en tests/e2e-sesion.js. */
 const test = require('node:test');
 const assert = require('node:assert/strict');

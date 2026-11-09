@@ -1,33 +1,13 @@
-/* Recorrido end-to-end en Chromium móvil: crea un perfil, revisa cada pestaña,
- * registra progreso, exporta/duplica y comprueba que no hay errores de consola.
- * Uso: NODE_PATH=/opt/node22/lib/node_modules node tests/e2e.js */
+/* Recorrido end-to-end en Chromium móvil de la app real: crea un perfil, revisa cada pestaña, registra una sesión y
+ * progreso, exporta/duplica/importa, comprueba la pausa por lesión (DEC-009/DEC-011) y que no hay errores de consola.
+ * El detalle de la pantalla de sesión está en tests/e2e-sesion.js; el del progreso por variante, en e2e-progreso.js.
+ * Uso: NODE_PATH=/opt/node22/lib/node_modules node ifbb-pro-agent/tests/e2e.js */
 const path = require('path');
-const http = require('http');
 const fs = require('fs');
-const { chromium, devices } = require('playwright');
-
-const root = path.join(__dirname, '..');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.json': 'application/json' };
-const server = http.createServer((req, res) => {
-  let p = decodeURIComponent(req.url.split('?')[0]);
-  if (p === '/') p = '/index.html';
-  const f = path.join(root, p);
-  if (!f.startsWith(root) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
-  res.writeHead(200, { 'Content-Type': mime[path.extname(f)] || 'application/octet-stream' });
-  fs.createReadStream(f).pipe(res);
-});
+const { abrir } = require('./e2e-comun.js');
 
 (async () => {
-  await new Promise(r => server.listen(0, r));
-  const base = `http://localhost:${server.address().port}/`;
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
-  // Reloj desplazable para simular tiempo transcurrido con la pantalla bloqueada (sin ticks de por medio).
-  await ctx.addInitScript(() => { const real = Date.now.bind(Date); window.__off = 0; Date.now = () => real() + window.__off; });
-  const page = await ctx.newPage();
-  const errors = [];
-  page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  const { page, errores: errors, base, cerrar } = await abrir({ reloj: true, descargas: true, abrir: false });
 
   const shots = path.join(__dirname, '..', '..', '.e2e-shots');
   fs.mkdirSync(shots, { recursive: true });
@@ -67,8 +47,8 @@ const server = http.createServer((req, res) => {
   const tagsAntes = await page.$$eval('.day-tag', els => els.map(e => e.closest('.session').querySelector('[data-toggle-day]').dataset.toggleDay + ':' + e.textContent.trim()));
   if (tagsAntes.join() !== '0:Siguiente') throw new Error('sin sesiones, "Siguiente" debía marcar solo el Día 1: ' + tagsAntes.join());
 
-  // Modo sesión (Fase 4): abrir el día marcado, registrar una serie, saltar
-  // el descanso, terminar temprano y verificar el resumen + el guardado.
+  // Modo sesión: abrir el día marcado, registrar una serie, saltar el descanso,
+  // terminar temprano y verificar el resumen + el guardado.
   await page.waitForSelector('.session-body:not([inert]) [data-start-session]');
   await page.click('.session-body:not([inert]) [data-start-session]');
   await page.waitForSelector('.session-mode');
@@ -85,7 +65,7 @@ const server = http.createServer((req, res) => {
   const summaryTxt = await page.textContent('.session-mode-body');
   if (!/series hechas/.test(summaryTxt)) throw new Error('session summary missing series count');
   await shot('08-session-summary');
-  const workouts = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts);
+  const workouts = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0].workouts);
   if (!workouts || workouts.length < 1 || workouts[0].reps !== 5 || workouts[0].weight !== 60) throw new Error('workout set not saved correctly: ' + JSON.stringify(workouts));
   if (!/^[a-z]+\.[a-z_]+$/.test(workouts[0].exerciseId || '')) throw new Error('workout set saved without a stable exerciseId: ' + JSON.stringify(workouts[0]));
   await page.click('#sm-back-to-plan');
@@ -112,7 +92,7 @@ const server = http.createServer((req, res) => {
 
   // DEC-015: sesión persistente. Se registra una serie, se "cierra la app" (recarga) a mitad y
   // al volver se ofrece Reanudar; se reanuda sin duplicar, se termina y no queda nada en curso.
-  const sessionKey = () => page.evaluate(() => localStorage.getItem('ifbb-agent:session:v1'));
+  const sessionKey = () => page.evaluate(() => localStorage.getItem(window.SESSION_STORE.STORAGE_KEY));
   if (!(await sessionKey())) throw new Error('la sesión en curso no se guardó al empezar');
   await page.fill('[data-sm-weight="0"]', '70');
   await page.fill('[data-sm-reps="0"]', '6');
@@ -142,11 +122,11 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('#sm-timer');
   if (secs(await page.textContent('#sm-timer-num')) <= 0) throw new Error('el descanso reanudado debería seguir en marcha');
   await page.click('#sm-timer-skip');
-  if ((await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:session:v1')).rest)) !== null) throw new Error('saltar el descanso debería limpiarlo');
+  if ((await page.evaluate(() => JSON.parse(localStorage.getItem(window.SESSION_STORE.STORAGE_KEY)).rest)) !== null) throw new Error('saltar el descanso debería limpiarlo');
   if (await page.getAttribute('[data-sm-weight="0"]', 'disabled') === null) throw new Error('la serie ya hecha debería verse registrada al reanudar');
   if ((await page.inputValue('[data-sm-weight="0"]')) !== '70') throw new Error('al reanudar no volvió el peso registrado');
   // DEC-015 Paso 2: editar una serie ya registrada de la sesión en curso (peso 70 -> 72.5, reps 6 -> 5).
-  const getRows = () => page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts);
+  const getRows = () => page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0].workouts);
   await page.click('[data-sm-edit="0"]');
   await page.waitForSelector('.set-editor');
   await shot('11-set-editor');
@@ -178,7 +158,7 @@ const server = http.createServer((req, res) => {
   await page.click('#sm-finish');
   await page.waitForSelector('#sm-back-to-plan');
   if (await sessionKey()) throw new Error('al terminar, la sesión no debería seguir en curso');
-  const after = await page.evaluate(() => { const pr = JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0]; return { sessions: pr.sessions, workouts: pr.workouts }; });
+  const after = await page.evaluate(() => { const pr = JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0]; return { sessions: pr.sessions, workouts: pr.workouts }; });
   const mineS = after.sessions.filter(x => x.sessionId === saved.sessionId);
   if (after.sessions.length !== 2 || mineS.length !== 1 || mineS[0].status !== "completada") throw new Error('la sesión reanudada debería quedar completada una sola vez: ' + JSON.stringify(after.sessions));
   const keys = after.workouts.filter(w => w.sessionId === saved.sessionId).map(w => w.setKey);
@@ -204,7 +184,7 @@ const server = http.createServer((req, res) => {
   await page.click('#modal-confirm');
   await page.waitForSelector('#resume-prompt', { state: 'detached' });
   if (await sessionKey()) throw new Error('descartar debería borrar la sesión en curso');
-  const discarded = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts.filter(w => w.setKey).length);
+  const discarded = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0].workouts.filter(w => w.setKey).length);
   if (discarded !== 2) throw new Error('descartar debería dejar solo las series de las 2 sesiones completadas, hay ' + discarded);
 
   // DEC-015 Paso 2: editar y borrar en el historial de sesiones (Progreso).
@@ -222,7 +202,7 @@ const server = http.createServer((req, res) => {
   await page.click('.hist-session[open] [data-hist-edit]');
   await page.click('[data-editor-delete]');
   await page.click('#modal-confirm');
-  await page.waitForFunction(n => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].workouts.length === n - 1, rowsBefore);
+  await page.waitForFunction(n => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0].workouts.length === n - 1, rowsBefore);
 
   // Progreso (ya estamos en la pestaña: volver a hacer clic re-renderiza y borra lo que se escribe)
   const future = new Date(); future.setDate(future.getDate() + 7);
@@ -236,7 +216,7 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('.modal-overlay');
   await page.click('#modal-confirm');
   await page.waitForSelector('#plan-body .stat');
-  const w = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles[0].data.weightKg);
+  const w = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles[0].data.weightKg);
   if (w !== 83.2) throw new Error('apply last measurement failed: ' + w);
 
   // Perfiles: segundo perfil femenino, duplicar, persistencia tras recarga
@@ -289,48 +269,20 @@ const server = http.createServer((req, res) => {
   if (/Se pide de nuevo/.test(pausa)) throw new Error('la primera pausa por lesión no debe llevar la línea de re-autorización');
   await page.click('[data-injury-clearance="shoulder"]');
   await page.waitForSelector('.subtabs');
-  const clearedHealth = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.find(p => p.data.name === 'Lesión · Test').data.health);
+  const clearedHealth = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.find(p => p.data.name === 'Lesión · Test').data.health);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(clearedHealth.injuries[0].clearanceDate || '')) throw new Error('la autorización no quedó guardada con fecha: ' + JSON.stringify(clearedHealth.injuries));
+  // Con la lesión autorizada el plan se muestra y no lleva ninguna de las variantes que la zona excluye (DEC-009, capa 3).
   await page.click('[data-pt=training]');
-  const trainingTxt = await page.textContent('#plan-body');
-  if (!/E4/.test(trainingTxt)) throw new Error('el ejercicio sustituto por lesión no muestra la etiqueta E4');
-
-  // DEC-011 · dolor: con 2 sesiones distintas con dolor en las últimas 4 semanas
-  // sobre el press landmine, el Modo sesión reemplaza el ejercicio, avisa que
-  // consulte a un profesional (E4) y el reemplazo NO hereda la etiqueta de
-  // "ejercicio de precaución por lesión" del original.
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('ifbb-agent:v1'));
-    const p = s.profiles.find(x => x.data.name === 'Lesión · Test');
-    const d = n => { const x = new Date(); x.setDate(x.getDate() - n); return x.toISOString().slice(0, 10); };
-    p.painFlags = { shoulder_press_safe: { flagged: true, cleanStreak: 0, lastSessionId: 'b', painSessions: [{ sessionId: 'a', date: d(10) }, { sessionId: 'b', date: d(2) }] } };
-    localStorage.setItem('ifbb-agent:v1', JSON.stringify(s));
+  await page.waitForSelector('[data-start-session="0"]');
+  const excluidasHombro = await page.evaluate(() => window.CORE_V2_REGISTRO.valor('EXCLUSIONES_POR_LESION').shoulder);
+  const variantesDelPlan = await page.evaluate(() => {
+    const p = JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.find(x => x.data.name === 'Lesión · Test');
+    return p.planGuardado.plan.sesiones.flatMap(s => s.ejercicios.map(e => e.varianteId));
   });
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.click('.tab[data-tab=plan]');
-  await page.waitForSelector('.subtabs');
-  await page.click('[data-pt=training]');
-  const dayIdx = await page.$$eval('[data-toggle-day]', els => els.map(e => e.dataset.toggleDay));
-  let painStarted = false;
-  for (const i of dayIdx) {
-    const has = await page.evaluate(n => { const b = document.getElementById('day-body-' + n); return !!b && /Press landmine/.test(b.textContent); }, i);
-    if (!has) continue;
-    if (await page.getAttribute(`#day-body-${i}`, 'inert') !== null) { await page.click(`[data-toggle-day="${i}"]`); await page.waitForTimeout(400); }
-    await page.click(`#day-body-${i} [data-start-session]`); painStarted = true; break;
-  }
-  if (!painStarted) throw new Error('no se encontró un día con el press landmine para probar el aviso de dolor');
-  await page.waitForSelector('.session-mode');
-  for (let k = 0; k < 12; k++) {
-    if (/Reemplaza a/.test(await page.textContent('.session-mode-body'))) break;
-    if (await page.$('#sm-next')) await page.click('#sm-next'); else break;
-  }
-  const painBody = await page.textContent('.session-mode-body');
-  if (!/Reemplaza a "Press landmine/.test(painBody)) throw new Error('el ejercicio marcado por dolor no se reemplazó');
-  if (!/en 2 sesiones distintas de las últimas 4 semanas/.test(painBody) || !/consultar a un profesional/.test(painBody)) throw new Error('falta el aviso de consultar a un profesional tras 2 sesiones con dolor');
-  if (/Ejercicio incluido como precaución/.test(painBody)) throw new Error('el reemplazo heredó la etiqueta de precaución por lesión del ejercicio original');
-  page.once('dialog', d => d.accept());
-  await page.click('#sm-close');
-  await page.waitForSelector('#session-mode-root', { state: 'detached' });
+  const coladas = excluidasHombro.filter(id => variantesDelPlan.includes(id));
+  if (coladas.length) throw new Error('el plan incluye variantes excluidas por la lesión de hombro: ' + coladas.join(', '));
+
+  // DEC-011: al agregar otra zona solo se vuelve a pedir la nueva, y la ya confirmada conserva su fecha.
   await page.click('.tab[data-tab=profiles]');
   await page.click('#btn-edit');
   await page.check('input[name=injuryZones][value=knee]');
@@ -338,13 +290,13 @@ const server = http.createServer((req, res) => {
   await page.waitForSelector('[data-injury-clearance="knee"]');
   if (await page.$('[data-injury-clearance="shoulder"]')) throw new Error('al agregar una zona no debería volver a pedirse la ya confirmada');
   if (/Se pide de nuevo/.test(await page.textContent('#view'))) throw new Error('una zona NUEVA es una primera autorización: no lleva la línea de re-autorización');
-  const afterAdd = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.find(p => p.data.name === 'Lesión · Test').data.health.injuries);
+  const afterAdd = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.find(p => p.data.name === 'Lesión · Test').data.health.injuries);
   if (afterAdd.find(i => i.zone === 'shoulder').clearanceDate !== clearedHealth.injuries[0].clearanceDate) throw new Error('se perdió la fecha de la zona ya confirmada');
 
   // DEC-011 (ajuste) · re-autorización en navegador: si sube el dolor de una zona
   // se invalida SOLO esa autorización y el plan se pausa con el mismo flujo; si el
   // dolor baja no se pide nada; un cambio de diagnóstico también pausa.
-  const injuriesOf = () => page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.find(p => p.data.name === 'Lesión · Test').data.health.injuries);
+  const injuriesOf = () => page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.find(p => p.data.name === 'Lesión · Test').data.health.injuries);
   const editInjuries = async (fn) => { await page.click('.tab[data-tab=profiles]'); await page.click('#btn-edit'); await fn(); await page.click('button[type=submit]'); };
   await page.click('[data-injury-clearance="knee"]');
   await page.waitForSelector('.subtabs');
@@ -386,10 +338,10 @@ const server = http.createServer((req, res) => {
   if (healthKeys.test(exportedText)) throw new Error('el export descargado incluye datos de salud: ' + exportedText.match(healthKeys)[0]);
   if (JSON.parse(exportedText).data.name !== 'Lesión · Test') throw new Error('el export no es del perfil activo');
   const legacyPath = path.join(shots, 'legacy-export.json');
-  const localProfile = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.find(p => p.data.name === 'Lesión · Test'));
+  const localProfile = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.find(p => p.data.name === 'Lesión · Test'));
   if (!localProfile.data.health.injuries.length) throw new Error('el perfil local de prueba debería tener lesiones');
   fs.writeFileSync(legacyPath, JSON.stringify(Object.assign({}, localProfile, { painFlags: { shoulder_press_safe: { flagged: true, cleanStreak: 0, lastSessionId: 'x', painSessions: [] } } })));
-  const countProfiles = () => page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.length);
+  const countProfiles = () => page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.length);
   const before = await countProfiles();
   let warned = '';
   page.once('dialog', d => { warned = d.message(); d.dismiss(); });
@@ -399,10 +351,11 @@ const server = http.createServer((req, res) => {
   if (await countProfiles() !== before) throw new Error('cancelar la advertencia no debería importar nada');
   page.once('dialog', d => d.accept());
   await page.setInputFiles('#file-import', legacyPath);
-  await page.waitForFunction(n => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles.length === n, before + 1);
-  const afterImport = await page.evaluate(() => JSON.parse(localStorage.getItem('ifbb-agent:v1')).profiles);
+  await page.waitForFunction(n => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles.length === n, before + 1);
+  const afterImport = await page.evaluate(() => JSON.parse(localStorage.getItem(window.__CLAVE)).profiles);
   const imported = afterImport[afterImport.length - 1];
-  if (imported.data.health.injuries.length || imported.painFlags || imported.data.health.screening.symptoms) throw new Error('el import guardó datos de salud del archivo: ' + JSON.stringify(imported.data.health));
+  // `painFlags` existe siempre en el perfil nuevo (core-v2/almacen.js), pero tiene que quedar vacío.
+  if (imported.data.health.injuries.length || Object.keys(imported.painFlags || {}).length || imported.data.health.screening.symptoms) throw new Error('el import guardó datos de salud del archivo: ' + JSON.stringify({ health: imported.data.health, painFlags: imported.painFlags }));
   if (!afterImport.find(p => p.id === localProfile.id).data.health.injuries.length) throw new Error('el import borró las lesiones del perfil local');
 
   // Service worker registrado y manifest válido
@@ -410,8 +363,7 @@ const server = http.createServer((req, res) => {
   const manifest = await (await page.request.get(base + 'manifest.webmanifest')).json();
   if (!manifest.icons || manifest.icons.length < 3) throw new Error('manifest icons missing');
 
-  await browser.close();
-  server.close();
+  await cerrar();
   if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
   console.log(`E2E OK · perfiles: ${items.join(' | ')} · fuentes: ${srcCount} · sw: ${sw}`);
 })().catch(e => { console.error(e); process.exit(1); });

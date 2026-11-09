@@ -2,9 +2,9 @@
 
 Generado por `node scripts/aceptacion-nucleo-v2.js --escribir`. Solo lee: **no corrige nada**. Si un criterio no se cumple, este informe lo dice y la decisión es de Emanuel.
 
-Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/simular-reglas-articulares.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.3`.
+Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.3`.
 
-**Resultado: 12 cumplen · 2 cumplen con aviso · 0 no cumplen · 1 son un informe.**
+**Resultado: 13 cumplen · 1 cumplen con aviso · 0 no cumplen · 1 son un informe.**
 
 | # | Criterio | Resultado |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 | 11 | El patrón principal de cada sesión tiene al menos 4 series de trabajo, o el aviso único dice que no cupo en el tiempo (DEC-029) | ✅ cumple |
 | 12 | Todo grupo del perfil tiene por semana un ejercicio directo con 2 series o más, o el aviso único lo dice (DEC-029) | ✅ cumple |
 | 13 | Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031) | ✅ cumple |
-| 14 | No queda ningún número fuera del registro ni código muerto | ⚠️ cumple con aviso |
+| 14 | No queda ningún número fuera del registro ni código muerto | ✅ cumple |
 | 15 | El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos | ✅ cumple |
 
 ## 1. Ninguna sesión supera su capacidad en minutos sin la aceptación explícita del usuario
@@ -91,25 +91,13 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 
-**⚠️ cumple con aviso.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 13 exportación(es) que nadie usa y 22 que solo usan los tests: 15 declaradas para borrar en el corte (B-057), 20 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
+**✅ cumple.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 0 exportación(es) que nadie usa y 29 que solo usan los tests: 0 declaradas para borrar en el corte (B-057), 29 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
 
 - por archivo: 
-- sin uso: ifbb-pro-agent/js/core-v2/almacen.js: `medicionInicial`
-- sin uso: ifbb-pro-agent/js/core-v2/aviso.js: `ETIQUETAS`
-- sin uso: ifbb-pro-agent/js/core-v2/aviso.js: `limitadaPorTiempo`
-- sin uso: ifbb-pro-agent/js/core-v2/pantallas/entreno.js: `htmlSesion`
-- sin uso: ifbb-pro-agent/js/core-v2/pantallas/entreno.js: `htmlEjercicio`
-- sin uso: ifbb-pro-agent/js/core-v2/pantallas/entreno.js: `htmlAviso`
-- sin uso: ifbb-pro-agent/js/core-v2/pantallas/perfil.js: `prioritariasPosibles`
-- sin uso: ifbb-pro-agent/js/core-v2/pantallas/progreso.js: `graficoFuerza`
-- sin uso: ifbb-pro-agent/js/core-v2/plan.js: `CAMPOS_ACEPTACION`
-- sin uso: ifbb-pro-agent/js/core-v2/plan.js: `perfilParaReparto`
-- sin uso: ifbb-pro-agent/js/core-v2/plan.js: `firmaDelPerfil`
-- sin uso: ifbb-pro-agent/js/core-v2/plan.js: `camposCambiados`
-- sin uso: ifbb-pro-agent/js/core-v2/registro.js: `reglasActivas`
-- solo tests: ifbb-pro-agent/js/core-v2/almacen.js: `estadoVacio`
+- solo tests: ifbb-pro-agent/js/core-v2/almacen.js: `CLAVE`
 - solo tests: ifbb-pro-agent/js/core-v2/aviso.js: `bloqueMinimoMin`
 - solo tests: ifbb-pro-agent/js/core-v2/catalogo.js: `PATRONES`
+- solo tests: ifbb-pro-agent/js/core-v2/catalogo.js: `variantesDePatron`
 - solo tests: ifbb-pro-agent/js/core-v2/dolor.js: `clasificarBackoff`
 - solo tests: ifbb-pro-agent/js/core-v2/dolor.js: `aplicarLectura`
 - solo tests: ifbb-pro-agent/js/core-v2/dolor.js: `zonasMarcadas`
@@ -124,11 +112,17 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 - solo tests: ifbb-pro-agent/js/core-v2/pantallas/sesion.js: `htmlSerie`
 - solo tests: ifbb-pro-agent/js/core-v2/pantallas/sesion.js: `htmlEjercicioSesion`
 - solo tests: ifbb-pro-agent/js/core-v2/pantallas/sesion.js: `htmlResumen`
+- solo tests: ifbb-pro-agent/js/core-v2/pantallas/sesion.js: `platesForWeight`
+- solo tests: ifbb-pro-agent/js/core-v2/pantallas/sesion.js: `parseRestSeconds`
 - solo tests: ifbb-pro-agent/js/core-v2/plan.js: `CAMPOS`
 - solo tests: ifbb-pro-agent/js/core-v2/registro.js: `REGLAS`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `SPLITS`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `TIPOS`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `MUSCULOS`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `GRUPOS_MAYORES`
 - solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `GRUPOS_CHICOS`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `pesosDe`
 - solo tests: ifbb-pro-agent/js/core-v2/sesion.js: `ultimaVariante`
-- solo tests: ifbb-pro-agent/js/core-v2/textos.js: `IDS`
 
 ## 15. El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos
 

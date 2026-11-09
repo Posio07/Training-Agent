@@ -1,9 +1,9 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.2b / B-049). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del corte lo
- * conecta (docs/specs/nucleo-v2.md, "Fuera del núcleo v2" y "El corte").
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.2b / B-049). Conectado a la app en el corte
+ * (docs/specs/nucleo-v2.md, "Fuera del núcleo v2" y "El corte").
  *
  * Prescripción de cardio, armada desde el registro (DEC-005, DEC-026): en definición con la bandera salud/funcional el cardio no se
  * minimiza y respeta el piso de 150 min por semana (OMS 2020); en definición sin la bandera es el mínimo necesario; en mantenimiento y
- * volumen son 2 sesiones de 25 min. Hasta el corte, los textos y los números son idénticos a los de `computeTraining` del motor actual. */
+ * volumen son 2 sesiones de 25 min. Los textos y los números son los que tenía `computeTraining` en el motor viejo. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./registro.js'), require('./reparto.js'));
   else root.CORE_V2_CARDIO = factory(root.CORE_V2_REGISTRO, root.CORE_V2_REPARTO);

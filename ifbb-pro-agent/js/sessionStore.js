@@ -189,10 +189,11 @@
     return i !== -1;
   }
 
-  // Historial. Las filas anteriores a DEC-015 no tienen setKey: se identifican por sus datos.
-  const rowId = w => w.setKey || `legacy:${w.sessionId}|${w.exercise}|${w.setType}|${w.setNumber}|${w.savedAt}`;
+  // Historial: cada fila se identifica por su setKey (DEC-023: ya no hay filas anteriores a DEC-015 que identificar por sus datos).
+  const rowId = w => w.setKey;
   function editRow(workouts, id, vals, now) {
-    const w = workouts.find(x => rowId(x) === id);
+    // Sin identificador no hay nada que direccionar (DEC-023: una fila sin setKey no se edita ni se borra).
+    const w = id ? workouts.find(x => rowId(x) === id) : null;
     if (!w) return { ok: false, error: 'No se encontró la serie.' };
     const c = validateSetValues(vals);
     if (!c.ok) return c;
@@ -200,15 +201,15 @@
     return { ok: true };
   }
   function deleteRow(workouts, sessions, id, now) {
-    const i = workouts.findIndex(x => rowId(x) === id);
+    const i = id ? workouts.findIndex(x => rowId(x) === id) : -1;
     if (i === -1) return { ok: false, error: 'No se encontró la serie.' };
     const [gone] = workouts.splice(i, 1);
     const meta = sessions.find(x => x.sessionId === gone.sessionId);
     if (meta) { meta.setsDone = Math.max(0, (meta.setsDone || 0) - 1); meta.editedAt = now; }
     return { ok: true };
   }
-  // Sesiones del historial, la más reciente primero. `completada` si tiene entrada en `sessions`;
-  // `sin_estado` si solo hay series sueltas (registros anteriores a DEC-015). La sesión en curso no se lista.
+  // Sesiones del historial, la más reciente primero. `completada` si tiene entrada en `sessions`; `sin_estado` si solo
+  // hay series sueltas (una sesión cuyo cierre no llegó a escribirse). La sesión en curso no se lista.
   function listSessions(workouts, sessions, activeSessionId) {
     const byId = {};
     workouts.forEach(w => { if (w.sessionId !== activeSessionId) (byId[w.sessionId] = byId[w.sessionId] || []).push(w); });

@@ -1,5 +1,4 @@
-/* EN CONSTRUCCIÓN · tests del núcleo v2, paso 1 (catálogo y registro; B-039). No tocan el motor actual ni la
- * interfaz. Los tests marcados "hasta el corte" comparan contra el motor viejo y se borran en el PR del corte. */
+/* Tests del núcleo v2, paso 1 (catálogo y registro; B-039).  Los tests marcados "hasta el corte" comparan contra el motor viejo y se borran en el PR del corte. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -81,28 +80,6 @@ test('B-039: una fuente aparece solo cuando la regla que respalda está activa',
   R.REGLAS.filter(r => r.fuentes.includes('HELMS_TRAIN')).forEach(r => assert.ok(/^INTENSIDAD_/.test(r.id), `${r.id} no debería citar HELMS_TRAIN`));
 });
 
-test('hasta el corte: los valores del registro coinciden con VALIDATOR_RULES del motor actual', () => {
-  const V = K.VALIDATOR_RULES;
-  const pares = {
-    SEGUNDOS_EJECUCION_SERIE: 'setExecutionSeconds', MAX_LUMBAR_ALTA_POR_SESION: 'maxLumbarHighPerSession', SEPARACION_SENTADILLA_BISAGRA: 'hingeSquatSeparation',
-    UMBRAL_DOLOR_BANDERA: 'painFlagThreshold', DOLOR_SESIONES_MINIMAS: 'painAdviceMinSessions', DOLOR_VENTANA_DIAS: 'painAdviceWindowDays',
-    PISO_SEMANAL_GRUPO: 'minWeeklySetsPerMuscle', FACTOR_PISO_MANTENIMIENTO: 'maintenanceFloorFactor', MINIMO_SEMANAL_GRUPO_CHICO: 'groupMinimumWeeklySets',
-    FRECUENCIA_MINIMA_GRUPOS_MAYORES: 'minWeeklyFrequencyMajorGroups', MAX_SERIES_FRACCIONADAS_MUSCULO_SESION: 'maxFractionalSetsPerMuscleSession',
-    PESO_SERIE_DIRECTA: 'directSetWeight', PESO_SERIE_INDIRECTA: 'secondaryMuscleWeight', PESO_SIN_RELACION: 'noRelationWeight', ORDEN_POR_DEMANDA: 'sessionOrderByDemand',
-    SERIES_EXTRA_FUNCIONAL_SIN_VOLUMEN: 'functionalNoVolumeExtraSets', AUMENTO_SEMANAL_MAXIMO_PORCENTAJE: 'maxWeeklyVolumeIncreasePct', RATIO_AGUDO_CRONICO_MAXIMO: 'maxAcuteChronicRatio',
-    VENTANA_HISTORIAL_SEMANAS: 'historyWindowWeeks', HISTORIAL_MINIMO_SEMANAS_RAMPA: 'minHistoryWeeksForRamp',
-  };
-  Object.entries(pares).forEach(([nuevo, viejo]) => {
-    assert.ok(V[viejo], `${viejo} no existe en el motor actual`);
-    assert.deepEqual(R.valor(nuevo), V[viejo].value, `${nuevo} ≠ ${viejo}`);
-    // Único nivel que cambia a propósito: el conteo fraccionado es E2 con salvedad (spec del núcleo v2, 2026-11-07); el motor actual lo rotula E4.
-    if (nuevo !== 'PESO_SERIE_DIRECTA') assert.equal(R.regla(nuevo).nivel, V[viejo].level, `${nuevo}: nivel distinto de ${viejo}`);
-  });
-  // Todo VALIDATOR_RULES (salvo el tope de 25 series, que DEC-024 elimina) tiene su par en el registro.
-  const cubiertas = new Set(Object.values(pares));
-  Object.keys(V).filter(k => k !== 'sessionSetCap').forEach(k => assert.ok(cubiertas.has(k), `VALIDATOR_RULES.${k} no tiene entrada en el registro`));
-});
-
 /* ---------- Catálogo ---------- */
 
 test('catálogo: ids únicos, patrón existente y ningún nombre con "o" o "/" entre opciones', () => {
@@ -140,20 +117,6 @@ test('catálogo: los siete patrones principales tienen variantes disponibles por
   assert.ok(C.variantesDePatron('tiron_horizontal').some(x => !x.habilitaPor));
 });
 
-test('catálogo: partir los ejercicios con "o" no agrega ni pierde datos (misma tipo, repeticiones y unilateral)', () => {
-  const viejos = {};
-  [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.values(g).forEach(lista => lista.forEach(e => { viejos[e.id] = e; })));
-  C.VARIANTES.forEach(x => {
-    const p = viejos[x.hereda];
-    assert.ok(p, `${x.id}: hereda de ${x.hereda}, que no existe en el motor actual`);
-    assert.equal(x.tipo === 'multiarticular', p.type === 'compound', `${x.id}: tipo distinto del original`);
-    assert.deepEqual(x.reps, p.reps, `${x.id}: repeticiones distintas del original`);
-    assert.equal(!!x.unilateral, !!p.unilateral, `${x.id}: unilateral distinto del original`);
-  });
-  // Hasta el corte: todo ejercicio del motor actual está cubierto (como variante o como origen de una).
-  Object.keys(viejos).forEach(id => assert.ok(C.VARIANTES.some(x => x.hereda === id), `${id} no tiene variante`));
-});
-
 test('catálogo: la duración de una serie sale del registro (150/75 s + 45 s; unilaterales ×2)', () => {
   assert.equal(C.segundosPorSerie('chest.bench_press_barbell'), 195);
   assert.equal(C.segundosPorSerie('chest.fly_cable'), 120);
@@ -177,7 +140,7 @@ test('registro: los números aprobados por Emanuel (spec y trazabilidad, 2026-11
   assert.deepEqual(R.regla('CARDIO_MANTENIMIENTO_SESIONES').fuentes, [], 'el cardio de mantenimiento no cita a la OMS (2026-11-08)');
 });
 
-test('catálogo: cada ejercicio con "o" del motor actual se parte en una variante por opción (ninguna se pierde)', () => {
+test('catálogo: cada ejercicio que juntaba dos opciones con "o" tiene una variante por opción (ninguna se perdió en el corte)', () => {
   const partidos = {
     'chest.dip_or_machine_press': ['chest.dip_parallel', 'chest.press_machine'],
     'chest.fly_cable_pecdeck': ['chest.fly_cable', 'chest.fly_pecdeck'],
@@ -195,16 +158,19 @@ test('catálogo: cada ejercicio con "o" del motor actual se parte en una variant
     'triceps.close_grip_or_dips': ['triceps.close_grip_press', 'triceps.dips'],
     'abs.crunch_or_wheel': ['abs.crunch_cable', 'abs.ab_wheel'],
   };
-  const viejos = {};
-  [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.values(g).forEach(l => l.forEach(e => { viejos[e.id] = e; })));
-  Object.entries(partidos).forEach(([viejo, nuevos]) => {
-    assert.ok(viejos[viejo], `${viejo} no existe en el motor actual`);
-    const reales = C.VARIANTES.filter(x => x.hereda === viejo).map(x => x.id).sort();
-    assert.deepEqual(reales, [...nuevos].sort(), `${viejo}: las variantes no coinciden`);
+  // Las bases del catálogo son los `hereda` de las variantes; las que juntaban opciones están en la tabla de arriba.
+  const bases = [...new Set(C.VARIANTES.map(v => v.hereda))];
+  Object.entries(partidos).forEach(([base, nuevos]) => {
+    assert.ok(bases.includes(base), `${base} ya no es base de ninguna variante`);
+    const reales = C.VARIANTES.filter(x => x.hereda === base).map(x => x.id).sort();
+    assert.deepEqual(reales, [...nuevos].sort(), `${base}: las variantes no coinciden`);
   });
-  // Un ejercicio del motor actual cuyo nombre junta opciones tiene que estar en la tabla.
-  Object.values(viejos).filter(e => /\s[oó]\s|\//.test(e.name) && !/Vacuum/.test(e.name)).forEach(e => assert.ok(partidos[e.id], `${e.id} ("${e.name}") junta opciones y no está partido`));
+  // Las bases que NO están en la tabla tienen exactamente una variante (no juntaban opciones).
+  bases.filter(b => !partidos[b]).forEach(b => assert.equal(C.VARIANTES.filter(x => x.hereda === b).length, 1, `${b}: una sola variante`));
   assert.equal(Object.values(partidos).flat().length, 31);
+  assert.equal(C.VARIANTES.length, 52, 'el catálogo son 52 variantes sobre 36 bases');
+  // Ningún nombre de variante junta opciones con "o" o "/".
+  C.VARIANTES.forEach(v => assert.ok(!/\s[oó]\s|\//.test(v.nombre), `${v.id} ("${v.nombre}") junta opciones`));
 });
 
 /* ---------- B-031 · perfil articular propio de cada variante partida ---------- */
@@ -322,19 +288,10 @@ test('DEC-026: ninguna regla queda sin DEC de origen y las ratificadas apuntan a
 
 /* ---------- Paso 2 · reparto ---------- */
 const REP = require('../js/core-v2/reparto.js');
-const { profiles: PERFILES_BARRIDO } = require('../../scripts/simular-reglas-articulares.js');
+const { profiles: PERFILES_BARRIDO } = require('../../scripts/perfiles-barrido.js');
 const barrido = [];
 [3, 4, 5, 6].forEach(d => PERFILES_BARRIDO.forEach(p => barrido.push({ d, p, plan: REP.generarPlan(Object.assign({}, p, { daysPerWeek: d })) })));
 const emanuelRef = { sex: 'M', level: 'intermediate', daysPerWeek: 5, division: 'physique_m', goal: 'cut', laggingMuscles: ['quads', 'hamstrings', 'glutes'] };
-
-test('hasta el corte: las exclusiones por lesión del registro coinciden con el mapa del motor actual (DEC-009)', () => {
-  const viejos = {};
-  [K.EXERCISES, K.FUNCTIONAL_EXERCISES].forEach(g => Object.keys(g).forEach(m => g[m].forEach(e => { viejos[e.id] = { e, bucket: require('../js/exerciseMuscles.js').buckets[e.id] }; })));
-  K.INJURY_ZONES.forEach(z => {
-    const esperado = C.VARIANTES.filter(v => { const o = viejos[v.hereda]; const mapa = K.INJURY_EXCLUSIONS[z] && K.INJURY_EXCLUSIONS[z][o.bucket]; return mapa && mapa.includes(o.e.pattern); }).map(v => v.id).sort();
-    assert.deepEqual([...R.valor('EXCLUSIONES_POR_LESION')[z]].sort(), esperado, z);
-  });
-});
 
 test('paso 4: la necesidad aplica 0,85 y 1,25 una sola vez, sin mínimo de 4 (perfil de Emanuel)', () => {
   const d = REP.demandas(REP.normalizarPerfil(emanuelRef));
@@ -532,10 +489,14 @@ test('paso 5: grupos chicos en a lo sumo 2 sesiones por semana (T6)', () => {
   }));
 });
 
-test('paso 5: una variante partida cuenta como el original (la herencia no suma ni resta series fraccionadas)', () => {
-  const nuevo = REP.pesosDe(C, 'back.pull_up'), viejo = REP.pesosDe(C.catalogoViejoEmulado(K), 'back.vertical_pull');
-  assert.deepEqual(nuevo, viejo);
-  assert.ok(nuevo.back === 1 && nuevo.biceps === 0.5);
+test('paso 5: una variante partida cuenta como su base (la herencia no suma ni resta series fraccionadas)', () => {
+  // Las dos variantes de `back.vertical_pull` heredan sus mismas filas, así que pesan igual entre sí y como la base.
+  const dominada = REP.pesosDe(C, 'back.pull_up'), jalon = REP.pesosDe(C, 'back.lat_pulldown');
+  assert.deepEqual(dominada, jalon);
+  assert.ok(dominada.back === 1 && dominada.biceps === 0.5);
+  // Ninguna variante inventa ni pierde músculos frente a su base.
+  C.VARIANTES.forEach(v => assert.deepEqual(Object.keys(REP.pesosDe(C, v.id)).sort(),
+    Object.keys(REP.pesosDe(C, C.VARIANTES.find(x => x.hereda === v.hereda).id)).sort(), v.id));
 });
 
 test('splits: los nombres de día son distintos en cada split (de eso depende el indicador "Siguiente", DEC-027)', () => {
@@ -544,11 +505,10 @@ test('splits: los nombres de día son distintos en cada split (de eso depende el
   [3, 4, 5, 6].forEach(d => assert.equal(REP.SPLITS[d].length, d));
 });
 
-test('el reparto es determinista y funciona con el catálogo viejo emulado', () => {
+test('el reparto es determinista: el mismo perfil da el mismo plan', () => {
   assert.deepEqual(REP.generarPlan(emanuelRef), REP.generarPlan(emanuelRef));
-  const viejo = REP.generarPlan(emanuelRef, { catalogo: C.catalogoViejoEmulado(K) });
-  assert.equal(viejo.catalogo, 'viejo');
-  viejo.sesiones.forEach(s => assert.ok(s.ejercicios.length > 0));
+  assert.equal(REP.generarPlan(emanuelRef).catalogo, 'nuevo');
+  REP.generarPlan(emanuelRef).sesiones.forEach(s => assert.ok(s.ejercicios.length > 0));
 });
 
 test('registro: el descanso de back-off es el del multiarticular (el reparto cuenta el back-off como una serie normal)', () => {

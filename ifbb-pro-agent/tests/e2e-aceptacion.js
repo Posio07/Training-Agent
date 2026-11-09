@@ -1,58 +1,81 @@
-/* DEC-016 · E2E de la aceptación acotada: migra la fecha vieja al arrancar, vale mientras no cambie el plan, se invalida al cambiar
- * los días, se vuelve a pedir y se puede revertir. Además comprueba el aviso de grupos bajo el mínimo.
- * Uso: node tests/e2e-aceptacion.js */
-const path = require('path'), http = require('http'), fs = require('fs');
-const { chromium, devices } = require('playwright');
-const root = path.join(__dirname, '..');
-const mime = { '.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json','.json':'application/json' };
-const server = http.createServer((req,res)=>{ let p=decodeURIComponent(req.url.split('?')[0]); if(p==='/')p='/index.html'; const f=path.join(root,p); if(!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();} res.writeHead(200,{'Content-Type':mime[path.extname(f)]||'application/octet-stream'}); fs.createReadStream(f).pipe(res); });
+/* E2E de la ACEPTACIÓN del aviso único, sobre la app real (DEC-024 y DEC-025 reemplazaron la aceptación del tope de
+ * 25 series de DEC-014/DEC-016): con poco tiempo el plan avisa una sola vez y ofrece tres salidas; aceptar se guarda
+ * por sesión en el plan guardado y caduca al cambiar el tiempo, los días o el objetivo; "más tiempo" y "más días"
+ * cambian el perfil y regeneran el plan.
+ * Uso: NODE_PATH=/opt/node22/lib/node_modules node ifbb-pro-agent/tests/e2e-aceptacion.js */
+const { abrir, perfil, leer } = require('./e2e-comun.js');
+
 const ok = (c, m) => { if (!c) { console.error('FALLA:', m); process.exitCode = 1; } else console.log('ok  -', m); };
+
 (async () => {
-  await new Promise(r => server.listen(0, r));
-  const base = `http://localhost:${server.address().port}/`;
-  const browser = await chromium.launch(); const ctx = await browser.newContext({ ...devices['Pixel 7'] });
-  const page = await ctx.newPage(); const errors = [];
-  page.on('pageerror', e => errors.push('pageerror: ' + e.message)); page.on('console', m => { if (m.type()==='error') errors.push('console: '+m.text()); });
-  // Estado "de antes": perfil con la aceptación vieja (solo fecha) y 3 días.
-  const legacy = { profiles: [{ id: 'p1', createdAt: '2026-10-01', updatedAt: '2026-10-20', log: [], data: { name:'Vieja', sex:'M', age:30, heightCm:178, weightKg:85, bodyFatPct:15, activity:'moderate', level:'intermediate', daysPerWeek:3, division:'general_m', goal:'cut', longSessionAcceptedOn:'2026-10-20' } }], activeId: 'p1' };
-  await page.addInitScript(s => { if (!localStorage.getItem('ifbb-agent:v1')) localStorage.setItem('ifbb-agent:v1', s); }, JSON.stringify(legacy));
-  await page.goto(base, { waitUntil: 'networkidle' });
-  const stored = async () => JSON.parse(await page.evaluate(() => localStorage.getItem('ifbb-agent:v1'))).profiles[0].data;
-  let d = await stored();
-  ok(d.longSessionAcceptedOn === '' && d.longSessionAcceptance && d.longSessionAcceptance.maxSets === 35 && /dias=3;division=general_m;objetivo=cut/.test(d.longSessionAcceptance.signature), 'al arrancar migra la fecha vieja: firma y máximo (35) del plan vigente');
-  await page.click('[data-pt=training]');
-  ok(await page.locator('text=Sesiones más largas aceptadas').count() === 1, 'Entreno muestra la aceptación vigente');
-  ok(await page.locator('text=hasta 35 series por sesión').count() === 1, 'dice el máximo aceptado');
-  ok(await page.locator('[data-accept-long]').count() === 0, 'sin botón de aceptar mientras vale');
-  ok(await page.locator('[data-change-split]').count() === 1, 'grupos chicos bajo el mínimo: ofrece cambiar de split (hay aviso)');
-  // DEC-020: sin aceptación, en 3 días el mínimo semanal de los grupos chicos no cabe dentro de 25; la tarjeta lo dice y aceptar lo resuelve.
-  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 0, 'con la aceptación vigente no hay tarjeta de mínimo que no cabe');
-  await page.locator('[data-revoke-long]').first().click();
-  d = await stored(); ok(d.longSessionAcceptance === null, 'revertir quita la aceptación (3 días)');
-  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 1, 'sin aceptación, 3 días: la tarjeta avisa que el mínimo no cabe');
-  ok(await page.locator('text=No cabe dentro del tope de 25 series por sesión').count() === 1, 'la tarjeta dice que no cabe dentro del tope');
-  ok(await page.locator('.card:has(h3:has-text("Mínimo semanal por grupo")) [data-accept-long]').count() === 1, 'la tarjeta ofrece aceptar sesiones más largas');
-  await page.locator('.card:has(h3:has-text("Mínimo semanal por grupo")) [data-accept-long]').click();
-  d = await stored(); ok(d.longSessionAcceptance && d.longSessionAcceptance.maxSets === 35, 'aceptar guarda el máximo (35) y el mínimo pasa a cumplirse');
-  ok(await page.locator('h3:has-text("Mínimo semanal por grupo")').count() === 0, 'con la aceptación la tarjeta desaparece');
-  // Editar el perfil: 3 → 4 días. La firma cambia y la aceptación deja de valer.
-  await page.click('[data-tab=profiles]'); await page.click('#btn-edit');
-  await page.selectOption('select[name=daysPerWeek]', '4');
-  await page.click('#form button[type=submit]');
-  await page.waitForSelector('[data-pt=training]'); await page.click('[data-pt=training]');
-  d = await stored();
-  ok(d.daysPerWeek === 4 && d.longSessionAcceptance && d.longSessionAcceptance.maxSets === 35, 'editar el perfil conserva la aceptación guardada (la firma decide)');
-  ok(await page.locator('text=Sesiones más largas aceptadas').count() === 0, 'al cambiar los días la aceptación ya no vale');
-  ok(await page.locator('text=ya no aplica').count() >= 1, 'la interfaz avisa que ya no aplica');
-  ok(await page.locator('[data-accept-long]').count() >= 1, 'vuelve a ofrecer aceptar');
-  await page.locator('[data-accept-long]').first().click();
-  d = await stored();
-  ok(/dias=4;/.test(d.longSessionAcceptance.signature) && d.longSessionAcceptance.maxSets === 32, 'aceptar de nuevo guarda la firma de 4 días y su máximo (32)');
-  ok(await page.locator('text=Sesiones más largas aceptadas').count() === 1, 'vuelve a quedar aceptada');
-  await page.locator('[data-revoke-long]').first().click();
-  d = await stored(); ok(d.longSessionAcceptance === null, 'revertir quita la aceptación');
-  await page.click('[data-pt=summary]');
-  ok(await page.locator('.alert:has-text("por debajo de 10 series fraccionadas")').count() >= 1, 'el Resumen muestra el aviso de grupos bajo el mínimo');
-  ok(errors.length === 0, 'sin errores de consola ' + errors.join(' | '));
-  await browser.close(); server.close();
+  // Perfil apretado: avanzado, 3 días, 40 min por sesión. No entra todo lo que pide el plan.
+  const seed = { profiles: [perfil('p1', { name: 'Apretado', level: 'advanced', daysPerWeek: 3, goal: 'bulk', tiempoDisponibleMin: 40 })], activeId: 'p1' };
+  const { page, errores, cerrar } = await abrir({ seed });
+  const guardado = async () => (await leer(page)).profiles[0];
+  const irAEntreno = async () => { await page.click('[data-tab=plan]'); await page.click('[data-pt=training]'); await page.waitForSelector('[data-start-session="0"]'); };
+  const editar = async cambios => {
+    await page.click('[data-tab=profiles]'); await page.click('#btn-edit'); await page.waitForSelector('#form');
+    await cambios();
+    await page.click('button[type="submit"]'); await page.waitForSelector('#plan-body .stat');
+    await irAEntreno();
+  };
+
+  await irAEntreno();
+  ok(await page.locator('h3:has-text("Esta semana no entra todo lo que pide el plan")').count() === 1, 'un solo aviso, no una pila de avisos');
+  for (const salida of ['mas-tiempo', 'mas-dias', 'aceptar']) {
+    ok(await page.locator(`[data-salida="${salida}"]`).count() === 1, `el aviso ofrece la salida "${salida}"`);
+  }
+
+  // 1. Aceptar: se guarda por sesión, con el id del plan y su firma, y el aviso desaparece.
+  await page.click('[data-salida="aceptar"]');
+  await page.waitForSelector('#entreno');
+  let p = await guardado();
+  ok(p.planGuardado.aceptaciones.length > 0, 'la aceptación se guarda en el plan, no en el perfil');
+  ok(p.planGuardado.aceptaciones.every(a => a.planId === p.planGuardado.id && typeof a.sesion === 'number' && a.firma), 'cada aceptación dice de qué sesión y de qué plan es');
+  ok(!('longSessionAcceptance' in p.data) && !('longSessionAcceptedOn' in p.data), 'la aceptación vieja de DEC-016 ya no existe en el perfil');
+  ok(await page.locator('h3:has-text("Esta semana no entra todo lo que pide el plan")').count() === 0, 'aceptado, el aviso no vuelve a aparecer');
+  ok(await page.locator('text=Aceptada con lo que falta').count() >= 1, 'la sesión aceptada queda marcada');
+
+  // 2. La aceptación caduca al cambiar el objetivo (uno de los campos de la firma).
+  const idAceptado = p.planGuardado.id;
+  await editar(() => page.selectOption('select[name="goal"]', 'cut'));
+  p = await guardado();
+  ok(p.planGuardado.id !== idAceptado, 'cambiar el objetivo regenera el plan');
+  ok(p.planGuardado.aceptaciones.length === 0, 'la aceptación caduca con el plan nuevo');
+  ok(await page.locator('[data-salida="aceptar"]').count() === 1, 'vuelve a ofrecer aceptar');
+
+  // 3. "Más tiempo": sube los minutos de los días afectados en el perfil y regenera el plan.
+  const idAntes = p.planGuardado.id;
+  const minutosAntes = p.planGuardado.plan.sesiones.map(s => s.capacidadMin);
+  await page.click('[data-salida="mas-tiempo"]');
+  await page.waitForSelector('#entreno');
+  p = await guardado();
+  ok(Object.keys(p.data.tiempoPorDia || {}).length > 0, '"más tiempo" guarda el tiempo del día en el perfil');
+  ok(p.planGuardado.id !== idAntes, '"más tiempo" regenera el plan');
+  ok(p.planGuardado.plan.sesiones.some((s, i) => s.capacidadMin > minutosAntes[i]), 'alguna sesión tiene más capacidad que antes');
+
+  // 4. "Más días": sube los días del perfil y el plan pasa a tener una sesión más.
+  const diasAntes = p.planGuardado.plan.sesiones.length;
+  if (await page.locator('[data-salida="mas-dias"]').count()) {
+    await page.click('[data-salida="mas-dias"]');
+    await page.waitForSelector('#entreno');
+    p = await guardado();
+    ok(p.data.daysPerWeek === diasAntes + 1, '"más días" sube los días del perfil');
+    ok(p.planGuardado.plan.sesiones.length === diasAntes + 1, 'el plan tiene una sesión más');
+  } else {
+    ok(true, 'con el tiempo ya ajustado no queda aviso: "más días" no se ofrece (es correcto)');
+  }
+
+  // 5. Con tiempo de sobra no hay aviso ninguno (se vacía también el tiempo por día que dejó "más tiempo").
+  await editar(async () => {
+    await page.fill('input[name="tiempoDisponibleMin"]', '120');
+    // El tiempo por día está dentro de "Cambiarlo en algunos días": hay que desplegarlo. Solo los días del split se ven.
+    await page.click('summary:has-text("Cambiarlo en algunos días")');
+    for (let i = 0; i < 6; i++) { const c = page.locator(`input[name="tiempoDia_${i}"]`); if (await c.isVisible()) await c.fill(''); }
+  });
+  ok(await page.locator('[data-salida]').count() === 0, 'con 120 min por sesión no hay aviso único');
+  ok(await page.locator('h3:has-text("Esta semana no entra todo lo que pide el plan")').count() === 0, 'y tampoco su título');
+
+  ok(errores.length === 0, 'sin errores de consola ' + errores.join(' | '));
+  await cerrar();
 })().catch(e => { console.error(e); process.exit(1); });

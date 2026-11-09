@@ -1,4 +1,4 @@
-/* EN CONSTRUCCIÓN · tests de las pantallas del núcleo v2, paso 3.6 (perfil y plan): el HTML y la lectura de campos como funciones puras. El recorrido
+/* Tests de las pantallas del núcleo v2, paso 3.6 (perfil y plan): el HTML y la lectura de campos como funciones puras. El recorrido
  * en el navegador está en tests/e2e-pantallas.js. */
 const test = require('node:test');
 const assert = require('node:assert/strict');

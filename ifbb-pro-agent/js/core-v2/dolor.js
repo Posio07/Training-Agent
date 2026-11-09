@@ -1,5 +1,5 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, paso 3.4). Este módulo NO está conectado a la interfaz ni al motor actual: el PR del corte lo
- * conecta (docs/specs/validador-fase3.md, A4, A5 y A6; DEC-009, DEC-011, DEC-034).
+/* Núcleo del generador · núcleo v2 (B-039, paso 3.4). Conectado a la app en el corte
+ * (docs/specs/validador-fase3.md, A4, A5 y A6; DEC-009, DEC-011, DEC-034).
  *
  * Reglas que dependen de lo que se registra durante la sesión, como funciones puras:
  *   - A5, back-off válido: un back-off pesa 90 % o menos del top set de esa sesión; si pesa igual o más, se guarda como serie de trabajo.

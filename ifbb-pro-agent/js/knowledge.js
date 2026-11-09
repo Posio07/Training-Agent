@@ -1,11 +1,17 @@
-/* Base de conocimiento del agente.
- * Todo valor numérico usado por el motor sale de una fuente identificada aquí.
- * Las claves de SOURCES se citan desde engine.js y desde la interfaz.
+/* Base de conocimiento del agente: fuentes, divisiones, etiquetas, suplementos y
+ * discos. Todo valor numérico usado por el motor sale de una fuente identificada
+ * aquí, y las claves de SOURCES se citan desde engine.js, desde el registro de
+ * reglas del núcleo nuevo (js/core-v2/registro.js) y desde la interfaz.
+ *
+ * El catálogo de ejercicios, el aporte por músculo, el perfil articular y las
+ * reglas numéricas de entrenamiento NO viven acá: son del núcleo nuevo
+ * (js/core-v2/catalogo.js y js/core-v2/registro.js), que el corte conectó
+ * (DEC-023, B-039).
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./exerciseMuscles.js'), require('./perfilArticular.js'));
-  else root.KNOWLEDGE = factory(root.EXERCISE_MUSCLES, root.PERFIL_ARTICULAR);
-})(typeof self !== 'undefined' ? self : this, function (EXERCISE_MUSCLES, PERFIL_ARTICULAR) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.KNOWLEDGE = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
   const SOURCES = {
@@ -321,88 +327,6 @@
     { maxHeightIn: 79, maxLb: 242 },
   ];
 
-  /* Biblioteca de ejercicios: multiarticulares como núcleo y monoarticulares de
-   * apoyo (HELMS_TRAIN, ACSM_RT). Los rangos de repeticiones siguen 6-12 como
-   * zona principal con 10-15 en aislamiento. */
-  /* DEC-006 (corregido): cada ejercicio lleva un id de "patrón" explícito.
-   * El patrón —no el texto del nombre— decide si dos ejercicios cuentan
-   * como el mismo movimiento base. Las dos búlgaras (cuádriceps y glúteos)
-   * y la búlgara funcional comparten 'split_squat' a propósito. */
-  const EXERCISES = {
-    chest: [
-      { id: 'chest.bench_press_barbell', name: 'Press banca con barra', type: 'compound', reps: [6, 10], pattern: 'bench_press' },
-      { id: 'chest.incline_press_db', name: 'Press inclinado con mancuernas', type: 'compound', reps: [8, 12], pattern: 'incline_press' },
-      { id: 'chest.dip_or_machine_press', name: 'Fondos en paralelas o press en máquina', type: 'compound', reps: [8, 12], pattern: 'chest_dip_or_machine' },
-      { id: 'chest.fly_cable_pecdeck', name: 'Aperturas en polea o pec-deck', type: 'isolation', reps: [10, 15], pattern: 'chest_fly' },
-    ],
-    back: [
-      { id: 'back.vertical_pull', name: 'Dominadas o jalón al pecho', type: 'compound', reps: [6, 10], pattern: 'vertical_pull' },
-      // DEC-022: el remo con barra (lumbar alta, bisagra sostenida) solo entra si el usuario lo elige (`optIn`); por defecto el
-      // remo del plan es el de apoyo de pecho (lumbar baja, `defaultOnly`). Se usan los mismos huecos de la rotación.
-      { id: 'back.row_barbell', name: 'Remo con barra o remo pendlay', type: 'compound', reps: [6, 10], pattern: 'row_barbell', optIn: true },
-      { id: 'back.row_chest_supported', name: 'Remo con apoyo de pecho (máquina o banco inclinado)', type: 'compound', reps: [8, 12], pattern: 'row_supported', defaultOnly: true },
-      { id: 'back.row_cable', name: 'Remo en polea baja o máquina', type: 'compound', reps: [8, 12], pattern: 'row_cable' },
-      { id: 'back.pullover_cable', name: 'Pullover en polea', type: 'isolation', reps: [10, 15], pattern: 'pullover' },
-    ],
-    shoulders: [
-      { id: 'shoulders.press_overhead', name: 'Press militar con barra o mancuernas', type: 'compound', reps: [6, 10], pattern: 'shoulder_press' },
-      { id: 'shoulders.lateral_raise_db', name: 'Elevaciones laterales con mancuerna', type: 'isolation', reps: [10, 15], pattern: 'lateral_raise' },
-      { id: 'shoulders.lateral_raise_cable', name: 'Elevaciones laterales en polea', type: 'isolation', reps: [12, 15], pattern: 'lateral_raise' },
-      { id: 'shoulders.rear_delt_facepull', name: 'Face pull / pájaros (deltoides posterior)', type: 'isolation', reps: [12, 15], pattern: 'rear_delt' },
-      // DEC-009: sustituto del press por encima de la cabeza cuando hay
-      // lesión de hombro declarada. `injuryOnly` lo saca de la rotación
-      // normal: sin esa lesión declarada, el catálogo de hombros se
-      // comporta exactamente igual que antes de DEC-009 (mismas 4 opciones,
-      // mismo orden). No es top-set-eligible (DEC-008): un sustituto por
-      // lesión no se carga al máximo por defecto.
-      { id: 'shoulders.press_landmine_neutral', name: 'Press landmine o con agarre neutro', type: 'compound', reps: [8, 12], pattern: 'shoulder_press_safe', injuryOnly: 'shoulder' },
-    ],
-    quads: [
-      { id: 'quads.squat_back_or_hack', name: 'Sentadilla trasera o sentadilla en hack', type: 'compound', reps: [6, 10], pattern: 'squat_bilateral' },
-      { id: 'quads.leg_press', name: 'Prensa de piernas', type: 'compound', reps: [8, 12], pattern: 'leg_press' },
-      { id: 'quads.lunge_or_bulgarian', name: 'Zancadas o sentadilla búlgara', type: 'compound', reps: [8, 12], unilateral: true, pattern: 'split_squat' },
-      { id: 'quads.leg_extension', name: 'Extensión de cuádriceps', type: 'isolation', reps: [10, 15], pattern: 'knee_extension' },
-    ],
-    hamstrings: [
-      { id: 'hamstrings.rdl', name: 'Peso muerto rumano', type: 'compound', reps: [6, 10], pattern: 'hinge' },
-      { id: 'hamstrings.leg_curl', name: 'Curl femoral tumbado o sentado', type: 'isolation', reps: [10, 15], pattern: 'leg_curl', cue: 'Si tu máquina lo permite, prefiere el curl sentado: en un estudio de 12 semanas (Maeo et al. 2021, 20 personas sin entrenar) los isquios que cruzan la cadera crecieron más con el curl sentado que con el tumbado (+14 % frente a +9 %).' },
-    ],
-    glutes: [
-      { id: 'glutes.hip_thrust', name: 'Hip thrust con barra', type: 'compound', reps: [6, 10], pattern: 'hip_thrust' },
-      { id: 'glutes.bulgarian_hip', name: 'Sentadilla búlgara con énfasis en cadera', type: 'compound', reps: [8, 12], unilateral: true, pattern: 'split_squat' },
-      { id: 'glutes.hip_abduction_machine', name: 'Abducción de cadera en máquina', type: 'isolation', reps: [12, 15], pattern: 'hip_abduction' },
-      { id: 'glutes.kickback_cable', name: 'Patada de glúteo en polea', type: 'isolation', reps: [12, 15], unilateral: true, pattern: 'glute_kickback' },
-    ],
-    calves: [
-      { id: 'calves.calf_raise_standing', name: 'Elevación de talones de pie', type: 'isolation', reps: [8, 12], pattern: 'calf_raise_standing' },
-      { id: 'calves.calf_raise_seated', name: 'Elevación de talones sentado', type: 'isolation', reps: [12, 15], pattern: 'calf_raise_seated' },
-    ],
-    biceps: [
-      { id: 'biceps.curl_barbell', name: 'Curl con barra o barra Z', type: 'isolation', reps: [8, 12], pattern: 'curl_barbell' },
-      { id: 'biceps.curl_incline', name: 'Curl inclinado con mancuernas', type: 'isolation', reps: [10, 15], pattern: 'curl_incline' },
-    ],
-    triceps: [
-      { id: 'triceps.close_grip_or_dips', name: 'Press cerrado o fondos', type: 'compound', reps: [6, 10], pattern: 'close_grip_press' },
-      { id: 'triceps.pushdown_cable', name: 'Extensión de tríceps en polea', type: 'isolation', reps: [10, 15], pattern: 'triceps_extension' },
-    ],
-    abs: [
-      { id: 'abs.crunch_or_wheel', name: 'Crunch en polea o rueda abdominal', type: 'isolation', reps: [10, 15], pattern: 'ab_flexion' },
-      { id: 'abs.hanging_leg_raise', name: 'Elevaciones de piernas colgado', type: 'isolation', reps: [10, 15], pattern: 'leg_raise' },
-      { id: 'abs.vacuum', name: 'Vacuum abdominal (Classic / Physique)', type: 'isolation', reps: [5, 8], pattern: 'vacuum' },
-    ],
-  };
-
-  /* DEC-005: ejercicios funcionales extra, solo entran en el plan si el
-   * perfil activa la bandera "salud/funcional" (criterio de la app, sin
-   * respaldo específico en la literatura citada). */
-  const FUNCTIONAL_EXERCISES = {
-    quads: [
-      { id: 'functional.bulgarian_db', name: 'Sentadilla búlgara con mancuernas', type: 'compound', reps: [8, 12], unilateral: true, pattern: 'split_squat' },
-      { id: 'functional.step_up', name: 'Step-up con carga', type: 'compound', reps: [8, 12], unilateral: true, pattern: 'step_up' },
-      { id: 'functional.farmer_carry', name: 'Paseo del granjero', type: 'compound', reps: [20, 40], pattern: 'loaded_carry' },
-    ],
-  };
-
   const MUSCLE_LABELS = {
     chest: 'Pecho', back: 'Espalda', shoulders: 'Hombros', quads: 'Cuádriceps',
     hamstrings: 'Isquiotibiales', glutes: 'Glúteos', calves: 'Pantorrillas',
@@ -429,9 +353,6 @@
   const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
   const PLATES_LB = [55, 45, 35, 25, 10, 5, 2.5];
   const PLATE_COLORS = ['var(--disco-rojo)', 'var(--disco-azul)', 'var(--disco-amarillo)', 'var(--disco-verde)', 'var(--disco-blanco)', 'var(--disco-gris)', 'var(--disco-gris)'];
-  const DEFAULT_BAR_WEIGHT = { kg: 20, lb: 45 };
-  // Ejercicios de barra elegibles para dibujar la carga (mismos patrones de DEC-008).
-  const BARBELL_PATTERNS = new Set(['squat_bilateral', 'bench_press', 'shoulder_press', 'hinge', 'row_barbell', 'hip_thrust']);
 
   /* DEC-009 · Capa 3: mapa cerrado de exclusión de ejercicios por zona de
    * lesión declarada, por id de patrón del catálogo y grupo muscular.
@@ -441,186 +362,5 @@
     shoulder: 'Hombro', elbow: 'Codo', wrist: 'Muñeca', lower_back: 'Espalda baja',
     hip: 'Cadera', knee: 'Rodilla', ankle: 'Tobillo',
   };
-  const INJURY_EXCLUSIONS = {
-    shoulder: { shoulders: ['shoulder_press'], chest: ['chest_dip_or_machine'], triceps: ['close_grip_press'] },
-    elbow: { biceps: ['curl_barbell'], triceps: ['close_grip_press'] },
-    wrist: { chest: ['bench_press'], back: ['row_barbell'], biceps: ['curl_barbell'] },
-    lower_back: { hamstrings: ['hinge'], back: ['row_barbell'], quads: ['squat_bilateral'] },
-    hip: { quads: ['squat_bilateral', 'split_squat'], glutes: ['split_squat'] },
-    knee: { quads: ['squat_bilateral', 'split_squat', 'knee_extension'] },
-    ankle: { calves: ['calf_raise_standing'], quads: ['split_squat'], glutes: ['split_squat'] },
-  };
-
-  /* Índice id -> { entry, bucket, functional } y nombre -> id (para mapear el
-   * historial viejo, que solo guardó `exercise` con el nombre en texto). */
-  const EXERCISE_INDEX = {};
-  const EXERCISE_ID_BY_NAME = {};
-  [[EXERCISES, false], [FUNCTIONAL_EXERCISES, true]].forEach(([group, functional]) => {
-    Object.keys(group).forEach(bucket => group[bucket].forEach(entry => {
-      EXERCISE_INDEX[entry.id] = { entry, bucket, functional };
-      EXERCISE_ID_BY_NAME[entry.name] = entry.id;
-    }));
-  });
-
-  /* DEC-010 / DEC-012 / DEC-013 · Aporte de volumen por ejercicio.
-   * Los datos viven en data/exercise-muscles.csv (formato largo: una fila por par
-   * ejercicio-músculo, con `relacion` directa|indirecta|ninguna y `evidencia`) y en
-   * data/exercise-buckets.csv (dónde se programa cada ejercicio), por `id` único de
-   * cada entrada del catálogo (el `pattern` NO sirve de id: `split_squat` se repite
-   * con primarios distintos). Llegan por el módulo generado js/exerciseMuscles.js.
-   *
-   * DEC-014 (Fase 2): `primary` y `secondary` salen de los datos v2. primary = el
-   * bucket si es directa en él, si no la primera directa; secondary = el resto de
-   * las relaciones que no son `ninguna`, en el orden del CSV (solo se muestran).
-   * `setWeights` = cuánto suma UNA serie a cada músculo en el conteo fraccionado
-   * (directa 1, indirecta 0,5, ninguna y a_verificar 0): convención global de
-   * VALIDATOR_RULES, nunca un peso por ejercicio.
-   * `relations` y `rows` (fuente, nota y fecha de cada fila) viajan con los datos.
-   * `evidence: 'E4'` es la etiqueta de la app (criterio propio, sin validar).
-   * `status: 'a_verificar'` aparece si alguna fila del ejercicio está a_verificar. */
-  const NO_MUSCLE_CONTRIBUTION = ['functional.farmer_carry']; // funcional sin aporte de hipertrofia (DEC-005, DEC-010): sin filas en el CSV
-  const EXERCISE_CONTRIBUTION = {};
-  Object.keys(EXERCISE_INDEX).forEach(id => {
-    EXERCISE_CONTRIBUTION[id] = {
-      primary: null, secondary: [], evidence: 'E4', setWeights: {},
-      bucket: EXERCISE_MUSCLES.buckets[id] || null, relations: {}, rows: [],
-    };
-  });
-  EXERCISE_MUSCLES.rows.forEach(row => {
-    const c = EXERCISE_CONTRIBUTION[row.exerciseId];
-    if (!c) return; // un test exige que toda fila del CSV tenga su ejercicio en el catálogo
-    c.rows.push(row);
-    c.relations[row.muscle] = { relacion: row.relacion, evidencia: row.evidencia };
-    if (row.evidencia === 'a_verificar') c.status = 'a_verificar';
-  });
-  Object.keys(EXERCISE_CONTRIBUTION).forEach(id => {
-    const c = EXERCISE_CONTRIBUTION[id];
-    const shown = c.rows.filter(r => r.relacion !== 'ninguna');
-    const directas = shown.filter(r => r.relacion === 'directa').map(r => r.muscle);
-    c.primary = directas.includes(c.bucket) ? c.bucket : (directas[0] || null);
-    c.secondary = shown.map(r => r.muscle).filter(m => m !== c.primary);
-  });
-
-  /* DEC-010 · Reglas del validador, centralizadas: valor, nivel de evidencia,
-   * fuente y fecha de revisión. `verifiedAgainstPrimarySource: false` en todas
-   * (el spec exige verificar cada valor contra el texto completo de su fuente
-   * primaria antes de fijarlo; solo se consultaron resúmenes). Nota: minWeeklySetsPerMuscle se contrastó con la
-   * infografía oficial del ACSM (DEC-016) pero sigue en false hasta leer el artículo completo (MSSE 2026). `status` dice si el motor usa la regla ('implementada')
-   * o está solo configurada ('pendiente'). */
-  const REVIEWED = '2026-10-23';
-  // `status`: 'implementada' si el motor ya usa la regla; 'pendiente' si está configurada pero
-  // ninguna lógica la lee todavía. Un test comprueba que el estado coincide con el uso real.
-  const IMPLEMENTADA = 'implementada', PENDIENTE = 'pendiente';
-  const rule = (value, level, source, extra) => Object.assign({ value, level, source, status: IMPLEMENTADA, reviewedAt: REVIEWED, verifiedAgainstPrimarySource: false }, extra);
-  const VALIDATOR_RULES = {
-    // R1 · aviso de rendimiento decreciente por músculo por sesión (NO es un tope)
-    maxFractionalSetsPerMuscleSession: rule(11, 'E3', { label: 'Remmert et al., meta-regresiones del volumen por sesión (preprint sin revisión por pares, SportRχiv)', url: 'https://sportrxiv.org/index.php/server/preprint/view/537' }, { kind: 'warning', note: 'Punto sin mejora detectable (PUOS), fijado de forma arbitraria por los autores; no es un límite superior. Mismo conteo fraccionado que Pelland et al. 2026.' }),
-    // Conteo fraccionado (Pelland et al. 2026, Sports Med 56(2):481-505, sección 2.5): convención global, nunca por ejercicio.
-    directSetWeight: rule(1, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { note: 'Serie directa = 1.' }),
-    secondaryMuscleWeight: rule(0.5, 'E4', { label: 'Pelland et al. 2026, Sports Med 56(2):481-505', url: 'https://doi.org/10.1007/s40279-025-02344-w' }, { convention: true, note: 'Serie indirecta = 0,5: convención del modelo de mejor ajuste, declarada por los autores como supuesto y heurística. Un análisis exploratorio de Remmert et al. (preprint) sugiere ~0,32.' }),
-    noRelationWeight: rule(0, 'E4', null, { note: 'Relación ninguna = 0. Una relación a_verificar también cuenta 0 hasta verificarla.' }),
-    // R2 · piso semanal y frecuencia
-    minWeeklySetsPerMuscle: rule(10, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza: infografía oficial del ACSM (~10 series por grupo muscular a la semana para hipertrofia)', url: 'https://acsm.org/wp-content/uploads/2026/03/Resistance-Training-Position-Stand-infographic.pdf' }, {
-      verifiedAgainstPrimarySource: false, verifiedAgainst: 'verificado contra material oficial del ACSM (infografía)', reviewedAt: '2026-10-25',
-      usage: 'Piso protector, por decisión de modelado: el ACSM da ~10 series por grupo a la semana como objetivo de hipertrofia; la app lo usa como piso que el tope E4 no puede romper en los grupos mayores y como umbral del aviso de grupos bajo el mínimo (grupos mayores y chicos). No es un mínimo normativo.',
-      note: 'Objetivo de hipertrofia del ACSM 2026 (~10 series por grupo a la semana) usado como piso protector. Se fuerza solo en los grupos mayores (pecho, espalda, hombros, cuádriceps, isquios, glúteos); el aviso cubre a todos. Verificado contra la infografía oficial; falta leer el artículo completo de la postura en MSSE 2026 para marcar la fuente primaria como verificada.' }),
-    // DEC-017 (ajuste) · piso de mantenimiento de los grupos con énfasis reducido por la división.
-    // El 0,5 es una CONVENCIÓN alineada con DEC-001 (×0,5 a los grupos "down"); no es una cifra del estudio.
-    maintenanceFloorFactor: rule(0.5, 'E4', { label: 'Spiering et al. 2021, J Strength Cond Res 35(5):1449-1458 (revisión narrativa de la dosis mínima de mantenimiento): respalda el concepto de mantener con menos volumen si se conserva la intensidad, no la cifra', url: 'https://pubmed.ncbi.nlm.nih.gov/33629972/' }, {
-      convention: true,
-      usage: 'Piso de un grupo mayor con énfasis reducido por la división (DEC-001, ×0,5) y sin ser rezagado = minWeeklySetsPerMuscle × este factor (5 series fraccionadas semanales). Los demás grupos usan el piso completo (10). Se aplica al freno de recortes, al completado y al umbral del aviso.',
-      note: 'Convención alineada con DEC-001: el grupo ya se redujo a propósito a la mitad, así que su objetivo es mantener y no hipertrofiar. Spiering et al. (revisión narrativa, no metaanálisis) reporta que fuerza y tamaño muscular se mantienen hasta 32 semanas con tan poco como 1 sesión semanal y 1 serie por ejercicio en jóvenes, si se mantiene la intensidad; es evidencia de mantener lo ya ganado a corto plazo, no de un volumen óptimo. El 0,5 no sale del estudio.' }),
-    minWeeklyFrequencyMajorGroups: rule(2, 'E1', { label: 'ACSM 2026, postura sobre prescripción del entrenamiento de fuerza (resumen)', url: 'https://recmanagement.com/articles/155711/acsm-unveils-landmark-2026-resistance-training-guidelines' }, { status: PENDIENTE, note: 'Configurada pero ninguna lógica la lee todavía (R2, frecuencia).' }),
-    // R3 · rampa de progresión
-    maxWeeklyVolumeIncreasePct: rule(20, 'E4', { label: 'FAPESP: la progresión óptima de volumen no está definida', url: 'https://bv.fapesp.br/en/bolsas/223465/URL' }, { status: PENDIENTE }),
-    maxAcuteChronicRatio: rule(1.3, 'E4', { label: 'Gabbett, ratio de carga aguda/crónica', url: 'https://research.usq.edu.au/item/q6y98/workload-monitoring-and-athlete-management' }, { status: PENDIENTE }),
-    historyWindowWeeks: rule(4, 'E4', null, { status: PENDIENTE }),
-    minHistoryWeeksForRamp: rule(2, 'E4', null, { status: PENDIENTE, note: 'Con menos de 2 semanas de historial es usuario nuevo; con 2 o 3 se compara contra el promedio de las semanas disponibles.' }),
-    // R4 · duración derivada
-    setExecutionSeconds: rule(45, 'E4', null, { assumption: true, note: 'Valor inicial fijo (transición + ejecución por serie), supuesto: se calibrará con los tiempos reales del modo sesión.' }),
-    // DEC-009 / DEC-011 · dolor en Modo sesión (escala 0-10)
-    painFlagThreshold: rule(5, 'E4', { label: 'Pain-Monitoring Model (Thomeé 1997, dolor patelofemoral; adaptado a la tendinopatía de Aquiles en Silbernagel et al. 2007, Am J Sports Med 35(6):897-906): dolor ≤5/10 durante o justo después de la actividad y de vuelta al nivel previo a la mañana siguiente', url: 'https://pubmed.ncbi.nlm.nih.gov/17307888/' }, {
-      reviewRequired: true,
-      note: 'El umbral 5/10 y la condición de la mañana siguiente se verificaron en el texto completo de Sprague et al. 2021 (Pilot Feasibility Stud, PMC7905015), una fuente secundaria; el texto completo de Silbernagel 2007 es de pago y no se leyó. El programa de Silbernagel descrito por Griffin et al. 2021 (BMC Musculoskelet Disord 22:695, protocolo de ensayo, PMC8364697) progresa con dolor de 4/10 como máximo durante y en las 24 h posteriores: el número varía según la publicación. La app lo extiende de tendinopatías a otras zonas y a dolor por serie por criterio propio, y no implementa la condición de la mañana siguiente (usa dos sesiones sin pasar el umbral, DEC-011).' }),
-    painAdviceMinSessions: rule(2, 'E4', null, { note: 'Sesiones DISTINTAS con dolor por encima del umbral en el mismo patrón, no necesariamente seguidas.' }),
-    painAdviceWindowDays: rule(28, 'E4', null, { note: 'Últimas 4 semanas, contadas en días (28 días hacia atrás, inclusive).' }),
-    // DEC-005 / DEC-010 · series del ejercicio funcional que no aporta volumen
-    // de hipertrofia (paseo del granjero). Se agregan aparte, sin descontar.
-    functionalNoVolumeExtraSets: rule(2, 'E4', null, { reviewRequired: true, note: 'Criterio de la app sin fuente: marcado para revisión.' }),
-    // DEC-022 · Fase 3, Paso 2. Restricciones del generador (no numéricas: `value` indica si están activas).
-    // A1: orden por demanda dentro de la sesión. El costo cero en hipertrofia tiene respaldo E2 (Nunes et al. 2021); el motivo de seguridad es E4.
-    sessionOrderByDemand: rule(true, 'E4', { label: 'Nunes et al. 2021, Eur J Sport Sci (la hipertrofia es similar en cualquier orden; la fuerza mejora más en lo hecho al inicio)', url: 'https://pubmed.ncbi.nlm.nih.gov/32077380/' }, {
-      usage: 'Cada sesión se ordena: lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos. Solo reordena.',
-      note: 'El orden no cuesta hipertrofia (E2, Nunes 2021, solo resumen); que el motivo sea proteger la espalda es criterio de la app (E4).' }),
-    // A2: como máximo un ejercicio de lumbar alta por sesión; si hay más, el plan avisa (el usuario decide).
-    maxLumbarHighPerSession: rule(1, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 (PMID 27328853) y Tung et al. 2024, BMJ Open Sport Exerc Med 10(4):e001884 (PMID 39650568): dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
-      kind: 'warning', reviewRequired: true,
-      usage: 'Advertencia, no restricción: con el remo por defecto (apoyo de pecho) y A3 no suele saltar; salta si el usuario elige el remo con barra y cae con el peso muerto rumano.',
-      note: 'Ninguna fuente prueba que el tope prevenga lesiones (E4).' }),
-    // A3: la sentadilla pesada y la bisagra pesada (lumbar alta) no van el mismo día. El trabajo de isquiotibiales no se separa.
-    hingeSquatSeparation: rule(true, 'E4', { label: 'Keogh y Winwood 2017, Sports Med 47(3):479-501 (PMID 27328853) y Tung et al. 2024, BMJ Open Sport Exerc Med 10(4):e001884 (PMID 39650568): dónde ocurren las lesiones, no cómo evitarlas', url: 'https://pubmed.ncbi.nlm.nih.gov/27328853/' }, {
-      reviewRequired: true,
-      usage: 'El día de la sentadilla pesada, los isquios se cubren con flexión de rodilla (curl femoral); la bisagra pesada va el otro día de isquios. Ningún relleno posterior (piso, mínimo) la vuelve a juntar.',
-      note: 'Ninguna fuente prueba que separar estos ejercicios prevenga lesiones (E4). La preferencia por el curl sentado sobre el tumbado se apoya en un estudio (Maeo et al. 2021, MSSE 53(4):825-837): E4 como indicación, no como regla.' }),
-    // DEC-003 v2 / DEC-014 · regla E4: tope de series por sesión. Convención de la app, sin fuente externa
-    // (validador.md no fija un valor; ningún framework define un máximo de minutos). El usuario puede aceptar
-    // una sesión más larga de forma explícita.
-    sessionSetCap: rule(25, 'E4', null, { reviewRequired: true, note: 'Convención de la app (DEC-003 v2), aprobada como regla E4 en DEC-014. Sin fuente externa.' }),
-  };
-
-  /* DEC-021 (Fase 3, Paso 1) · perfil articular: demanda de cada ejercicio en tres articulaciones (lumbar, hombro,
-   * rodilla), nivel alta, media o baja. Los datos viven en data/perfil-articular.csv (módulo generado
-   * js/perfilArticular.js), una fila por ejercicio y articulación. Todo el catálogo lleva perfil; un ejercicio sin
-   * perfil completo lo avisa el plan, nunca pasa en silencio. `evidencia` es `a_verificar` salvo que una fila tenga
-   * fuente leída; `origen` dice si el nivel viene de la tabla inicial de la spec o del criterio de modelado E4, y
-   * `ambiguo: 'si'` marca los que el criterio no resuelve (la nota dice por qué). Todavía ninguna regla de la Fase 3
-   * (A1 a A7) los usa: este paso solo prepara los datos, así que el plan no cambia. */
-  const JOINTS = ['lumbar', 'hombro', 'rodilla'];
-  const JOINT_LEVELS = ['alta', 'media', 'baja'];
-  const JOINT_PROFILE = {};
-  PERFIL_ARTICULAR.rows.forEach(r => {
-    (JOINT_PROFILE[r.exerciseId] = JOINT_PROFILE[r.exerciseId] || {})[r.articulacion] = {
-      nivel: r.nivel, evidencia: r.evidencia, origen: r.origen, ambiguo: r.ambiguo === 'si', fuente: r.fuente, notes: r.notes, reviewDate: r.review_date,
-    };
-  });
-  // Articulaciones que le faltan a un ejercicio (todas si no tiene perfil).
-  const missingJointProfile = id => JOINTS.filter(j => !(JOINT_PROFILE[id] && JOINT_PROFILE[id][j]));
-
-  // DEC-020 · mínimo semanal por grupo. Es el MISMO número del piso de mantenimiento de DEC-017
-  // (minWeeklySetsPerMuscle × maintenanceFloorFactor = 5 series fraccionadas por semana, contando el aporte
-  // indirecto de los compuestos), derivado de esas dos reglas para no inventar otro valor. A diferencia del
-  // piso de 10 (que solo frena recortes y completa grupos mayores), este mínimo se exige también a los grupos
-  // chicos (abdomen, pantorrillas, bíceps, tríceps) y cede ante el tope E4 salvo aceptación explícita.
-  VALIDATOR_RULES.groupMinimumWeeklySets = rule(
-    VALIDATOR_RULES.minWeeklySetsPerMuscle.value * VALIDATOR_RULES.maintenanceFloorFactor.value, 'E4',
-    VALIDATOR_RULES.maintenanceFloorFactor.source,
-    {
-      convention: true, reviewRequired: true,
-      usage: 'Mínimo semanal por grupo, medido en series fraccionadas (directa 1, indirecta 0,5). Se cumple dentro del tope E4 quitando series de aislamiento al grupo con más volumen fraccionado acumulado, sin bajar a ningún grupo de su propio mínimo o piso. Si no cabe dentro del tope, la sesión solo puede pasarse con la aceptación explícita del usuario (DEC-016) y el plan lo avisa. Un grupo sin ningún ejercicio posible tras las exclusiones por lesión (DEC-011) no recibe mínimo.',
-      note: 'Convención de la app (E4), igual al piso de mantenimiento de DEC-017. Respaldo parcial: Spiering et al. 2021 (revisión narrativa; solo se leyó el resumen) respalda el concepto de mantener con poco volumen, no la cifra.',
-    }
-  );
-
-  // DEC-014 · peso de UNA serie de cada ejercicio en el conteo fraccionado, por músculo.
-  // La categoría de la relación fija el peso; a_verificar cuenta como ninguna.
-  // DEC-016: EXCEPCIÓN para el músculo del bucket. El bucket es el músculo para el que se programa el
-  // ejercicio, así que cuenta SIEMPRE como directo (peso 1), sea cual sea su evidencia: el 0 por
-  // a_verificar aplica solo a las demás relaciones. La evidencia de la fila no cambia (sigue
-  // a_verificar); solo cambia que no se descuenta la serie del músculo para el que se programó.
-  // Los ejercicios sin aporte (NO_MUSCLE_CONTRIBUTION, el paseo del granjero) quedan en 0.
-  const MAJOR_GROUPS = ['chest', 'back', 'shoulders', 'quads', 'hamstrings', 'glutes'];
-  Object.keys(EXERCISE_CONTRIBUTION).forEach(id => {
-    const c = EXERCISE_CONTRIBUTION[id];
-    Object.keys(c.relations).forEach(m => {
-      const r = c.relations[m];
-      const w = r.evidencia === 'a_verificar' ? VALIDATOR_RULES.noRelationWeight.value
-        : r.relacion === 'directa' ? VALIDATOR_RULES.directSetWeight.value
-        : r.relacion === 'indirecta' ? VALIDATOR_RULES.secondaryMuscleWeight.value
-        : VALIDATOR_RULES.noRelationWeight.value;
-      if (w > 0) c.setWeights[m] = w;
-    });
-    if (c.bucket && !NO_MUSCLE_CONTRIBUTION.includes(id)) c.setWeights[c.bucket] = VALIDATOR_RULES.directSetWeight.value;
-  });
-
-  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, EXERCISES, FUNCTIONAL_EXERCISES, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, DEFAULT_BAR_WEIGHT, BARBELL_PATTERNS, INJURY_ZONES, INJURY_LABELS, INJURY_EXCLUSIONS, EXERCISE_CONTRIBUTION, MAJOR_GROUPS, JOINTS, JOINT_LEVELS, JOINT_PROFILE, missingJointProfile, NO_MUSCLE_CONTRIBUTION, EXERCISE_INDEX, EXERCISE_ID_BY_NAME, VALIDATOR_RULES };
+  return { SOURCES, ACTIVITY, DIVISIONS, CLASSIC_WEIGHT_TABLE, MUSCLE_LABELS, SUPPLEMENTS, PLATES_KG, PLATES_LB, PLATE_COLORS, INJURY_ZONES, INJURY_LABELS };
 });

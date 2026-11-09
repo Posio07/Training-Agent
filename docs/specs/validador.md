@@ -2,6 +2,11 @@
 
 Versión: 23 de octubre de 2026 · Autor: Emanuel Miranda
 
+> **Nota del corte al núcleo nuevo (2026-11-09, agregada por el agente; el texto de abajo no se tocó).** Esta spec describe el validador
+> anterior al corte: su implementación (`VALIDATOR_RULES` en `knowledge.js` y los pasos correctivos de `engine.js`) ya no existe. Las reglas que
+> siguen vigentes viven en el registro del núcleo nuevo (`ifbb-pro-agent/js/core-v2/registro.js`), con su DEC de origen y su nivel de evidencia, y
+> el diseño vigente es `docs/specs/nucleo-v2.md`. Se conserva como registro de por qué existe cada regla.
+
 ## Contexto y objetivo
 
 El validador revisa cada rutina generada contra límites con respaldo científico antes de mostrarla. Si la rutina no cumple, la ajusta o advierte al usuario, y explica qué regla se aplicó y con qué nivel de evidencia.

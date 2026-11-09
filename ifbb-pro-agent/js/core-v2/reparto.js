@@ -1,5 +1,4 @@
-/* EN CONSTRUCCIÓN · núcleo v2 (B-039, DEC-023). Este módulo NO está conectado a la interfaz ni al motor
- * actual: el PR del corte lo conecta y borra el motor viejo (docs/specs/nucleo-v2.md, "El corte").
+/* Núcleo del generador · núcleo v2 (B-039, DEC-023). Conectado a la app en el corte (docs/specs/nucleo-v2.md, "El corte").
  *
  * Reparto de un solo paso (docs/specs/nucleo-v2.md, "Algoritmo de reparto"). Ningún paso posterior corrige a uno
  * anterior. Orden: 1 capacidad en minutos (DEC-024) · 2 seguridad · 3 estructura (patrones obligatorios y
