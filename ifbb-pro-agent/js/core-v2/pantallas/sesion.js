@@ -7,11 +7,12 @@
  *
  * Privacidad (DEC-009): las banderas de dolor se guardan en `perfil.painFlags` (por zona), la misma clave que el export ya excluye. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../../sessionStore.js'), require('../registro.js'), require('../catalogo.js'), require('../sesion.js'), require('../dolor.js'), require('./comun.js'));
-  else root.CORE_V2_SESION_PANTALLA = factory(root.KNOWLEDGE, root.ENGINE, root.SESSION_STORE, root.CORE_V2_REGISTRO, root.CORE_V2_CATALOGO, root.CORE_V2_SESION, root.CORE_V2_DOLOR, root.CORE_V2_COMUN);
-})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, SS, REGISTRO, CATALOGO, SESION, DOLOR, COMUN) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../../sessionStore.js'), require('../registro.js'), require('../catalogo.js'), require('../sesion.js'), require('../dolor.js'), require('./comun.js'), require('./editor.js'));
+  else root.CORE_V2_SESION_PANTALLA = factory(root.KNOWLEDGE, root.ENGINE, root.SESSION_STORE, root.CORE_V2_REGISTRO, root.CORE_V2_CATALOGO, root.CORE_V2_SESION, root.CORE_V2_DOLOR, root.CORE_V2_COMUN, root.CORE_V2_EDITOR);
+})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, SS, REGISTRO, CATALOGO, SESION, DOLOR, COMUN, EDITOR) {
   'use strict';
   const { esc, n1, icon } = COMUN;
+  const { setEditorHtml, wireSetEditor } = EDITOR;
   const IMAGENES = (typeof EXERCISE_IMAGES !== 'undefined') ? EXERCISE_IMAGES : null;
   const fmtDate = iso => { const d = new Date(iso + 'T00:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }); };
 
@@ -215,32 +216,6 @@
         ${pendientes.length ? `<div class="card"><h3>Ejercicios con series sin terminar</h3><ul>${pendientes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '<div class="card"><p class="muted">Todas las series quedaron registradas.</p></div>'}
         <button class="btn btn-primary btn-block btn-lg" id="sm-back-to-plan">Volver al plan</button>
       </div></div>`;
-  }
-
-  /* ---------- Editor de una serie (copiado de app.js) ---------- */
-  function setEditorHtml(attr, id, weight, reps, unit) {
-    return `<form class="set-editor" data-set-editor data-editor-id="${esc(id)}" novalidate>
-      <div class="sm-set-row">
-        <div class="fieldwrap"><input type="number" inputmode="decimal" step="any" name="weight" value="${esc(weight)}" aria-label="Peso (${esc(unit)})"><div class="unit">peso (${esc(unit)})</div></div>
-        <div class="fieldwrap"><input type="number" inputmode="numeric" step="1" name="reps" value="${esc(reps)}" aria-label="Repeticiones"><div class="unit">reps</div></div>
-      </div>
-      <div class="btn-row" style="margin:.4rem 0 0"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
-    </form>`;
-  }
-  // Conecta el editor que haya dentro de `root`. onSave(vals) debe devolver { ok, error }.
-  function wireSetEditor(root, { onSave, onDelete, onCancel }, ctx) {
-    const form = root.querySelector('[data-set-editor]');
-    if (!form) return;
-    form.onsubmit = e => {
-      e.preventDefault();
-      const r = onSave({ weight: form.elements.weight.value, reps: form.elements.reps.value });
-      if (r && !r.ok) ctx.aviso(r.error);
-    };
-    form.querySelector('[data-editor-cancel]').onclick = onCancel;
-    form.querySelector('[data-editor-delete]').onclick = async () => {
-      const ok = await ctx.confirmar('¿Borrar esta serie? Se quita también del historial y de tu progreso.', { confirmLabel: 'Borrar', cancelLabel: 'Cancelar' });
-      if (ok) onDelete();
-    };
   }
 
   /* ---------- Controlador ---------- */

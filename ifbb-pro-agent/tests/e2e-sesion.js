@@ -71,6 +71,14 @@ const server = http.createServer((req, res) => {
   p = await perfil();
   assert.equal(p.painFlags.lumbar.marcada, true);
 
+  // 3b. Corregir una serie ya hecha con el editor: el historial se actualiza; borrarla pide confirmación.
+  await page.click('[data-sm-edit="0"]');
+  await page.fill('.set-editor input[name="weight"]', '105');
+  await page.click('.set-editor button[type="submit"]');
+  await page.waitForSelector('.set-editor', { state: 'detached' });
+  p = await perfil();
+  assert.equal(p.workouts[0].weight, 105);
+
   // 4. Elegir otra variante del siguiente ejercicio: queda registrada con su propio id.
   await page.click('#sm-next');
   const antes = (await act()).exercises[1].exerciseId;
