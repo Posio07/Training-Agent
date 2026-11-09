@@ -52,7 +52,7 @@
   /* ---------- Perfil ---------- */
   function normalizarPerfil(src) {
     const s = src || {};
-    const dias = clamp(Math.round(parseFloat(s.daysPerWeek)) || 4, 3, 6);
+    const dias = clamp(Math.round(parseFloat(s.daysPerWeek)) || valor('DIAS_POR_SEMANA_POR_DEFECTO'), valor('DIAS_POR_SEMANA')[0], valor('DIAS_POR_SEMANA')[1]);
     const zonas = Array.isArray(s.injuryZones) ? s.injuryZones : ((s.health && s.health.injuries) || []).map(i => i.zone);
     const lag = Array.isArray(s.laggingMuscles) ? s.laggingMuscles : (s.laggingMuscles ? [s.laggingMuscles] : []);
     const minutos = Array.isArray(s.tiempoDisponibleMin) ? s.tiempoDisponibleMin : null;
@@ -303,7 +303,9 @@
     // Primero con R1 estricta; recién cuando no queda ningún movimiento, y solo si una demanda mínima sigue sin cubrir, R1 cede para esa demanda
     // (DEC-025, punto 4). Así R1 no se pasa mientras otra sesión pueda alojar la serie.
     let permitirExceso = false;
-    for (let guarda = 0; guarda < 4000; guarda++) {
+    // Cada vuelta agrega al menos una serie, que cuesta como mínimo lo que la más corta del catálogo: eso acota las vueltas por el tiempo total disponible.
+    const maxVueltas = Math.ceil(sesiones.reduce((a, s) => a + s.capacidadSeg, 0) / Math.min(...candidatas.map(segSerie))) + 1;
+    for (let guarda = 0; guarda < maxVueltas; guarda++) {
       let mejor = null;
       sesiones.forEach(ses => movimientos(ses).forEach(mov => {
         const r = evaluar(ses, mov, permitirExceso);
@@ -384,13 +386,16 @@
       semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
     });
     const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
-    const avisoUnico = (sinCubrir.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length)
-      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
+    // Frecuencia mínima de los grupos mayores (DEC-036): un grupo mayor que entrena menos días por semana que el mínimo va al aviso único, no se fuerza (no es una restricción).
+    const frecuenciaBaja = GRUPOS_MAYORES.filter(m => semanal[m].sesiones < valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES')).map(m => ({ musculo: m, sesiones: semanal[m].sesiones, minimo: valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES') }));
+    const avisoUnico = (sinCubrir.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length || frecuenciaBaja.length)
+      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, frecuenciaBaja, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
       : null;
 
     // Paso 6 · orden (A1): lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos;
     // dentro de cada grupo, el patrón principal del tipo primero.
-    const grupoOrden = ex => (lumbarAlta(ex.v.id) ? 0 : ex.v.tipo === 'aislamiento' ? 3 : ex.v.patron === 'puente_cadera' ? 2 : 1);
+    const ORDEN_A1 = ['lumbar_alta', 'multiarticular', 'puente_cadera', 'aislamiento'];
+    const grupoOrden = ex => ORDEN_A1.indexOf(lumbarAlta(ex.v.id) ? 'lumbar_alta' : ex.v.tipo === 'aislamiento' ? 'aislamiento' : ex.v.patron === 'puente_cadera' ? 'puente_cadera' : 'multiarticular');
     const salida = sesiones.map(ses => {
       const ordenados = ses.ejercicios.map((ex, i) => ({ ex, i })).sort(valor('ORDEN_POR_DEMANDA') ? (a, b) => grupoOrden(a.ex) - grupoOrden(b.ex) || ((b.ex.v.patron === ses.spec.principal) - (a.ex.v.patron === ses.spec.principal)) || a.i - b.i : (a, b) => a.i - b.i).map(x => x.ex);
       return {

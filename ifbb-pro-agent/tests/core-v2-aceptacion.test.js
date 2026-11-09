@@ -68,7 +68,8 @@ test('los criterios que regeneran planes fallan si se rompe la función que prue
 
 test('el informe lista cada criterio con su resultado y no se corrige nada: el criterio de código revisa el código real', () => {
   const c = A.codigo();
-  assert.ok(['cumple', 'no cumple'].includes(c.estado) && c.totales.numeros >= 0);
+  assert.ok(['cumple', 'cumple con aviso', 'no cumple'].includes(c.estado));
+  assert.equal(c.totales.numeros, 0, 'ningún número de entrenamiento fuera del registro'); assert.deepEqual(c.totales.sinDeclarar, [], 'toda exportación sin uso está declarada en B-057');
   const md = A.informe(fresco(), A.evaluar(fresco(), { codigo: c, minutosCortos: [30] }));
   for (let i = 1; i <= 15; i++) assert.ok(md.includes(`## ${i}. `), `falta el criterio ${i}`);
   assert.match(md, /Solo lee/);
@@ -81,9 +82,14 @@ test('el criterio 9 mide tres cosas por separado: la frecuencia mínima, los pis
   assert.equal(rompe(f => { f[0].pl.semanal.chest.sesiones = 1; }), 'no cumple', 'frecuencia');
   assert.equal(rompe(f => { f[0].pl.semanal.chest.cubierto = f[0].pl.semanal.chest.piso - 3; }), 'no cumple', 'piso fraccionado');
   assert.equal(rompe(f => { f[0].pl.semanal.back.faltaReal = 2; }), 'no cumple', 'series reales');
-  // con el aviso único que nombra al músculo, el piso y las series reales cumplen (la frecuencia no tiene aviso)
-  const f = sano(); f[0].pl.semanal.chest.cubierto = 0; f[0].pl.semanal.back.faltaReal = 2; f[0].pl.avisoUnico = { sinCubrir: [{ musculo: 'chest' }, { musculo: 'back' }], sinDirecto: [] };
+  // con el aviso único que nombra al músculo, el piso y las series reales cumplen; la frecuencia cumple solo si el aviso la nombra en `frecuenciaBaja` (DEC-036)
+  const f = sano(); f[0].pl.semanal.chest.cubierto = 0; f[0].pl.semanal.back.faltaReal = 2; f[0].pl.avisoUnico = { sinCubrir: [{ musculo: 'chest' }, { musculo: 'back' }], sinDirecto: [], frecuenciaBaja: [] };
   assert.equal(estado(f, 9), 'cumple');
+  const g = sano(); g[0].pl.semanal.chest.sesiones = 1;
+  g[0].pl.avisoUnico = { sinCubrir: [], sinDirecto: [], frecuenciaBaja: [{ musculo: 'chest', sesiones: 1, minimo: 2 }] };
+  assert.equal(estado(g, 9), 'cumple con aviso', 'frecuencia baja con aviso');
+  g[0].pl.avisoUnico.frecuenciaBaja = [{ musculo: 'back', sesiones: 1, minimo: 2 }];
+  assert.equal(estado(g, 9), 'no cumple', 'el aviso nombra a otro músculo');
 });
 
 test('el criterio 2 también falla si el top set de un día de tirón no es un tirón (aunque estén los dos tirones)', () => {

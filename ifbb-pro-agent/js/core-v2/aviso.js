@@ -14,7 +14,7 @@
   const ETIQUETAS = { chest: 'Pecho', back: 'Espalda', shoulders: 'Hombros', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales', glutes: 'Glúteos', calves: 'Pantorrillas', biceps: 'Bíceps', triceps: 'Tríceps', abs: 'Abdomen' };
   const MOTIVO = { R1: 'no cabe sin pasar el límite de series por sesión', tiempo: 'no entra en el tiempo disponible', 'sin ejercicios disponibles': 'no hay ejercicios disponibles con tus lesiones y casillas' };
   // Máximo de días del perfil: el que acepta el reparto (no se repite el número a mano).
-  const DIAS_MAX = REPARTO.normalizarPerfil({ daysPerWeek: 999 }).dias;
+  const DIAS_MAX = valor('DIAS_POR_SEMANA')[1];
   const serie = n => (n === 1 ? 'serie' : 'series');
   const n1 = x => String(Math.round(x * 10) / 10).replace('.', ',');
 
@@ -40,6 +40,11 @@
       const alTope = entrenan.filter(([, f]) => f >= tope - 1e-9);
       (alTope.length ? alTope : entrenan).forEach(([i]) => sesiones.add(i));
     });
+    // Frecuencia baja (DEC-036): las sesiones afectadas son las que entrenan ese grupo (si ninguna, todas), para que el usuario pueda aceptarlas.
+    (a.frecuenciaBaja || []).forEach(x => {
+      const entrenan = plan.sesiones.map((s, i) => [i, (s.fraccionado || {})[x.musculo]]).filter(([, f]) => f > 0).map(([i]) => i);
+      (entrenan.length ? entrenan : plan.sesiones.map((s, i) => i)).forEach(i => sesiones.add(i));
+    });
     const conTiempo = a.sinCubrir.some(x => x.causa === 'tiempo') || a.sinDirecto.length > 0;
     if (conTiempo || sesiones.size === 0) plan.sesiones.forEach((s, i) => { if (limitadaPorTiempo(s)) sesiones.add(i); });
     const afectadas = [...sesiones].sort((x, y) => x - y);
@@ -48,6 +53,7 @@
     a.obligatoriosSinLugar.forEach(x => lineas.push(`${x.sesion}: no cabe el patrón ${x.patron} (${x.motivo}).`));
     a.principalReducido.forEach(x => lineas.push(`${x.sesion}: el ejercicio principal queda con ${x.series} series en vez de ${x.deseadas} por falta de tiempo.`));
     a.sinDirecto.forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: sin ejercicio directo (${x.motivo}).`));
+    (a.frecuenciaBaja || []).forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: se entrena ${x.sesiones} ${x.sesiones === 1 ? 'día' : 'días'} por semana y lo recomendado es al menos ${x.minimo} (el plan no lo fuerza).`));
     a.sinCubrir.forEach(x => {
       const partes = [];
       if (x.falta > 0) partes.push(`faltan ${n1(x.falta)} ${serie(x.falta)} de la necesidad semanal`);
@@ -64,7 +70,7 @@
     // Si el problema es solo R1 (hay tiempo de sobra), más tiempo no ayuda: se avisa y la salida queda como no disponible.
     if (!conTiempo && a.obligatoriosSinLugar.length === 0 && a.principalReducido.length === 0) salidas[0].disponible = false;
     else salidas[0].disponible = afectadas.length > 0;
-    return { hay: true, titulo: 'Esta semana no entra todo lo que pide el plan', lineas, sesionesAfectadas: afectadas, salidas, soloR1: !conTiempo && a.sinCubrir.every(x => x.causa === 'R1') };
+    return { hay: true, titulo: 'Esta semana no entra todo lo que pide el plan', lineas, sesionesAfectadas: afectadas, salidas, soloR1: !conTiempo && a.sinCubrir.length > 0 && a.sinCubrir.every(x => x.causa === 'R1') && !(a.frecuenciaBaja || []).length };
   }
 
   // Aplica la salida que eligió el usuario. Devuelve { perfil, planGuardado } nuevos (no muta los recibidos); el llamador regenera el plan

@@ -141,7 +141,7 @@ function evaluar(filas, ctx) {
   }
   // 9. La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único.
   {
-    const vPiso = [], vReal = [], vFrec = []; let sinAvisoPiso = 0;
+    const vPiso = [], vReal = [], vFrec = []; let sinAvisoPiso = 0, frecAvisada = 0;
     const frecMin = REG.valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES');
     filas.forEach(f => {
       const av = f.pl.avisoUnico, lista = av ? av.sinCubrir.map(x => x.musculo) : [];
@@ -149,14 +149,17 @@ function evaluar(filas, ctx) {
         const x = f.pl.semanal[m];
         if (x.cubierto < x.piso - EPS && !lista.includes(m)) { vPiso.push(`${nombrePlan(f)} · ${ETQ[m]}: ${x.cubierto} de ${x.piso} sin aviso`); sinAvisoPiso++; }
         if (x.faltaReal > EPS && !lista.includes(m)) vReal.push(`${nombrePlan(f)} · ${ETQ[m]}: faltan ${x.faltaReal} series directas sin aviso`);
-        if (REP.GRUPOS_MAYORES.includes(m) && x.sesiones < frecMin) vFrec.push(`${nombrePlan(f)} · ${ETQ[m]}: ${x.sesiones} sesión(es) por semana`);
+        if (REP.GRUPOS_MAYORES.includes(m) && x.sesiones < frecMin) {
+          if (av && (av.frecuenciaBaja || []).some(y => y.musculo === m)) frecAvisada++; // DEC-036: la frecuencia es un aviso dentro del aviso único
+          else vFrec.push(`${nombrePlan(f)} · ${ETQ[m]}: ${x.sesiones} sesión(es) por semana sin aviso`);
+        }
       });
     });
     const v = vPiso.concat(vReal);
     out.push({
       id: 9, titulo: 'La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único',
-      estado: v.length ? 'no cumple' : (vFrec.length ? 'no cumple' : 'cumple'),
-      resumen: `Pisos (DEC-014/017/020: ${REG.valor('PISO_SEMANAL_GRUPO')} series fraccionadas por semana para los grupos mayores, ${REG.valor('FACTOR_PISO_MANTENIMIENTO') * REG.valor('PISO_SEMANAL_GRUPO')} con énfasis reducido, ${REG.valor('MINIMO_SEMANAL_GRUPO_CHICO')} los chicos) y series reales: ${v.length} sin aviso. Frecuencia mínima de ${frecMin} sesiones por semana en los grupos mayores: ${vFrec.length} caso(s) por debajo (la regla está \`${REG.regla('FRECUENCIA_MINIMA_GRUPOS_MAYORES').estado}\` en el registro: ninguna lógica la lee)`,
+      estado: v.length || vFrec.length ? 'no cumple' : (frecAvisada ? 'cumple con aviso' : 'cumple'),
+      resumen: `Pisos (DEC-014/017/020: ${REG.valor('PISO_SEMANAL_GRUPO')} series fraccionadas por semana para los grupos mayores, ${REG.valor('FACTOR_PISO_MANTENIMIENTO') * REG.valor('PISO_SEMANAL_GRUPO')} con énfasis reducido, ${REG.valor('MINIMO_SEMANAL_GRUPO_CHICO')} los chicos) y series reales: ${v.length} sin aviso. Frecuencia mínima de ${frecMin} sesiones por semana en los grupos mayores: ${frecAvisada} caso(s) por debajo con aviso en el aviso único (DEC-036, aviso y no restricción) y ${vFrec.length} sin aviso`,
       detalle: v.slice(0, 5).concat(vFrec.slice(0, 5)),
     });
   }
@@ -231,6 +234,18 @@ function evaluar(filas, ctx) {
 }
 
 /* ---------- Criterio 14: lectura del código ---------- */
+// Decidido por Emanuel (2026-11-09): las exportaciones que nadie usa se borran en el corte; de las que solo usan los tests, se borran las que no prueban
+// comportamiento real. Las listas están en docs/backlog/B-057.md. Si aparece una exportación sin uso que no está declarada, el criterio no cumple.
+const DECLARADAS_PARA_BORRAR = [
+  'almacen.js: `medicionInicial`', 'aviso.js: `ETIQUETAS`', 'aviso.js: `limitadaPorTiempo`', 'pantallas/entreno.js: `htmlSesion`', 'pantallas/entreno.js: `htmlEjercicio`', 'pantallas/entreno.js: `htmlAviso`',
+  'pantallas/perfil.js: `prioritariasPosibles`', 'pantallas/progreso.js: `graficoFuerza`', 'plan.js: `CAMPOS_ACEPTACION`', 'plan.js: `perfilParaReparto`', 'plan.js: `firmaDelPerfil`', 'plan.js: `camposCambiados`', 'registro.js: `reglasActivas`',
+  'almacen.js: `estadoVacio`', 'textos.js: `IDS`',
+];
+const SOLO_TESTS_QUE_SE_QUEDAN = [ // prueban comportamiento real: se conservan
+  'aviso.js: `bloqueMinimoMin`', 'catalogo.js: `PATRONES`', 'dolor.js: `clasificarBackoff`', 'dolor.js: `aplicarLectura`', 'dolor.js: `zonasMarcadas`', 'pantallas/entreno.js: `avisosDelPlan`', 'pantallas/progreso.js: `variantesRegistradas`',
+  'pantallas/progreso.js: `puntosDeFuerza`', 'pantallas/progreso.js: `htmlFuerza`', 'pantallas/progreso.js: `htmlHistorial`', 'pantallas/sesion.js: `htmlVariantes`', 'pantallas/sesion.js: `prepararSesion`', 'pantallas/sesion.js: `tipoDeSerie`',
+  'pantallas/sesion.js: `htmlSerie`', 'pantallas/sesion.js: `htmlEjercicioSesion`', 'pantallas/sesion.js: `htmlResumen`', 'plan.js: `CAMPOS`', 'registro.js: `REGLAS`', 'reparto.js: `GRUPOS_CHICOS`', 'sesion.js: `ultimaVariante`',
+];
 // Números escritos en el código de core-v2 fuera del registro (se ignoran 0, 1, 2, -1, los índices y los que están en comentarios o cadenas) y funciones exportadas
 // que nadie usa. Es una lectura aproximada: lista candidatos para que una persona los revise.
 function revisarCodigo() {
@@ -241,11 +256,11 @@ function revisarCodigo() {
   const numeros = [], exportadas = [];
   archivos.forEach(f => {
     const rel = path.relative(path.join(__dirname, '..'), f), nombre = path.basename(f);
-    if (['registro.js', 'perfilArticularVariantes.js'].includes(nombre)) return;
-    const src = quita(fs.readFileSync(f, 'utf8'));
+    if (['registro.js', 'perfilArticularVariantes.js'].includes(nombre) || /\/pantallas\//.test(f)) return; // el registro es para reglas de entrenamiento: las pantallas (interfaz) no cuentan
+    const src = quita(fs.readFileSync(f, 'utf8')).replace(/\b\d(?:\.\d+)?e-\d+\b/g, ' '); // tolerancias numéricas (1e-9)
     src.split('\n').forEach((l, i) => {
       const t = l.replace(/\u0001[^\u0002]*\u0002/g, m => m.slice(1, -1));
-      for (const m of t.matchAll(/(?<![\w.$#])(\d+(?:\.\d+)?)(?![\w.]*\w)/g)) { const x = Number(m[1]); if ([0, 1, 2, 100].includes(x)) continue; if (/e\.|^\s*\d+\s*:/.test(t.slice(Math.max(0, m.index - 2), m.index + 2))) continue; numeros.push({ archivo: rel, linea: i + 1, valor: m[1], texto: l.trim().slice(0, 110) }); }
+      for (const m of t.matchAll(/(?<![\w.$#])(\d+(?:\.\d+)?)(?![\w.]*\w)/g)) { const x = Number(m[1]); if ([0, 1, 2, 60, 100, 1000, 3600, 86400000].includes(x) || (x === 10 && /Math\.round\(/.test(t))) continue; /* 10 en Math.round: redondeo de lo que se muestra */  /* 60, 1000, 3600 y 86400000: conversiones de unidad */ if (/e\.|^\s*\d+\s*:/.test(t.slice(Math.max(0, m.index - 2), m.index + 2))) continue; numeros.push({ archivo: rel, linea: i + 1, valor: m[1], texto: l.trim().slice(0, 110) }); }
     });
   });
   return { archivos: archivos.map(f => path.relative(path.join(__dirname, '..'), f)), numeros, exportadas };
@@ -257,7 +272,7 @@ function codigo() {
   const todos = {};
   r.archivos.forEach(f => { todos[f] = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); });
   const leer = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); } catch (e) { return ''; } };
-  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'ifbb-pro-agent/tests/pagina-nucleo-v2.html', 'scripts/vista-previa-reparto.js', 'scripts/aceptacion-nucleo-v2.js', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
+  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'ifbb-pro-agent/tests/pagina-nucleo-v2.html', 'scripts/vista-previa-reparto.js', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
   const tests = fs.readdirSync(path.join(__dirname, '..', 'ifbb-pro-agent', 'tests')).filter(t => /\.(js|html)$/.test(t)).map(t => leer('ifbb-pro-agent/tests/' + t)).join('\n');
   const sinUso = [], soloTests = [];
   r.archivos.forEach(f => {
@@ -271,12 +286,15 @@ function codigo() {
   });
   const unicos = {}; r.numeros.forEach(n => { const k = `${n.archivo}|${n.valor}`; (unicos[k] = unicos[k] || n); });
   const lista = Object.values(unicos);
+  const corto = x => x.replace('ifbb-pro-agent/js/core-v2/', '');
+  const sinDeclarar = sinUso.concat(soloTests).map(corto).filter(x => !DECLARADAS_PARA_BORRAR.includes(x) && !SOLO_TESTS_QUE_SE_QUEDAN.includes(x));
+  const declaradas = sinUso.concat(soloTests).map(corto).filter(x => DECLARADAS_PARA_BORRAR.includes(x));
   return {
-    estado: lista.length || sinUso.length ? 'no cumple' : 'cumple',
-    resumen: `${lista.length} número(s) distintos escritos en el código de core-v2 fuera del registro (sin contar 0, 1, 2 y 100), ${sinUso.length} función(es) exportada(s) que no usa nadie y ${soloTests.length} que solo usan los tests. Es una lectura automática: son candidatos, no veredictos`,
+    estado: lista.length || sinDeclarar.length ? 'no cumple' : (declaradas.length ? 'cumple con aviso' : 'cumple'),
+    resumen: `${lista.length} número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); ${sinUso.length} exportación(es) que nadie usa y ${soloTests.length} que solo usan los tests: ${declaradas.length} declaradas para borrar en el corte (B-057), ${soloTests.length + sinUso.length - declaradas.length - sinDeclarar.length} que prueban comportamiento real y se conservan, ${sinDeclarar.length} sin declarar. Es una lectura automática: son candidatos, no veredictos`,
     detalle: ['por archivo: ' + Object.entries(lista.reduce((o, n) => { o[n.archivo] = (o[n.archivo] || 0) + 1; return o; }, {})).map(([a, k]) => `${a.replace('ifbb-pro-agent/js/core-v2/', '')} ${k}`).join(' · ')]
       .concat(lista.map(n => `número ${n.valor} en ${n.archivo}:${n.linea}  ${n.texto}`), sinUso.map(x => `sin uso: ${x}`), soloTests.map(x => `solo tests: ${x}`)),
-    totales: { numeros: lista.length, sinUso: sinUso.length, soloTests: soloTests.length },
+    totales: { numeros: lista.length, sinUso: sinUso.length, soloTests: soloTests.length, sinDeclarar },
   };
 }
 
