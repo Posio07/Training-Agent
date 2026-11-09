@@ -71,6 +71,10 @@
           <div class="btn-row" style="margin-top:.6rem">
             <button class="btn btn-primary btn-lg" data-start-session="${i}" style="flex:2">Empezar sesión</button>
           </div>
+          <div class="btn-row" style="margin-top:.4rem;align-items:flex-end">
+            <div class="fieldwrap" style="flex:1"><input type="number" inputmode="numeric" min="1" step="5" data-hoy-min="${i}" placeholder="min" aria-label="Minutos que tienes hoy"><div class="unit">hoy tengo (min)</div></div>
+            <button class="btn" data-start-session-short="${i}" style="flex:1">Rutina corta</button>
+          </div>
         </div>
       </div>
     </div>`;
