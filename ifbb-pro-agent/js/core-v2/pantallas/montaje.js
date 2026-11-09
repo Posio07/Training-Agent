@@ -3,30 +3,32 @@
  * borra en el corte. NO está conectado a la app: lo usa la página de prueba (tests/pagina-nucleo-v2.html); el corte hace que `app.js` solo llame
  * a `montar`.
  *
- * `ctx`: { almacen: { perfiles: [{ id, data, planGuardado, creadoEn }], activoId }, guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
+ * `ctx`: { almacen: el estado de `core-v2/almacen.js` (`{ profiles, activeId }`), guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
  *          aviso(texto), reloj() → ms, sesionActivaId() → id de la sesión en curso o null, confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos) }.
  * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea (síntomas,
  * o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a esta función. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./progreso.js'), require('./comun.js'));
-  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_PROGRESO, root.CORE_V2_COMUN);
-})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, PLAN, AVISO, PERFIL, ENTRENO, PROGRESO, COMUN) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../almacen.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./progreso.js'), require('./comun.js'));
+  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_ALMACEN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_PROGRESO, root.CORE_V2_COMUN);
+})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, PLAN, ALMACEN, AVISO, PERFIL, ENTRENO, PROGRESO, COMUN) {
   'use strict';
   const { esc } = COMUN;
 
   function montar(raiz, ctx) {
     const alm = ctx.almacen;
     const q = sel => raiz.querySelector(sel);
-    const activo = () => alm.perfiles.find(p => p.id === alm.activoId) || null;
+    const activo = () => alm.profiles.find(p => p.id === alm.activeId) || null;
     const guardar = () => ctx.guardar(alm);
-    let vista = alm.perfiles.length ? 'plan' : 'perfil', editandoId = null;
+    // Un plan guardado ilegible se regenera al abrir (DEC-023: sin migraciones).
+    if (alm.profiles.map(p => ALMACEN.asegurarPlan(p, { planId: ctx.id(), ahora: ctx.ahora() })).some(Boolean)) guardar();
+    let vista = alm.profiles.length ? 'plan' : 'perfil', editandoId = null;
 
     function ir(v, id) { vista = v; editandoId = id || null; render(); }
     function render() { (vista === 'perfil' ? renderPerfil : vista === 'progreso' ? renderProgreso : renderPlan)(); }
 
     /* ---------- Perfil ---------- */
     function renderPerfil() {
-      const editando = editandoId ? alm.perfiles.find(p => p.id === editandoId) : null;
+      const editando = editandoId ? alm.profiles.find(p => p.id === editandoId) : null;
       raiz.innerHTML = PERFIL.htmlPerfil(editando);
       const form = q('#form');
       const sexo = q('#sex'), division = q('#division');
@@ -52,9 +54,9 @@
       if (borrar) borrar.onclick = async () => {
         if (!(await ctx.confirmar('¿Borrar todos los datos de salud de este perfil? No afecta el resto de los datos.'))) return;
         editando.data.health = { screening: { regularExercise: false, cvMetabolicRenal: false, symptoms: false, medicalClearance: false }, diabetes: { type: 'none', medication: false }, injuries: [] };
-        guardar(); ctx.aviso('Datos de salud borrados'); renderPerfil();
+        editando.updatedAt = ctx.ahora(); guardar(); ctx.aviso('Datos de salud borrados'); renderPerfil();
       };
-      q('#btn-cancel').onclick = () => ir(alm.perfiles.length ? 'plan' : 'perfil');
+      q('#btn-cancel').onclick = () => ir(alm.profiles.length ? 'plan' : 'perfil');
       form.onsubmit = e => {
         e.preventDefault();
         const fd = new FormData(form), campos = {};
@@ -62,14 +64,12 @@
         const r = PERFIL.leerPerfil(campos, editando && editando.data);
         if (r.errores.length) { q('#form-errors').innerHTML = r.errores.map(x => `<div class="alert danger">${esc(x)}</div>`).join(''); return; }
         if (editando) {
-          editando.data = r.datos;
           // El plan guardado solo se regenera si cambió algo de lo que lo define (paso 3.1).
-          if (PLAN.estadoDelPlan(editando.planGuardado, r.datos).regenerar) editando.planGuardado = PLAN.regenerar(r.datos, { id: ctx.id(), ahora: ctx.ahora() });
-          alm.activoId = editando.id;
+          ALMACEN.actualizarDatos(editando, r.datos, { planId: ctx.id(), ahora: ctx.ahora() });
+          alm.activeId = editando.id;
         } else {
-          const p = { id: ctx.id(), creadoEn: ctx.ahora(), data: r.datos };
-          p.planGuardado = PLAN.crearPlan(r.datos, { id: ctx.id(), ahora: ctx.ahora() });
-          alm.perfiles.push(p); alm.activoId = p.id;
+          const p = ALMACEN.crearPerfil(r.datos, { id: ctx.id(), planId: ctx.id(), ahora: ctx.ahora() });
+          alm.profiles.push(p); alm.activeId = p.id;
         }
         guardar(); ctx.aviso('Perfil guardado'); ir('plan');
       };
@@ -94,7 +94,7 @@
       q('#btn-editar').onclick = () => ir('perfil', p.id);
       q('#btn-nuevo').onclick = () => ir('perfil');
       q('#btn-progreso').onclick = () => ir('progreso');
-      const regenerar = () => { p.planGuardado = PLAN.regenerar(p.data, { id: ctx.id(), ahora: ctx.ahora() }); guardar(); ctx.aviso('Plan regenerado'); renderPlan(); };
+      const regenerar = () => { p.planGuardado = PLAN.regenerar(p.data, { id: ctx.id(), ahora: ctx.ahora() }); p.updatedAt = ctx.ahora(); guardar(); ctx.aviso('Plan regenerado'); renderPlan(); };
       raiz.querySelectorAll('[data-regenerar], [data-aplicar-version]').forEach(b => b.onclick = regenerar);
       raiz.querySelectorAll('[data-salida]').forEach(b => b.onclick = () => {
         const aviso = AVISO.avisoPendiente(AVISO.construirAviso(p.planGuardado.plan), p.data, p.planGuardado);
@@ -103,7 +103,7 @@
         p.data = r.perfil; p.planGuardado = r.planGuardado;
         // "Más tiempo" y "más días" cambian el perfil: el plan se regenera (y la aceptación, que caduca, se vuelve a pedir si hace falta).
         if (PLAN.estadoDelPlan(p.planGuardado, p.data).regenerar) p.planGuardado = PLAN.regenerar(p.data, { id: ctx.id(), ahora: ctx.ahora() });
-        guardar(); renderPlan();
+        p.updatedAt = ctx.ahora(); guardar(); renderPlan();
       });
       raiz.querySelectorAll('[data-toggle-day]').forEach(btn => btn.onclick = () => {
         const cuerpo = raiz.querySelector('#day-body-' + btn.dataset.toggleDay);

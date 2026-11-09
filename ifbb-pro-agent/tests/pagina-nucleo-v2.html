@@ -24,6 +24,7 @@
   <script src="../js/core-v2/catalogo.js"></script>
   <script src="../js/core-v2/reparto.js"></script>
   <script src="../js/core-v2/plan.js"></script>
+  <script src="../js/core-v2/almacen.js"></script>
   <script src="../js/core-v2/aviso.js"></script>
   <script src="../js/core-v2/sesion.js"></script>
   <script src="../js/core-v2/dolor.js"></script>
@@ -40,7 +41,13 @@
     // Sprite de íconos de la app real.
     fetch('../index.html').then(r => r.text()).then(t => { const m = t.match(/<svg width="0"[\s\S]*?<\/svg>/); if (m) document.getElementById('sprite').innerHTML = m[0]; });
     let n = 0;
-    const almacen = { perfiles: [], activoId: null };
+    // El almacenamiento definitivo (core-v2/almacen.js), el mismo que usa la app en el corte, sobre el localStorage real pero con una clave de PRUEBA para no tocar
+    // ni los datos de la app actual ni los futuros de la definitiva. Si el navegador no lo permite, queda en memoria.
+    const CLAVE_PRUEBA = CORE_V2_ALMACEN.CLAVE + ':prueba';
+    const respaldo = {}; const mem0 = { getItem: k => (k in respaldo ? respaldo[k] : null), setItem: (k, v) => { respaldo[k] = String(v); } };
+    const disco = (() => { try { localStorage.setItem('__p', '1'); localStorage.removeItem('__p'); return localStorage; } catch (e) { return mem0; } })();
+    const almacen = CORE_V2_ALMACEN.cargar(disco, CLAVE_PRUEBA);
+    window.__claveAlmacen = CLAVE_PRUEBA;
     window.__almacen = almacen; // para que las pruebas de punta a punta lo lean
     window.__sesionesIniciadas = [];
     let t;
@@ -49,11 +56,12 @@
     window.__storage = mem;
     const confirmar = msg => Promise.resolve(window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar);
     const aviso = msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); };
-    const sesion = CORE_V2_SESION_PANTALLA.crearSesion({ doc: document, storage, perfiles: () => almacen.perfiles, guardar: () => {}, ahora: () => '2026-11-09', reloj: () => Date.now() + (window.__reloj || 0), id: () => 'ses' + (++n), aviso, confirmar, alTerminar: () => window.__montaje.ir('plan') });
+    const guardar = CORE_V2_ALMACEN.guardador(disco, almacen, aviso, CLAVE_PRUEBA);
+    const sesion = CORE_V2_SESION_PANTALLA.crearSesion({ doc: document, storage, perfiles: () => almacen.profiles, guardar, ahora: () => '2026-11-09', reloj: () => Date.now() + (window.__reloj || 0), id: () => 'ses' + (++n), aviso, confirmar, alTerminar: () => window.__montaje.ir('plan') });
     window.__sesion = sesion;
     window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
       almacen,
-      guardar: () => {},
+      guardar,
       reloj: () => Date.now(),
       sesionActivaId: () => { const s = sesion.estado(); return s ? s.sessionId : null; },
       ahora: () => '2026-11-09',
