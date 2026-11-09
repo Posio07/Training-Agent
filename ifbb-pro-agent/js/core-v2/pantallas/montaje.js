@@ -4,7 +4,7 @@
  * a `montar`.
  *
  * `ctx`: { almacen: { perfiles: [{ id, data, planGuardado, creadoEn }], activoId }, guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
- *          aviso(texto), confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil) }.
+ *          aviso(texto), confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil, minutos) }.
  * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea (síntomas,
  * o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a esta función. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
 (function (root, factory) {
@@ -103,7 +103,13 @@
         btn.setAttribute('aria-expanded', String(!abierto));
         if (cuerpo) cuerpo.inert = abierto;
       });
-      raiz.querySelectorAll('[data-start-session]').forEach(btn => btn.onclick = () => ctx.alIniciarSesion && ctx.alIniciarSesion(Number(btn.dataset.startSession), p));
+      raiz.querySelectorAll('[data-start-session]').forEach(btn => btn.onclick = () => ctx.alIniciarSesion && ctx.alIniciarSesion(Number(btn.dataset.startSession), p, 0));
+      // "Hoy tengo X min": la misma sesión con el tiempo de hoy; no toca el plan guardado.
+      raiz.querySelectorAll('[data-start-session-short]').forEach(btn => btn.onclick = () => {
+        const i = Number(btn.dataset.startSessionShort), min = parseFloat(raiz.querySelector(`[data-hoy-min="${i}"]`).value);
+        if (!(min > 0)) { ctx.aviso('Escribe cuántos minutos tienes hoy.'); return; }
+        ctx.alIniciarSesion && ctx.alIniciarSesion(i, p, min);
+      });
     }
 
     render();

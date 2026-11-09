@@ -17,17 +17,22 @@
   <script src="../js/perfilArticular.js"></script>
   <script src="../js/knowledge.js"></script>
   <script src="../js/engine.js"></script>
+  <script src="../js/exerciseImages.js"></script>
+  <script src="../js/sessionStore.js"></script>
   <script src="../js/core-v2/registro.js"></script>
   <script src="../js/core-v2/perfilArticularVariantes.js"></script>
   <script src="../js/core-v2/catalogo.js"></script>
   <script src="../js/core-v2/reparto.js"></script>
   <script src="../js/core-v2/plan.js"></script>
   <script src="../js/core-v2/aviso.js"></script>
+  <script src="../js/core-v2/sesion.js"></script>
+  <script src="../js/core-v2/dolor.js"></script>
   <script src="../js/core-v2/textos.js"></script>
   <script src="../js/core-v2/cardio.js"></script>
   <script src="../js/core-v2/pantallas/comun.js"></script>
   <script src="../js/core-v2/pantallas/perfil.js"></script>
   <script src="../js/core-v2/pantallas/entreno.js"></script>
+  <script src="../js/core-v2/pantallas/sesion.js"></script>
   <script src="../js/core-v2/pantallas/montaje.js"></script>
   <script>
     // Sprite de íconos de la app real.
@@ -37,15 +42,22 @@
     window.__almacen = almacen; // para que las pruebas de punta a punta lo lean
     window.__sesionesIniciadas = [];
     let t;
+    // Almacenamiento de la sesión en curso en memoria (la app real usa localStorage).
+    const mem = {}; const storage = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+    window.__storage = mem;
+    const confirmar = msg => Promise.resolve(window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar);
+    const aviso = msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); };
+    const sesion = CORE_V2_SESION_PANTALLA.crearSesion({ doc: document, storage, perfiles: () => almacen.perfiles, guardar: () => {}, ahora: () => '2026-11-09', reloj: () => Date.now() + (window.__reloj || 0), id: () => 'ses' + (++n), aviso, confirmar, alTerminar: () => window.__montaje.ir('plan') });
+    window.__sesion = sesion;
     window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
       almacen,
       guardar: () => {},
       ahora: () => '2026-11-09',
       id: () => 'id' + (++n),
-      aviso: msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); },
-      confirmar: msg => window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar,
+      aviso,
+      confirmar,
       pantallaBloqueo: (raiz, p, salud) => { raiz.innerHTML = '<div class="card" id="bloqueo"><h2>Plan en pausa</h2><p>' + (salud.blockReason || salud.injuryBlockReason || '') + '</p></div>'; window.__bloqueos = (window.__bloqueos || 0) + 1; },
-      alIniciarSesion: (i, p) => { window.__sesionesIniciadas.push(i); },
+      alIniciarSesion: (i, p, min) => { window.__sesionesIniciadas.push(i); sesion.iniciar(p, i, min); },
     });
   </script>
 </body>

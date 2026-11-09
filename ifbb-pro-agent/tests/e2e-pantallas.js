@@ -87,6 +87,10 @@ const server = http.createServer((req, res) => {
   assert.equal(await page.getAttribute('[data-toggle-day="1"]', 'aria-expanded'), 'true');
   await page.click('[data-start-session="1"]');
   assert.deepEqual(await page.evaluate(() => window.__sesionesIniciadas), [1]);
+  await page.waitForSelector('#session-mode-root .session-mode'); // abre el modo sesión
+  await page.evaluate(() => { window.__confirmar = true; });
+  await page.click('#sm-close');
+  await page.waitForSelector('#session-mode-root', { state: 'detached' });
 
   // 8. Con la bandera de salud entran los funcionales y el cardio pasa a 150 min.
   await page.click('#btn-editar'); await page.waitForSelector('#form');
