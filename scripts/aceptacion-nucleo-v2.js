@@ -245,6 +245,9 @@ const SOLO_TESTS_QUE_SE_QUEDAN = [ // prueban comportamiento real: se conservan
   // Quedan solo en los tests desde el corte (antes las usaban la página de prueba y la vista previa del reparto, borradas): todas prueban comportamiento real.
   'almacen.js: `CLAVE`', 'catalogo.js: `variantesDePatron`', 'pantallas/sesion.js: `platesForWeight`', 'pantallas/sesion.js: `parseRestSeconds`',
   'reparto.js: `SPLITS`', 'reparto.js: `TIPOS`', 'reparto.js: `MUSCULOS`', 'reparto.js: `GRUPOS_MAYORES`', 'reparto.js: `pesosDe`',
+  // `sesion.js: progreso` también es solo de los tests, pero esta lectura no lo ve: busca el nombre suelto y la palabra
+  // "progreso" aparece en prosa en app.js. Se declara igual para que la lista diga la verdad.
+  'sesion.js: `progreso`',
 ];
 // Números escritos en el código de core-v2 fuera del registro (se ignoran 0, 1, 2, -1, los índices y los que están en comentarios o cadenas) y funciones exportadas
 // que nadie usa. Es una lectura aproximada: lista candidatos para que una persona los revise.
@@ -272,8 +275,9 @@ function codigo() {
   const todos = {};
   r.archivos.forEach(f => { todos[f] = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); });
   const leer = f => { try { return fs.readFileSync(path.join(__dirname, '..', f), 'utf8'); } catch (e) { return ''; } };
-  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'ifbb-pro-agent/index.html', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
-  // Este archivo NO entra en la lista: nombra las exportaciones en sus listas de declaradas y las daría por usadas.
+  const app = ['ifbb-pro-agent/js/app.js', 'ifbb-pro-agent/js/engine.js', 'ifbb-pro-agent/js/sessionStore.js', 'scripts/snapshot-core-v2.js'].map(leer).join('\n');
+  // Ni este archivo ni index.html entran en la lista: el primero nombra las exportaciones en sus listas de declaradas y
+  // el segundo las nombraría por casualidad en las rutas de sus <script> (`almacen.js` contiene "almacen", etc.).
   const tests = fs.readdirSync(path.join(__dirname, '..', 'ifbb-pro-agent', 'tests')).filter(t => /\.(js|html)$/.test(t)).map(t => leer('ifbb-pro-agent/tests/' + t)).join('\n');
   const sinUso = [], soloTests = [];
   r.archivos.forEach(f => {

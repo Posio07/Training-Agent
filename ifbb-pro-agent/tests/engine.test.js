@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const E = require('../js/engine.js');
 const K = require('../js/knowledge.js');
 const REGISTRO = require('../js/core-v2/registro.js');
+const PLAN_V2 = require('../js/core-v2/plan.js');
 
 const TODAY = '2026-09-15';
 
@@ -408,6 +409,23 @@ test('DEC-011: reconcileInjuryClearances no muta sus entradas, tolera no tener e
   // Sin cambios de dolor ni diagnóstico equivale exactamente a carryOver.
   const noChange = E.normalizeProfile(withInjury(['shoulder']));
   assert.deepEqual(E.reconcileInjuryClearances(stored.health, noChange.health), E.carryOverInjuryClearances(stored.health, noChange.health));
+});
+
+test('DEC-011: la marca de re-autorización no altera el plan (solo la pantalla la usa) y no sale en el export', () => {
+  const stored = authorizedProfile(['shoulder']);
+  const worsened = editAndReconcile(stored, ['shoulder'], { pain: ['shoulder'] });
+  const plain = E.buildPlan(E.normalizeProfile(withInjury(['shoulder'], { injuryPainNow: ['shoulder'] })), TODAY);
+  assert.deepEqual(Object.keys(worsened.plan.health).sort(), Object.keys(plain.health).sort(), 'no hay claves nuevas en plan.health');
+  assert.equal(worsened.plan.health.injuryBlockReason, plain.health.injuryBlockReason, 'el texto de la pausa del motor es el mismo');
+  // Tampoco altera el plan de entrenamiento: el reparto mira las zonas declaradas, no la marca.
+  const conMarca = Object.assign({}, E.normalizeProfile(withInjury(['shoulder'], { injuryPainNow: ['shoulder'] })), { health: worsened.health });
+  const sinMarca = Object.assign({}, conMarca, { health: JSON.parse(JSON.stringify(conMarca.health)) });
+  sinMarca.health.injuries.forEach(i => { delete i.clearanceInvalidated; });
+  assert.ok(conMarca.health.injuries.some(i => i.clearanceInvalidated), 'el perfil de prueba tiene la marca');
+  assert.deepEqual(PLAN_V2.crearPlan(conMarca, { id: 'a', ahora: TODAY }).plan, PLAN_V2.crearPlan(sinMarca, { id: 'a', ahora: TODAY }).plan);
+  // Y no sale en el export (DEC-009).
+  const exported = E.exportProfile({ id: 'x', data: Object.assign({}, E.normalizeProfile(withInjury(['shoulder'])), { health: worsened.health }) });
+  assert.doesNotMatch(JSON.stringify(exported), /clearanceInvalidated/);
 });
 
 /* ---------- DEC-011: la pausa explica cuándo una zona se pide de nuevo por empeorar ---------- */
@@ -849,7 +867,6 @@ test('DEC-019: la cifra de agua no cambia (2,5 / 2,0 L) y la fuente dice que es 
 });
 
 /* ---------- Indicador "Siguiente" (orden del split, no la fecha; T5b de la spec del núcleo v2) ---------- */
-const PLAN_V2 = require('../js/core-v2/plan.js');
 const dayNamesOf = days => PLAN_V2.crearPlan(E.normalizeProfile(Object.assign({}, male, { daysPerWeek: days })), { id: 'p' + days, ahora: TODAY }).plan.sesiones.map(x => x.nombre);
 // Registra una sesión del día `dayIndex` con `nSets` series hechas; `cerrar` la completa (entrada en `sessions`).
 const registrarDia = (p, names, dayIndex, date, nSets, cerrar, id, t) => {
