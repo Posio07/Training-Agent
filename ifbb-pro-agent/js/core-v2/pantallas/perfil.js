@@ -104,11 +104,11 @@
         </fieldset>
         <fieldset>
           <legend>Tiempo y ejercicios prioritarios</legend>
-          <label>Tiempo disponible por sesión (min)</label>
-          <input name="tiempoDisponibleMin" type="number" inputmode="numeric" min="1" step="5" value="${esc(d.tiempoDisponibleMin || '')}" placeholder="${REGISTRO.valor('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN')}">
+          <label for="tiempoDisponibleMin">Tiempo disponible por sesión (min)</label>
+          <input id="tiempoDisponibleMin" name="tiempoDisponibleMin" type="number" inputmode="numeric" min="1" step="5" value="${esc(d.tiempoDisponibleMin || '')}" placeholder="${REGISTRO.valor('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN')}">
           <p class="help">Es la capacidad de cada sesión: el plan reparte las series para que entren en este tiempo. Vacío usa ${REGISTRO.valor('TIEMPO_DISPONIBLE_POR_DEFECTO_MIN')} min.</p>
           <details class="card"><summary>Cambiarlo en algunos días</summary>
-            <div class="row3" id="tiempo-por-dia">${[0, 1, 2, 3, 4, 5].map(i => `<div data-dia="${i}" ${i < (Number(d.daysPerWeek) || 4) ? '' : 'hidden'}><label>Día ${i + 1} (min)</label><input name="tiempoDia_${i}" type="number" inputmode="numeric" min="1" step="5" value="${esc((d.tiempoPorDia || {})[i] || '')}" placeholder="general"></div>`).join('')}</div>
+            <div class="row3" id="tiempo-por-dia">${[0, 1, 2, 3, 4, 5].map(i => `<div data-dia="${i}" ${i < (Number(d.daysPerWeek) || 4) ? '' : 'hidden'}><label for="tiempoDia_${i}">Día ${i + 1} (min)</label><input id="tiempoDia_${i}" name="tiempoDia_${i}" type="number" inputmode="numeric" min="1" step="5" value="${esc((d.tiempoPorDia || {})[i] || '')}" placeholder="general"></div>`).join('')}</div>
           </details>
           <label>Ejercicios prioritarios (hasta ${REGISTRO.valor('MAX_EJERCICIOS_PRIORITARIOS')}, opcional)</label>
           <p class="help">Entran fijos en los días cuyo tipo de sesión incluye su patrón, antes de repartir el resto. Si una lesión declarada lo contraindica, la seguridad gana y el plan te avisa.</p>
@@ -172,7 +172,7 @@
 
           ${hasHealthData ? '<div class="btn-row"><button type="button" class="btn btn-danger" id="btn-clear-health">Borrar datos de salud</button></div>' : ''}
         </fieldset>
-        <div id="form-errors"></div>
+        <div id="form-errors" role="alert"></div>
         <div class="btn-row">
           <button type="submit" class="btn btn-primary btn-block">Guardar y generar plan</button>
         </div>

@@ -4,11 +4,13 @@
  * a `montar`.
  *
  * `ctx`: { almacen: { perfiles: [{ id, data, planGuardado, creadoEn }], activoId }, guardar(almacen), ahora() → 'AAAA-MM-DD', id() → texto,
- *          aviso(texto), alIniciarSesion(indice, perfil) }. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
+ *          aviso(texto), confirmar(mensaje) → booleano o promesa, pantallaBloqueo(raiz, perfil, salud), alIniciarSesion(indice, perfil) }.
+ * `pantallaBloqueo`: el tamizaje de salud (DEC-009) vive en `engine.js` y su pantalla de pausa en `app.js`, que se quedan: si el tamizaje bloquea (síntomas,
+ * o condición más sedentarismo, sin autorización médica; o lesiones sin autorización profesional), el plan no se muestra y se llama a esta función. El almacenamiento lo pone quien monta (la página de prueba lo guarda en memoria). */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../plan.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./comun.js'));
-  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.CORE_V2_PLAN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_COMUN);
-})(typeof self !== 'undefined' ? self : this, function (K, PLAN, AVISO, PERFIL, ENTRENO, COMUN) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('../../knowledge.js'), require('../../engine.js'), require('../plan.js'), require('../aviso.js'), require('./perfil.js'), require('./entreno.js'), require('./comun.js'));
+  else root.CORE_V2_MONTAJE = factory(root.KNOWLEDGE, root.ENGINE, root.CORE_V2_PLAN, root.CORE_V2_AVISO, root.CORE_V2_PERFIL, root.CORE_V2_ENTRENO, root.CORE_V2_COMUN);
+})(typeof self !== 'undefined' ? self : this, function (K, ENGINE, PLAN, AVISO, PERFIL, ENTRENO, COMUN) {
   'use strict';
   const { esc } = COMUN;
 
@@ -47,7 +49,8 @@
       const dias = q('select[name="daysPerWeek"]');
       dias.onchange = () => raiz.querySelectorAll('#tiempo-por-dia [data-dia]').forEach(el => { el.hidden = Number(el.dataset.dia) >= Number(dias.value); });
       const borrar = q('#btn-clear-health');
-      if (borrar) borrar.onclick = () => {
+      if (borrar) borrar.onclick = async () => {
+        if (!(await ctx.confirmar('¿Borrar todos los datos de salud de este perfil? No afecta el resto de los datos.'))) return;
         editando.data.health = { screening: { regularExercise: false, cvMetabolicRenal: false, symptoms: false, medicalClearance: false }, diabetes: { type: 'none', medication: false }, injuries: [] };
         guardar(); ctx.aviso('Datos de salud borrados'); renderPerfil();
       };
@@ -76,6 +79,9 @@
     function renderPlan() {
       const p = activo();
       if (!p) { raiz.innerHTML = '<div class="empty"><p>Crea un perfil para ver su plan.</p><button class="btn btn-primary" id="e-new">Nuevo perfil</button></div>'; q('#e-new').onclick = () => ir('perfil'); return; }
+      // DEC-009: si el tamizaje bloquea, no se muestra el plan.
+      const salud = ENGINE.computeHealthScreen(p.data);
+      if (salud.blocked) { raiz.innerHTML = ''; ctx.pantallaBloqueo(raiz, p, salud); return; }
       raiz.innerHTML = `<div class="btn-row"><button class="btn" id="btn-editar">Editar perfil</button><button class="btn" id="btn-nuevo">Nuevo perfil</button></div>
         <div id="entreno">${ENTRENO.htmlEntreno({ datos: p.data, guardado: p.planGuardado, siguiente: ctx.siguiente ? ctx.siguiente(p) : 0 })}</div>`;
       q('#btn-editar').onclick = () => ir('perfil', p.id);

@@ -37,12 +37,14 @@
     window.__almacen = almacen; // para que las pruebas de punta a punta lo lean
     window.__sesionesIniciadas = [];
     let t;
-    CORE_V2_MONTAJE.montar(document.getElementById('view'), {
+    window.__montaje = CORE_V2_MONTAJE.montar(document.getElementById('view'), {
       almacen,
       guardar: () => {},
       ahora: () => '2026-11-09',
       id: () => 'id' + (++n),
       aviso: msg => { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2600); },
+      confirmar: msg => window.__confirmar === undefined ? window.confirm(msg) : window.__confirmar,
+      pantallaBloqueo: (raiz, p, salud) => { raiz.innerHTML = '<div class="card" id="bloqueo"><h2>Plan en pausa</h2><p>' + (salud.blockReason || salud.injuryBlockReason || '') + '</p></div>'; window.__bloqueos = (window.__bloqueos || 0) + 1; },
       alIniciarSesion: (i, p) => { window.__sesionesIniciadas.push(i); },
     });
   </script>

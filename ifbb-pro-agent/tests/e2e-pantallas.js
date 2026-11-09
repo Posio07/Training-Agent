@@ -98,6 +98,27 @@ const server = http.createServer((req, res) => {
   assert.ok(/búlgara/i.test(txt) && /granjero/i.test(txt), 'funcionales de la bandera');
   assert.ok(/3 sesiones × 50 min/.test(txt), 'cardio de 150 min');
 
+  // 9. DEC-009: con síntomas y sin autorización médica el plan no se muestra; se llama a la pantalla de pausa.
+  await page.click('#btn-editar'); await page.waitForSelector('#form');
+  await page.check('input[name="healthSymptoms"]');
+  await page.click('button[type="submit"]');
+  await page.waitForSelector('#bloqueo');
+  assert.equal(await page.locator('.session').count(), 0, 'el plan no se ve con el tamizaje bloqueando');
+
+  // 10. Borrar los datos de salud pide confirmación: si se cancela, no se borra; si se acepta, sí.
+  await page.evaluate(() => { window.__bloqueos = 0; });
+  alm = await page.evaluate(() => window.__almacen);
+  await page.evaluate(() => { window.__almacen.perfiles[0].data.health.screening.medicalClearance = true; });
+  await page.evaluate(() => window.__montaje.ir('perfil', window.__almacen.perfiles[0].id));
+  await page.waitForSelector('#btn-clear-health');
+  await page.evaluate(() => { window.__confirmar = false; });
+  await page.click('#btn-clear-health');
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => window.__almacen.perfiles[0].data.health.screening.symptoms), true, 'cancelar no borra');
+  await page.evaluate(() => { window.__confirmar = true; });
+  await page.click('#btn-clear-health');
+  await page.waitForFunction(() => window.__almacen.perfiles[0].data.health.screening.symptoms === false);
+
   assert.deepEqual(errores, [], errores.join('\n'));
   await browser.close(); server.close();
   console.log('e2e pantallas (perfil y plan): OK');

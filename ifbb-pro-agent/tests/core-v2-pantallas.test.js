@@ -70,6 +70,13 @@ test('los datos leídos alimentan el plan del núcleo nuevo: el tiempo y los pri
   assert.deepEqual(f.firma.prioritarios, ['quads.squat_back']);
 });
 
+test('los campos nuevos tienen su etiqueta asociada y los errores se anuncian', () => {
+  const h = P.htmlPerfil(null);
+  assert.match(h, /<label for="tiempoDisponibleMin">/); assert.match(h, /<input id="tiempoDisponibleMin"/);
+  for (let i = 0; i < 6; i++) { assert.match(h, new RegExp(`<label for="tiempoDia_${i}">`)); assert.match(h, new RegExp(`id="tiempoDia_${i}"`)); }
+  assert.match(h, /id="form-errors" role="alert"/);
+});
+
 /* ---------- Plan (Entreno) ---------- */
 
 test('Entreno: una tarjeta por sesión con su botón de empezar, el cardio y las tablas; sin textos rotos', () => {
