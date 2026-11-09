@@ -87,7 +87,7 @@ function evaluar(filas, ctx) {
       // Los obligatorios entran primero: si cabe algún ejercicio, ninguno no obligatorio puede haber desplazado a un obligatorio (todo obligatorio ausente está en `faltantes`).
       if (falt.size && r.avisos.length !== falt.size) v.push(`${nombrePlan(f)} · ${s.nombre} con ${m} min: avisos ≠ faltantes`);
     })));
-    crit(4, 'La rutina corta cabe en el tiempo fijado, con los patrones obligatorios primero; si no caben todos, el aviso lo dice', v, { sobre: `${n} rutinas cortas (${minutos.join(', ')} min por cada sesión), ${conAviso} con aviso de patrones que no caben` });
+    crit(4, 'La rutina corta cabe en el tiempo fijado, con los patrones obligatorios primero; si no caben todos, el aviso lo dice', v, { sobre: `${n} rutinas cortas (${minutos.join(', ')} min por cada sesión), ${conAviso} con aviso de patrones que no caben. Mide que todo patrón obligatorio del tipo esté o esté avisado: que los obligatorios entren primero es la estructura del reparto (paso 3), que aquí no se puede observar desde la salida` });
   }
   // 5. Ninguna sesión por defecto tiene dos ejercicios de lumbar alta.
   {
@@ -215,7 +215,7 @@ function evaluar(filas, ctx) {
       vol0 += sin.sesiones.reduce((a, s) => a + s.series, 0);
     });
     if (vol1 < vol0 - EPS) v.push(`el volumen total baja: ${vol1} series con el tope frente a ${vol0} sin él`);
-    crit(13, 'Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)', v, { sobre: `${filas.reduce((a, f) => a + f.pl.sesiones.reduce((b, s) => b + s.ejercicios.length, 0), 0)} ejercicios (${sobre} con más de ${TOPE} series, todos avisados si la lista de incumplimientos está vacía); volumen: ${vol1} series con el tope, ${vol0} sin él` });
+    crit(13, 'Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)', v, { sobre: `${filas.reduce((a, f) => a + f.pl.sesiones.reduce((b, s) => b + s.ejercicios.length, 0), 0)} ejercicios (${sobre} con más de ${TOPE} series, todos avisados si la lista de incumplimientos está vacía); volumen: ${vol1} series con el tope, ${vol0} sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula` });
   }
   // 14. No queda ningún número fuera del registro ni código muerto: lo calcula `revisarCodigo` (lectura del código), no el barrido.
   out.push(Object.assign({ id: 14, titulo: 'No queda ningún número fuera del registro ni código muerto' }, c.codigo || { estado: 'informe', resumen: 'no evaluado', detalle: [] }));

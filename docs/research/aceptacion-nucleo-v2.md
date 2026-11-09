@@ -38,7 +38,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 4. La rutina corta cabe en el tiempo fijado, con los patrones obligatorios primero; si no caben todos, el aviso lo dice
 
-**✅ cumple.** 0 incumplimientos en 4860 rutinas cortas (20, 30, 45 min por cada sesión), 270 con aviso de patrones que no caben.
+**✅ cumple.** 0 incumplimientos en 4860 rutinas cortas (20, 30, 45 min por cada sesión), 270 con aviso de patrones que no caben. Mide que todo patrón obligatorio del tipo esté o esté avisado: que los obligatorios entren primero es la estructura del reparto (paso 3), que aquí no se puede observar desde la salida.
 
 ## 5. Ninguna sesión por defecto tiene dos ejercicios de lumbar alta
 
@@ -93,7 +93,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)
 
-**✅ cumple.** 0 incumplimientos en 9605 ejercicios (893 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34849 series con el tope, 34849 sin él.
+**✅ cumple.** 0 incumplimientos en 9605 ejercicios (893 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34849 series con el tope, 34849 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 

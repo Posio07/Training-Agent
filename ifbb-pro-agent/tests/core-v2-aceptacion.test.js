@@ -73,3 +73,43 @@ test('el informe lista cada criterio con su resultado y no se corrige nada: el c
   for (let i = 1; i <= 15; i++) assert.ok(md.includes(`## ${i}. `), `falta el criterio ${i}`);
   assert.match(md, /Solo lee/);
 });
+
+test('el criterio 9 mide tres cosas por separado: la frecuencia mínima, los pisos fraccionados y las series reales; cada una rota lo hace fallar y sin romper nada cumple', () => {
+  const sano = () => { const f = fresco(); f.forEach(x => REP.MUSCULOS.forEach(m => { const s = x.pl.semanal[m]; s.sesiones = 2; s.cubierto = Math.max(s.cubierto, s.piso); s.faltaReal = 0; })); return f; };
+  assert.equal(estado(sano(), 9), 'cumple');
+  const rompe = fn => { const f = sano(); fn(f); f.forEach(x => { x.pl.avisoUnico = null; }); return estado(f, 9); };
+  assert.equal(rompe(f => { f[0].pl.semanal.chest.sesiones = 1; }), 'no cumple', 'frecuencia');
+  assert.equal(rompe(f => { f[0].pl.semanal.chest.cubierto = f[0].pl.semanal.chest.piso - 3; }), 'no cumple', 'piso fraccionado');
+  assert.equal(rompe(f => { f[0].pl.semanal.back.faltaReal = 2; }), 'no cumple', 'series reales');
+  // con el aviso único que nombra al músculo, el piso y las series reales cumplen (la frecuencia no tiene aviso)
+  const f = sano(); f[0].pl.semanal.chest.cubierto = 0; f[0].pl.semanal.back.faltaReal = 2; f[0].pl.avisoUnico = { sinCubrir: [{ musculo: 'chest' }, { musculo: 'back' }], sinDirecto: [] };
+  assert.equal(estado(f, 9), 'cumple');
+});
+
+test('el criterio 2 también falla si el top set de un día de tirón no es un tirón (aunque estén los dos tirones)', () => {
+  const f = fresco();
+  const x = f.find(y => y.claves.some((c, i) => /^tiron/.test(c) && y.pl.sesiones[i].ejercicios.some(e => e.topSet)));
+  assert.ok(x, 'la muestra trae un día de tirón con top set');
+  const i = x.claves.findIndex((c, k) => /^tiron/.test(c) && x.pl.sesiones[k].ejercicios.some(e => e.topSet));
+  const s = x.pl.sesiones[i];
+  s.ejercicios.push({ varianteId: 'a', patron: 'tiron_vertical', series: 2 }, { varianteId: 'b', patron: 'tiron_horizontal', series: 2 });
+  s.ejercicios.find(e => e.topSet).patron = 'empuje_horizontal';
+  const r = A.evaluar(f, ctxBase).find(z => z.id === 2);
+  assert.equal(r.estado, 'no cumple'); assert.ok(r.detalle.some(d => /top set en/.test(d)));
+});
+
+test('el criterio 8 también falla si la aceptación caduca de más (por un cambio que no es de tiempo, días ni objetivo)', () => {
+  const v = PLAN.aceptacionVigente;
+  try {
+    PLAN.aceptacionVigente = (g, p, i) => v(g, p, i) && p.name !== 'Otro';
+    assert.equal(estado(fresco(), 8), 'no cumple');
+  } finally { PLAN.aceptacionVigente = v; }
+});
+
+test('el criterio 4 falla si los avisos de la rutina corta no coinciden con los patrones que no caben', () => {
+  const g = SES.sesionConTiempo;
+  try {
+    SES.sesionConTiempo = (p, i, m) => { const r = g(p, i, m); return r.faltantes.length ? Object.assign({}, r, { avisos: r.avisos.concat([{ regla: 'x', texto: 'sobra' }]) }) : r; };
+    assert.equal(estado(fresco(), 4, { minutosCortos: [20] }), 'no cumple');
+  } finally { SES.sesionConTiempo = g; }
+});
