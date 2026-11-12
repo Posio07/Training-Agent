@@ -363,6 +363,34 @@
       });
     }
 
+    /* Sub-patrones (DEC-037) · la cobertura del músculo, abierta por sub-patrón: `cubierto` en series fraccionadas,
+     * `directas` en series reales de ejercicios del grupo y `sesiones` en cuántos días aparece. Sirve para que una cuota
+     * pueda exigir volumen en cada sub-patrón; en este paso SOLO SE INFORMA: ninguna regla la usa todavía, así que las
+     * SESIONES no cambian (comprobado contra las 1620 del barrido). Lo que sí cambia es la forma del plan guardado, que
+     * gana este campo: por eso sube VERSION_MOTOR. Un músculo que no está en el mapa devuelve null. */
+    function coberturaPorSubPatron(m) {
+      const mapa = valor('SUB_PATRONES_POR_MUSCULO')[m];
+      if (!mapa) return null;
+      const nombreDe = patron => Object.keys(mapa).find(sp => mapa[sp].includes(patron)) || null;
+      const out = {};
+      Object.keys(mapa).forEach(sp => { out[sp] = { cubierto: 0, directas: 0, sesiones: 0 }; });
+      sesiones.forEach(ses => {
+        const vistos = new Set();
+        ses.ejercicios.forEach(ex => {
+          const w = pesos[ex.v.id][m];
+          if (!w) return;
+          const sp = nombreDe(ex.v.patron);
+          if (!sp) return; // un patrón sin clasificar no cuenta para ninguna cuota; el test de datos exige que no exista
+          out[sp].cubierto += w * ex.series;
+          if (cat.grupoDe(ex.v.id) === m) out[sp].directas += ex.series;
+          vistos.add(sp);
+        });
+        vistos.forEach(sp => { out[sp].sesiones += 1; });
+      });
+      Object.keys(out).forEach(sp => { out[sp].cubierto = Math.round(out[sp].cubierto * 100) / 100; });
+      return out;
+    }
+
     // Paso 7 · qué quedó sin cubrir y por qué (aviso único).
     const semanal = {};
     MUSCULOS.forEach(m => {
@@ -382,7 +410,7 @@
         // R1 deja la necesidad sin cubrir si alguna sesión tenía tiempo y solo R1 impidió sumar.
         causa = motivos.R1 > 0 ? 'R1' : (candidatos === 0 ? 'sin ejercicios disponibles' : 'tiempo');
       }
-      semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa });
+      semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa, porSubPatron: coberturaPorSubPatron(m) });
     });
     const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
     // Frecuencia mínima de los grupos mayores (DEC-036): un grupo mayor que entrena menos días por semana que el mínimo va al aviso único, no se fuerza (no es una restricción).

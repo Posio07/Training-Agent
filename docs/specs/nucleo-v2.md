@@ -72,6 +72,26 @@ Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y 
 
 Los patrones obligatorios son un criterio de diseño (E4). El investigador debe buscar respaldo para la cobertura mínima por tipo de sesión.
 
+## Sub-patrones del músculo (DEC-037, propuesto)
+
+> **Sección agregada por el agente el 2026-11-12** a pedido de Emanuel, con sus decisiones del plan de la FASE A. El texto de las demás secciones no se tocó. Mientras DEC-037 esté `Propuesto`, de esta sección solo está implementado el punto 1.
+
+Un músculo no se cubre con un movimiento cualquiera: la abducción de cadera no sustituye a la extensión, ni el jalón al remo. Los **patrones** que aportan a un músculo se agrupan en **sub-patrones**, y el objetivo semanal se exige por sub-patrón, no solo por músculo.
+
+| Músculo | Sub-patrones |
+| --- | --- |
+| Glúteos | `extension_cadera` (sentadilla, prensa, zancada, puente de cadera, patada de glúteo) · `abduccion_cadera` |
+| Espalda | `tiron_vertical` · `tiron_horizontal` · `otros` (el pullover, que no es ninguno de los dos) |
+| Isquiotibiales | `bisagra_cadera` · `flexion_rodilla` |
+
+1. **El sub-patrón no es un dato nuevo del catálogo** (implementado): es una agrupación de los `patron` que el catálogo ya tiene, en el registro (`SUB_PATRONES_POR_MUSCULO`, E4). La clave reservada `otros` marca el patrón que aporta al músculo pero no cuenta para ninguna cuota. El plan expone la cobertura por sub-patrón en `semanal[musculo].porSubPatron` (series fraccionadas, series directas y en cuántos días aparece). Un test de datos exige que todo patrón que aporte a un músculo del mapa esté en exactamente una lista.
+2. **El conteo fraccionado no cambia** (implementado, por omisión): la abducción sigue aportando 1 serie directa a glúteo. Lo que se exige es cobertura por sub-patrón, no un peso a medida por ejercicio (regla 4 del proyecto, DEC-016 y la decisión de B-042 del 2026-11-08).
+3. **Cuota por sub-patrón** (pendiente del paso 2): con un objetivo semanal de 8 series o más (`UMBRAL_CUOTA_SUB_PATRON`, parámetro E4), el plan exige al menos un ejercicio con sus series mínimas en cada sub-patrón, salvo `otros`. Si no cabe, el aviso único lo dice.
+4. **Tope por ejercicio** (pendiente del paso 2): el excedente de las 5 series (DEC-031) pasa a otra variante del mismo patrón y, si no hay, **a otro ejercicio del mismo músculo**. Mover series a otro día queda fuera de DEC-037.
+5. **Orden de decisión del relleno** (pendiente del paso 2): restricciones duras → evidencia de la relación ejercicio-músculo → redundancia (cobertura marginal) → tiempo y, a igual duración, menor demanda lumbar según el perfil articular de la Fase 3. No se crea otra regla de fatiga.
+
+Qué porción de cada músculo cubre cada movimiento está **pendiente de validar por el investigador**: el mapa es criterio de diseño (E4) hasta entonces.
+
 ## Algoritmo de reparto
 
 Un solo paso, en este orden. Ningún paso posterior corrige a uno anterior.
