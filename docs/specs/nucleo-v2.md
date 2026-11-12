@@ -90,7 +90,7 @@ Un músculo no se cubre con un movimiento cualquiera: la abducción de cadera no
 4. **Tope por ejercicio** (pendiente del paso 2): el excedente de las 5 series (DEC-031) pasa a otra variante del mismo patrón y, si no hay, **a otro ejercicio del mismo músculo**. Mover series a otro día queda fuera de DEC-037.
 5. **Orden de decisión del relleno** (pendiente del paso 2): restricciones duras → evidencia de la relación ejercicio-músculo → redundancia (cobertura marginal) → tiempo y, a igual duración, menor demanda lumbar según el perfil articular de la Fase 3. No se crea otra regla de fatiga.
 
-Qué porción de cada músculo cubre cada movimiento está **pendiente de validar por el investigador**: el mapa es criterio de diseño (E4) hasta entonces.
+La bisagra no figura en los sub-patrones de glúteos aunque sea extensión de cadera: hoy su peso con glúteos es 0 en los datos de músculos. Qué porción de cada músculo cubre cada movimiento está **pendiente de validar por el investigador**: el mapa es criterio de diseño (E4) hasta entonces.
 
 ## Algoritmo de reparto
 

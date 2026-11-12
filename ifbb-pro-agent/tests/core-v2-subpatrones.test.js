@@ -110,13 +110,15 @@ test('DEC-037 (caso clave, hoy FALLA el objetivo): el glúteo se cubre casi ente
   assert.ok(diaBisagra.minutos < diaBisagra.capacidadMin, `${diaBisagra.nombre}: ${diaBisagra.minutos} de ${diaBisagra.capacidadMin} min`);
 });
 
-test('DEC-037 (caso clave): con 10 series semanales de glúteo, hoy caben 10 abducciones; el paso 2 tendrá que impedirlo', () => {
-  // Novato, mantenimiento, división sin énfasis: el objetivo del glúteo queda en el orden de las 10 series.
+test('DEC-037 (medición del caso): con un objetivo de 10 series de glúteo, hoy entran 11 abducciones (9 en un solo día) y ninguna serie directa de extensión', () => {
+  // Novato, mantenimiento, división sin énfasis: el objetivo semanal del glúteo queda en 10 series.
   const pl = plan({ level: 'novice', goal: 'maintain', daysPerWeek: 4, tiempoDisponibleMin: 75 });
-  const por = pl.semanal.glutes.porSubPatron;
-  const abduccionesEnUnDia = Math.max(...pl.sesiones.map(s => s.ejercicios.filter(e => e.patron === 'abduccion_cadera').reduce((a, e) => a + e.series, 0)));
-  // Hoy nada obliga a que la extensión de cadera tenga su propio ejercicio: se mide y se deja registrado.
-  assert.ok(por.abduccion_cadera.cubierto >= por.extension_cadera.cubierto,
-    `abducción ${por.abduccion_cadera.cubierto} · extensión ${por.extension_cadera.cubierto}`);
-  assert.ok(abduccionesEnUnDia >= 1, 'la abducción entra en el plan');
+  const g = pl.semanal.glutes, por = g.porSubPatron;
+  assert.equal(g.objetivo, 10, 'el caso es el del objetivo de 10 series');
+  // Lo que hoy pasa, con los números exactos: toda la cobertura directa es abducción y la extensión de cadera no tiene
+  // ningún ejercicio propio. El paso 2 de DEC-037 tiene que dar vuelta estas tres líneas.
+  assert.equal(por.abduccion_cadera.directas, 11, 'hoy el glúteo se cubre con 11 series de abducción');
+  assert.equal(por.extension_cadera.directas, 0, 'hoy no hay ninguna serie directa de extensión de cadera');
+  const porDia = pl.sesiones.map(s => s.ejercicios.filter(e => e.patron === 'abduccion_cadera').reduce((a, e) => a + e.series, 0));
+  assert.ok(Math.max(...porDia) >= 9, `abducciones por día: ${porDia.join(', ')}`);
 });
