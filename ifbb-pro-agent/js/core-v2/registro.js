@@ -104,6 +104,28 @@
       general_m: { up: [], down: [] },
       general_w: { up: [], down: [] },
     }, 'grupos', 'DEC-001', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'engine.js (EMPHASIS_MAP)', nota: 'Tabla de datos (grupos con énfasis ×1,25 y reducido ×0,5 por división), copiada tal cual del motor viejo.' }),
+    /* ---- Paso 4 · sub-patrones del músculo (DEC-037) ---- */
+    // Un músculo se cubre con movimientos que no son intercambiables: la abducción de cadera no sustituye a la extensión,
+    // ni el jalón al remo. El mapa agrupa los PATRONES que aportan a cada músculo en sub-patrones, para que una cuota
+    // pueda exigir volumen en cada uno (la cuota llega en el paso siguiente de DEC-037; acá solo se informa la cobertura).
+    // Clave reservada `otros`: el patrón aporta al músculo pero no cuenta para ninguna cuota. Todo patrón que aporte a un
+    // músculo del mapa tiene que estar en exactamente una lista; un test de datos lo exige.
+    // Solo se abren los tres músculos que pidió Emanuel (2026-11-12); abrir los demás es otra decisión.
+    e('SUB_PATRONES_POR_MUSCULO', {
+      glutes: {
+        extension_cadera: ['sentadilla', 'prensa', 'zancada', 'puente_cadera', 'patada_gluteo'],
+        abduccion_cadera: ['abduccion_cadera'],
+      },
+      back: {
+        tiron_vertical: ['tiron_vertical'],
+        tiron_horizontal: ['tiron_horizontal'],
+        otros: ['pullover'],
+      },
+      hamstrings: {
+        bisagra_cadera: ['bisagra'],
+        flexion_rodilla: ['flexion_rodilla'],
+      },
+    }, 'patrones por sub-patrón', 'DEC-037', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'DEC-037 (pedido de Emanuel, 2026-11-12)', nota: 'Pendiente de validar por el investigador: qué movimientos cubren qué porción de cada músculo. La patada de glúteo entra en extensión de cadera (es extensión, no abducción) y el pullover queda sin cuota (no es tirón vertical ni horizontal).' }),
     e('EXCLUSIONES_POR_LESION', {
       shoulder: ['chest.dip_parallel', 'chest.press_machine', 'shoulders.press_overhead_barbell', 'shoulders.press_overhead_db', 'shoulders.press_overhead_db_seated', 'triceps.close_grip_press', 'triceps.dips'],
       elbow: ['biceps.curl_barbell', 'biceps.curl_ez', 'triceps.close_grip_press', 'triceps.dips'],
