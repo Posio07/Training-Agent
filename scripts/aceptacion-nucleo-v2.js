@@ -204,7 +204,7 @@ function evaluar(filas, ctx) {
     }));
     crit(12, 'Todo grupo del perfil tiene por semana un ejercicio directo con 2 series o más, o el aviso único lo dice (DEC-029)', v, { sobre: `${T * REP.MUSCULOS.length} grupo-planes (${avisados} con aviso)` });
   }
-  // 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031).
+  // 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037).
   {
     const TOPE = REG.valor('MAX_SERIES_POR_EJERCICIO'), v = []; let sobre = 0, vol1 = 0, vol0 = 0;
     filas.forEach(f => {
@@ -218,7 +218,7 @@ function evaluar(filas, ctx) {
       vol0 += sin.sesiones.reduce((a, s) => a + s.series, 0);
     });
     if (vol1 < vol0 - EPS) v.push(`el volumen total baja: ${vol1} series con el tope frente a ${vol0} sin él`);
-    crit(13, 'Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)', v, { sobre: `${filas.reduce((a, f) => a + f.pl.sesiones.reduce((b, s) => b + s.ejercicios.length, 0), 0)} ejercicios (${sobre} con más de ${TOPE} series, todos avisados si la lista de incumplimientos está vacía); volumen: ${vol1} series con el tope, ${vol0} sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula` });
+    crit(13, 'Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037)', v, { sobre: `${filas.reduce((a, f) => a + f.pl.sesiones.reduce((b, s) => b + s.ejercicios.length, 0), 0)} ejercicios (${sobre} con más de ${TOPE} series, todos avisados si la lista de incumplimientos está vacía); volumen: ${vol1} series con el tope, ${vol0} sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula` });
   }
   // 14. No queda ningún número fuera del registro ni código muerto: lo calcula `revisarCodigo` (lectura del código), no el barrido.
   out.push(Object.assign({ id: 14, titulo: 'No queda ningún número fuera del registro ni código muerto' }, c.codigo || { estado: 'informe', resumen: 'no evaluado', detalle: [] }));
@@ -244,7 +244,7 @@ const SOLO_TESTS_QUE_SE_QUEDAN = [ // prueban comportamiento real: se conservan
   'pantallas/sesion.js: `htmlSerie`', 'pantallas/sesion.js: `htmlEjercicioSesion`', 'pantallas/sesion.js: `htmlResumen`', 'plan.js: `CAMPOS`', 'registro.js: `REGLAS`', 'reparto.js: `GRUPOS_CHICOS`', 'sesion.js: `ultimaVariante`',
   // Quedan solo en los tests desde el corte (antes las usaban la página de prueba y la vista previa del reparto, borradas): todas prueban comportamiento real.
   'almacen.js: `CLAVE`', 'catalogo.js: `variantesDePatron`', 'pantallas/sesion.js: `platesForWeight`', 'pantallas/sesion.js: `parseRestSeconds`',
-  'reparto.js: `SPLITS`', 'reparto.js: `TIPOS`', 'reparto.js: `MUSCULOS`', 'reparto.js: `GRUPOS_MAYORES`', 'reparto.js: `pesosDe`',
+  'reparto.js: `compararDecision`', 'reparto.js: `SPLITS`', 'reparto.js: `TIPOS`', 'reparto.js: `MUSCULOS`', 'reparto.js: `GRUPOS_MAYORES`', 'reparto.js: `pesosDe`',
   // `sesion.js: progreso` también es solo de los tests, pero esta lectura no lo ve: busca el nombre suelto y la palabra
   // "progreso" aparece en prosa en app.js. Se declara igual para que la lista diga la verdad.
   'sesion.js: `progreso`',

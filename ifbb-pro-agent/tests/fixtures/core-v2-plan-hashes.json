@@ -1,5 +1,5 @@
 {
-  "versionMotor": "core-v2.5",
+  "versionMotor": "core-v2.6",
   "perfiles": {
     "oscar_cut_classic_5d": {
       "activity": "moderate",
@@ -166,15 +166,15 @@
     }
   },
   "cases": {
-    "oscar_cut_classic_5d": "0adbd790c9120e4ce4a7b023ca3942543316f638fc23caa2a214a1861f28bfad",
-    "novice_bulk_physique_4d": "226529aef5967c9e2df5718a0d69eaee269fb8f6be31241d98bd64b09e491344",
-    "wellness_maintain_5d": "396a29e9e7214f6a5766d31c941091be37b0be9f88c6885c745b11ad656e705c",
-    "general_cut_3d": "f0ad8295777e0b05a7702ae0a7203ed718b7ad9c55a4a05142aab68d8a6e4679",
-    "bb_bulk_advanced_6d": "c746957c39ce34ad209f405c64b254280719f5f1f576c311b3cfc33ebbedb8d9",
-    "bikini_cut_lagging_4d": "b1a94297a865b9ee51e647b90e76213c9abfcecf9b57ee4def47866c38134e84",
-    "emanuel_legs_cut_4d": "b9de029c1e809804b94b655c7329c3456e75c40242c11b74df3e89caf6efbb57",
-    "figure_maintain_novice_3d": "5a9173485d2c4f132982142ef3c5d8a78c203c9d84ae5eb0beb768de33e93abb",
-    "physique_cut_adv_lag_5d": "672cf38ef2c8ecd548c3d785f5fc32ce1353b1d650c75e80e8366c92ea5bd1a1",
-    "physique_w_bulk_6d": "dfbeeaab82cfc21215ef4c92250ba261d939c97427e15d7b96829cbabae4fee0"
+    "oscar_cut_classic_5d": "236bfbac0c6d3f660e95b8812953ba14f7edfd1b7c5e2edc4685c2662adee073",
+    "novice_bulk_physique_4d": "20d2e6a931f799e1c81361fa6e7d3fdd2785bec6624eb30ed60d333ca32201de",
+    "wellness_maintain_5d": "1d76e84b6ab69b1fff0f497cbbb30752cb649202cdbdfa9ec9bced9f3e54c9a8",
+    "general_cut_3d": "1a6741641fe21c176300b7c324b10e1e84adc010480c34bfac645017bc2387e6",
+    "bb_bulk_advanced_6d": "deff3858e7ddaa19bfb0018717e2d243134e837b85f1a00586f9d9bf62fcf4d1",
+    "bikini_cut_lagging_4d": "fa08376a3664638b04e72e90e8497ade13c267014e4604e0fbc936483e9e3b39",
+    "emanuel_legs_cut_4d": "54015c9c1eeafc657ee2f3d875f5ed3c4738fe5e882763f4b2800a6f47e4ed16",
+    "figure_maintain_novice_3d": "98a014d1876dad7e37d561fe5324e9a6e0842fe5380d6342c6cee256327d4a8f",
+    "physique_cut_adv_lag_5d": "b5fba17e36646cd9a51f3c600b8df096421fb731eab7f395d5bd4b89d4160643",
+    "physique_w_bulk_6d": "b7cf92330baf7a312adb914a71c1647435138ee7ff1c1488045f38bf738f145c"
   }
 }

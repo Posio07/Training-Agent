@@ -2,7 +2,7 @@
 
 Generado por `node scripts/aceptacion-nucleo-v2.js --escribir`. Solo lee: **no corrige nada**. Si un criterio no se cumple, este informe lo dice y la decisión es de Emanuel.
 
-Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.5`.
+Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.6`.
 
 **Resultado: 13 cumplen · 1 cumplen con aviso · 0 no cumplen · 1 son un informe.**
 
@@ -20,7 +20,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 | 10 | Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada | ✅ cumple |
 | 11 | El patrón principal de cada sesión tiene al menos 4 series de trabajo, o el aviso único dice que no cupo en el tiempo (DEC-029) | ✅ cumple |
 | 12 | Todo grupo del perfil tiene por semana un ejercicio directo con 2 series o más, o el aviso único lo dice (DEC-029) | ✅ cumple |
-| 13 | Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031) | ✅ cumple |
+| 13 | Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037) | ✅ cumple |
 | 14 | No queda ningún número fuera del registro ni código muerto | ✅ cumple |
 | 15 | El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos | ✅ cumple |
 
@@ -54,12 +54,12 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 | Músculo | Total | 3 días | 4 días | 5 días | 6 días |
 | --- | --- | --- | --- | --- | --- |
-| Pecho | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
-| Espalda | 16 (4.4 %) | 0 de 90 | 0 de 90 | 8 de 90 | 8 de 90 |
-| Hombros | 4 (1.1 %) | 0 de 90 | 4 de 90 | 0 de 90 | 0 de 90 |
-| Cuádriceps | 6 (1.7 %) | 0 de 90 | 2 de 90 | 2 de 90 | 2 de 90 |
-| Isquiotibiales | 8 (2.2 %) | 0 de 90 | 4 de 90 | 2 de 90 | 2 de 90 |
-| Glúteos | 22 (6.1 %) | 3 de 90 | 9 de 90 | 8 de 90 | 2 de 90 |
+| Pecho | 12 (3.3 %) | 0 de 90 | 12 de 90 | 0 de 90 | 0 de 90 |
+| Espalda | 24 (6.7 %) | 0 de 90 | 8 de 90 | 8 de 90 | 8 de 90 |
+| Hombros | 12 (3.3 %) | 0 de 90 | 12 de 90 | 0 de 90 | 0 de 90 |
+| Cuádriceps | 2 (0.6 %) | 0 de 90 | 0 de 90 | 0 de 90 | 2 de 90 |
+| Isquiotibiales | 4 (1.1 %) | 0 de 90 | 0 de 90 | 2 de 90 | 2 de 90 |
+| Glúteos | 6 (1.7 %) | 0 de 90 | 0 de 90 | 2 de 90 | 4 de 90 |
 | Pantorrillas | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Bíceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Tríceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
@@ -71,7 +71,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 9. La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único
 
-**⚠️ cumple con aviso.** Pisos (DEC-014/017/020: 10 series fraccionadas por semana para los grupos mayores, 5 con énfasis reducido, 5 los chicos) y series reales: 0 sin aviso. Frecuencia mínima de 2 sesiones por semana en los grupos mayores: 84 caso(s) por debajo con aviso en el aviso único (DEC-036, aviso y no restricción) y 0 sin aviso.
+**⚠️ cumple con aviso.** Pisos (DEC-014/017/020: 10 series fraccionadas por semana para los grupos mayores, 5 con énfasis reducido, 5 los chicos) y series reales: 0 sin aviso. Frecuencia mínima de 2 sesiones por semana en los grupos mayores: 74 caso(s) por debajo con aviso en el aviso único (DEC-036, aviso y no restricción) y 0 sin aviso.
 
 ## 10. Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada
 
@@ -85,13 +85,13 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 **✅ cumple.** 0 incumplimientos en 3600 grupo-planes (0 con aviso).
 
-## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)
+## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037)
 
-**✅ cumple.** 0 incumplimientos en 9912 ejercicios (590 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34849 series con el tope, 34849 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
+**✅ cumple.** 0 incumplimientos en 10651 ejercicios (230 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34055 series con el tope, 34055 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 
-**✅ cumple.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 0 exportación(es) que nadie usa y 28 que solo usan los tests: 0 declaradas para borrar en el corte (B-057), 28 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
+**✅ cumple.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 0 exportación(es) que nadie usa y 29 que solo usan los tests: 0 declaradas para borrar en el corte (B-057), 29 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
 
 - por archivo: 
 - solo tests: ifbb-pro-agent/js/core-v2/almacen.js: `CLAVE`
@@ -121,6 +121,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 - solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `GRUPOS_MAYORES`
 - solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `GRUPOS_CHICOS`
 - solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `pesosDe`
+- solo tests: ifbb-pro-agent/js/core-v2/reparto.js: `compararDecision`
 - solo tests: ifbb-pro-agent/js/core-v2/sesion.js: `ultimaVariante`
 
 ## 15. El caso del 5 nov no reproduce el día de sentadilla y peso muerto rumano juntos

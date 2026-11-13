@@ -126,6 +126,10 @@
         flexion_rodilla: ['flexion_rodilla'],
       },
     }, 'patrones por sub-patrón', 'DEC-037', 'E4', CRITERIO, { paso: 4, estado: 'implementada', origen: 'DEC-037 (pedido de Emanuel, 2026-11-12)', nota: 'Pendiente de validar por el investigador: qué movimientos cubren qué porción de cada músculo. La patada de glúteo entra en extensión de cadera (es extensión, no abducción) y el pullover queda sin cuota (no es tirón vertical ni horizontal).' }),
+    // DEC-037 punto 3 y DEC-039: la cuota por sub-patrón se exige cuando el objetivo semanal del músculo llega a este umbral.
+    e('UMBRAL_CUOTA_SUB_PATRON', 8, 'series por semana', 'DEC-037', 'E4', CRITERIO, { paso: 4, estado: 'implementada', reviewRequired: true, origen: 'DEC-037 (decisión de Emanuel, 2026-11-13: parámetro, valor 8)', nota: 'Parametrizable. El 8 es criterio de diseño: ninguna fuente fija desde qué volumen semanal un músculo necesita más de un sub-patrón. Pendiente de revisión del investigador.' }),
+    // DEC-037 punto 5 y DEC-039: el relleno ordena por la evidencia de la relación del ejercicio con el músculo de su grupo (mejor primero).
+    e('ORDEN_EVIDENCIA', ['verificado', 'verificado (1 estudio)', 'probable', 'a_verificar'], 'niveles, de mejor a peor', 'DEC-037', 'E4', CRITERIO, { paso: 5, estado: 'implementada', reviewRequired: true, origen: 'DEC-037 punto 5 (criterio de diseño del agente a pedido de Emanuel, 2026-11-12)', nota: 'Solo ordena candidatos factibles: la evidencia no mueve pesos ni relaciones (regla 4 de CLAUDE.md). Pendiente de revisión del investigador: si un ejercicio con mejor evidencia debe ganar siempre sobre uno con menos redundancia.' }),
     e('EXCLUSIONES_POR_LESION', {
       shoulder: ['chest.dip_parallel', 'chest.press_machine', 'shoulders.press_overhead_barbell', 'shoulders.press_overhead_db', 'shoulders.press_overhead_db_seated', 'triceps.close_grip_press', 'triceps.dips'],
       elbow: ['biceps.curl_barbell', 'biceps.curl_ez', 'triceps.close_grip_press', 'triceps.dips'],

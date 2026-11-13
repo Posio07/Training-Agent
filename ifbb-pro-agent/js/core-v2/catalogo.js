@@ -181,8 +181,14 @@
     const x = VARIANTE_POR_ID[id];
     return x ? (EXERCISE_MUSCLES.buckets[x.hereda] || null) : null;
   };
-  // DEC-038: la variante entra al plan con "evidencia por verificar" cuando la relación directa con el músculo de su grupo está a_verificar
-  // (sin fuente leída). Se calcula de los datos, sin lista aparte: una variante cuya fila se verifica deja de llevar la marca sola.
+  // Evidencia de la relación directa del ejercicio con el músculo de su grupo (la que ordena el relleno, DEC-039). Sin fila: la peor.
+  const PEOR_EVIDENCIA = REGISTRO.valor('ORDEN_EVIDENCIA').slice(-1)[0];
+  const evidenciaDe = id => {
+    const r = aportesDe(id).find(x => x.muscle === grupoDe(id) && x.relacion === 'directa');
+    return r ? r.evidencia : PEOR_EVIDENCIA;
+  };
+  // DEC-038: la variante entra al plan con "evidencia por verificar" cuando esa relación está a_verificar (sin fuente leída).
+  // Se calcula de los datos, sin lista aparte: una variante cuya fila se verifica deja de llevar la marca sola.
   const evidenciaPorVerificar = id => aportesDe(id).some(r => r.muscle === grupoDe(id) && r.relacion === 'directa' && r.evidencia === 'a_verificar');
   // Perfil articular: el propio de la variante partida o, si no se partió, el de su fila de data/perfil-articular.csv.
   const perfilArticularDe = id => {
@@ -210,5 +216,5 @@
     return (zonas || []).some(z => (mapa[z] || []).includes(id));
   };
 
-  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, evidenciaPorVerificar, perfilArticularDe, segundosPorSerie, excluidaPorLesion };
+  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, evidenciaDe, evidenciaPorVerificar, perfilArticularDe, segundosPorSerie, excluidaPorLesion };
 });

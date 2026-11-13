@@ -646,10 +646,13 @@ test('DEC-031: el traspaso se niega si la otra variante no cabe en el tiempo (ca
   const cand = base.plan.sesiones.flatMap(s => s.ejercicios).find(e => e.series > 5 && C.variantesDePatron(e.patron).length > 1);
   const alternativas = C.variantesDePatron(cand.patron).map(v => v.id).filter(id => id !== cand.varianteId);
   const perfil = Object.assign({}, base.p, { daysPerWeek: base.d });
-  // Tiempo: las otras variantes cuestan 1000 s por serie y la sesión no tiene holgura para el traspaso.
-  const lento = Object.assign({}, C, { segundosPorSerie: id => (alternativas.includes(id) ? 1000 : C.segundosPorSerie(id)) });
+  // Tiempo: las otras variantes del patrón y los demás ejercicios del músculo (destino del segundo paso, DEC-037 punto 4) cuestan 100000 s por serie (ni la estructura los acepta)
+  // y la sesión no tiene holgura para el traspaso.
+  const grupo = C.grupoDe(cand.varianteId);
+  const destinos = C.VARIANTES.filter(v => C.grupoDe(v.id) === grupo && v.id !== cand.varianteId).map(v => v.id);
+  const lento = Object.assign({}, C, { segundosPorSerie: id => (destinos.includes(id) ? 100000 : C.segundosPorSerie(id)) });
   const sinLugar = REP.generarPlan(perfil, { catalogo: lento });
-  assert.equal(sinLugar.sesiones.flatMap(s => s.ejercicios).filter(e => alternativas.includes(e.varianteId)).length, 0, 'no debería haberse traspasado con ese costo');
+  assert.equal(sinLugar.sesiones.flatMap(s => s.ejercicios).filter(e => destinos.includes(e.varianteId)).length, 0, 'no debería haberse traspasado con ese costo');
   assert.ok(sinLugar.avisos.topeExcedido.length > 0, 'sin lugar para el traspaso, el aviso lo dice');
   sinLugar.sesiones.forEach(s => assert.ok(s.minutos <= s.capacidadMin));
   // R1 es defensiva: hoy las variantes de un mismo patrón tienen los mismos aportes, así que el traspaso nunca sube un músculo y esa comprobación no llega a decidir. Se verifica que, aun con aportes distintos, no queda R1 rota en una sesión que recibió el traspaso.

@@ -74,13 +74,16 @@ const { abrir, leer, leerSesion } = require('./e2e-comun.js');
 
   // 4. Elegir otra variante del siguiente ejercicio: queda registrada con su propio id.
   await page.click('#sm-next');
-  const antes = (await act()).exercises[1].exerciseId;
+  // El segundo ejercicio puede ser de un patrón de una sola variante (el hip thrust con el reparto de DEC-037): se avanza hasta uno que ofrezca otra.
+  let ix = 1;
+  while (await page.locator('summary:has-text("Cambiar la variante")').count() === 0 && ix < 5) { await page.click('#sm-next'); ix++; }
+  const antes = (await act()).exercises[ix].exerciseId;
   await page.click('summary:has-text("Cambiar la variante")');
   const otra = await page.locator('[data-sm-variante]').first();
   const nuevo = await otra.getAttribute('data-sm-variante');
   assert.notEqual(nuevo, antes);
   await otra.click();
-  await page.waitForFunction(id => JSON.parse(localStorage.getItem(window.SESSION_STORE.STORAGE_KEY)).exercises[1].exerciseId === id, nuevo);
+  await page.waitForFunction(([id, i]) => JSON.parse(localStorage.getItem(window.SESSION_STORE.STORAGE_KEY)).exercises[i].exerciseId === id, [nuevo, ix]);
   await hecha(0, 120, 10);
   p = await perfil();
   assert.equal(p.workouts[p.workouts.length - 1].exerciseId, nuevo, 'el progreso se registra por variante');
