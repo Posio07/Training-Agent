@@ -137,9 +137,7 @@
           <div class="name">${esc(p.data.name)}</div>
           <div class="meta">${esc(div ? div.label : '')} · ${goal} · ${esc(p.data.weightKg)} kg · actualizado ${fmtDate(p.updatedAt)}</div>
         </div>
-        <div class="btn-row" style="margin:0">
-          <button class="btn" data-act="open">Abrir</button>
-        </div>
+        <button class="btn" data-act="open">Abrir</button>
       </div>`;
     }).join('');
 
@@ -157,7 +155,7 @@
       ${active() ? `<div class="card">
         <h3>Perfil activo: ${esc(active().data.name)}</h3>
         ${(() => { const hs = ENGINE.computeHealthScreen(ENGINE.normalizeProfile(active().data)); return hs.anyCondition ? `<p class="nota">${esc(hs.disclaimer)}</p>` : ''; })()}
-        <div class="btn-row">
+        <div class="btn-row btn-row-2">
           <button class="btn" id="btn-edit">Editar datos</button>
           <button class="btn" id="btn-dup">Duplicar</button>
           <button class="btn" id="btn-export">Exportar JSON</button>
