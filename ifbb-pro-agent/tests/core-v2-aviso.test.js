@@ -77,7 +77,7 @@ test('DEC-038 y DEC-037 paso 2: a 90 min las variantes más caras llenan el día
   const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 90 };
   const g = nuevo(p);
   const causas = g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa);
-  assert.ok(causas.includes('quads:tiempo') && causas.includes('back:R1') && causas.includes('shoulders:R1'), causas.join(', '));
+  assert.deepEqual(causas, ['back:R1', 'shoulders:R1', 'quads:tiempo', 'glutes:tiempo']);
   const a = AVISO.construirAviso(g.plan);
   assert.equal(a.soloR1, false);
   assert.equal(a.salidas[0].disponible, true); // más tiempo sí ayuda
