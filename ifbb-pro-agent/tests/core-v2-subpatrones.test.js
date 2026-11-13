@@ -1,6 +1,6 @@
-/* Sub-patrones del músculo (DEC-037, paso 1): el mapa del registro y la cobertura por sub-patrón que el plan expone.
- * En este paso NINGUNA regla usa la cobertura, así que el plan generado no cambia: eso lo fija la huella de los 10
- * perfiles de referencia en core-v2-plan.test.js. Acá se prueban el dato y el conteo. */
+/* Sub-patrones del músculo (DEC-037): el mapa del registro, la cobertura por sub-patrón que el plan expone (paso 1) y la cuota que el reparto
+ * exige con ella (paso 2: cuota, excedente del tope en dos pasos y orden de decisión; los detalles en core-v2-cuota.test.js). Acá se prueban el
+ * dato, el conteo y los dos casos medidos el 2026-11-10 (glúteo con abducción y sin extensión), que el paso 2 da vuelta. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const R = require('../js/core-v2/registro.js');
@@ -94,31 +94,25 @@ test('DEC-037: `sesiones` cuenta los días en que el sub-patrón aparece, sin co
 
 /* ---------- El caso que motiva DEC-037 ---------- */
 
-test('DEC-037 (caso clave, hoy FALLA el objetivo): el glúteo se cubre casi entero con abducción y la extensión de cadera queda sin series directas', () => {
-  // Perfil medido el 2026-11-10: avanzado, volumen, physique_m, glúteo rezagado, 5 días, 75 min.
+test('DEC-037 paso 2 (caso clave): el glúteo ya no se cubre casi entero con abducción; la extensión de cadera tiene series directas', () => {
+  // Perfil medido el 2026-11-10: avanzado, volumen, physique_m, glúteo rezagado, 5 días, 75 min. Antes del paso 2: 18 de 20,5 series con abducción y
+  // 2,5 con extensión, sin ninguna serie directa de extensión.
   const pl = plan({ level: 'advanced', goal: 'bulk', division: 'physique_m', laggingMuscles: ['glutes'], daysPerWeek: 5, tiempoDisponibleMin: 75 });
   const por = pl.semanal.glutes.porSubPatron;
-  // Lo que el paso 1 deja medido y a la vista. Cuando el paso 2 de DEC-037 entre, estas dos líneas tienen que cambiar
-  // de sentido: es el test que fija el problema para que la corrección se note.
-  assert.ok(por.abduccion_cadera.cubierto > por.extension_cadera.cubierto * 5,
-    `hoy la abducción cubre ${por.abduccion_cadera.cubierto} y la extensión ${por.extension_cadera.cubierto}`);
-  assert.equal(por.extension_cadera.directas, 0, 'hoy no hay ninguna serie directa de extensión de cadera');
-  // Y el objetivo semanal del glúteo pasa el umbral de la cuota que viene, así que el caso está en su alcance.
-  assert.ok(pl.semanal.glutes.objetivo >= 8, `objetivo de glúteo ${pl.semanal.glutes.objetivo}`);
-  // El tiempo no era la restricción: la sesión del día de bisagra sobra capacidad.
-  const diaBisagra = pl.sesiones.find(s => /bisagra/.test(s.nombre));
-  assert.ok(diaBisagra.minutos < diaBisagra.capacidadMin, `${diaBisagra.nombre}: ${diaBisagra.minutos} de ${diaBisagra.capacidadMin} min`);
+  assert.ok(pl.semanal.glutes.objetivo >= R.valor('UMBRAL_CUOTA_SUB_PATRON'), `objetivo de glúteo ${pl.semanal.glutes.objetivo}`);
+  assert.ok(por.extension_cadera.cubierto > por.abduccion_cadera.cubierto, `la extensión cubre ${por.extension_cadera.cubierto} y la abducción ${por.abduccion_cadera.cubierto}`);
+  assert.ok(por.extension_cadera.directas >= R.valor('SERIES_MIN_POR_EJERCICIO'), 'hay ejercicio directo de extensión de cadera con sus series mínimas');
+  assert.ok(por.abduccion_cadera.directas >= R.valor('SERIES_MIN_POR_EJERCICIO'), 'la abducción también tiene su cuota');
 });
-
-test('DEC-037 (medición del caso): con un objetivo de 10 series de glúteo, hoy entran 11 abducciones (9 en un solo día) y ninguna serie directa de extensión', () => {
+test('DEC-037 paso 2 (test clave): con 10 series de glúteo por semana no pueden salir 10 abducciones; antes entraban 11 (9 en un día) y ninguna de extensión', () => {
   // Novato, mantenimiento, división sin énfasis: el objetivo semanal del glúteo queda en 10 series.
-  const pl = plan({ level: 'novice', goal: 'maintain', daysPerWeek: 4, tiempoDisponibleMin: 75 });
-  const g = pl.semanal.glutes, por = g.porSubPatron;
-  assert.equal(g.objetivo, 10, 'el caso es el del objetivo de 10 series');
-  // Lo que hoy pasa, con los números exactos: toda la cobertura directa es abducción y la extensión de cadera no tiene
-  // ningún ejercicio propio. El paso 2 de DEC-037 tiene que dar vuelta estas tres líneas.
-  assert.equal(por.abduccion_cadera.directas, 11, 'hoy el glúteo se cubre con 11 series de abducción');
-  assert.equal(por.extension_cadera.directas, 0, 'hoy no hay ninguna serie directa de extensión de cadera');
-  const porDia = pl.sesiones.map(s => s.ejercicios.filter(e => e.patron === 'abduccion_cadera').reduce((a, e) => a + e.series, 0));
-  assert.ok(Math.max(...porDia) >= 9, `abducciones por día: ${porDia.join(', ')}`);
+  [3, 4, 5, 6].forEach(d => {
+    const pl = plan({ level: 'novice', goal: 'maintain', daysPerWeek: d, tiempoDisponibleMin: 75 });
+    const g = pl.semanal.glutes, por = g.porSubPatron;
+    assert.equal(g.objetivo, 10, 'el caso es el del objetivo de 10 series');
+    assert.ok(por.abduccion_cadera.directas < g.objetivo, `${d} días: ${por.abduccion_cadera.directas} abducciones`);
+    assert.ok(por.extension_cadera.directas >= R.valor('SERIES_MIN_POR_EJERCICIO'), `${d} días: sin extensión de cadera directa`);
+    const porDia = pl.sesiones.map(s => s.ejercicios.filter(e => e.patron === 'abduccion_cadera').reduce((a, e) => a + e.series, 0));
+    assert.ok(Math.max(...porDia) < 9, `${d} días, abducciones por día: ${porDia.join(', ')}`);
+  });
 });

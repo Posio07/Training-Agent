@@ -54,21 +54,39 @@ test('DEC-038: el plan lleva la marca en cada ejercicio y la pantalla de Entreno
   assert.ok(!/Evidencia por verificar/.test(E.htmlEntreno({ datos: p, guardado: copia })));
 });
 
-test('DEC-031 + DEC-038: con variantes nuevas el excedente de la abducción pasa a otra variante del patrón; si una máquina sigue sobre el tope es porque el aviso lo dice', () => {
-  const TOPE = REG.valor('MAX_SERIES_POR_EJERCICIO');
-  let conExcedente = 0;
-  Object.keys(fx.perfiles).forEach(k => {
-    const pl = PLAN.crearPlan(fx.perfiles[k], { id: 'x', ahora: '2026-01-01' }).plan;
-    const avisados = pl.avisos.topeExcedido.map(x => x.sesion + '|' + x.varianteId);
-    abd(pl).forEach(e => { if (e.series > TOPE) assert.ok(avisados.includes(e.sesion + '|' + e.id), `${k} ${e.sesion}: ${e.id} lleva ${e.series} series sin aviso`); });
-    if (abd(pl).some(e => e.id !== IDS[0])) conExcedente++;
+const sinOtrosGluteos = quitar => Object.assign({}, C, { VARIANTES: C.VARIANTES.filter(v => !quitar.includes(v.id)) });
+const perfilGluteo = d => ({ sex: 'F', level: 'advanced', daysPerWeek: d, division: 'bikini_w', goal: 'bulk', laggingMuscles: ['glutes'], tiempoDisponibleMin: 120 });
+
+test('DEC-031 + DEC-037 punto 4: el excedente de la abducción pasa a otra variante del patrón, mejor evidencia primero, y nunca queda sobre el tope sin aviso', () => {
+  // Sin hip thrust ni patada (destinos del segundo paso) el excedente de la máquina (1 estudio) solo puede ir a las variantes del patrón.
+  const cat = sinOtrosGluteos(['glutes.hip_thrust', 'glutes.kickback_cable']);
+  const TOPE = REG.valor('MAX_SERIES_POR_EJERCICIO'); let conTraspaso = 0;
+  [3, 4, 5, 6].forEach(d => {
+    const pl = REP.generarPlan(perfilGluteo(d), { catalogo: cat });
+    pl.sesiones.forEach(s => {
+      const ids = s.ejercicios.filter(e => e.patron === 'abduccion_cadera').map(e => e.varianteId);
+      ids.forEach(id => assert.ok(!pl.sesiones.some(x => x.ejercicios.some(e => e.varianteId === id && e.series > TOPE)) || pl.avisos.topeExcedido.some(x => x.varianteId === id), `${d} días: ${id} sobre el tope sin aviso`));
+      // Orden por evidencia: la polea (1 estudio) antes que el lateral tumbado (probable), y este antes que la banda (a_verificar).
+      if (ids.some(id => /band/.test(id))) assert.ok(ids.some(id => /sidelying/.test(id)) && ids.some(id => /cable/.test(id)), `${d} días ${s.nombre}: banda sin lateral tumbado y polea`);
+      if (ids.some(id => /sidelying/.test(id))) assert.ok(ids.some(id => /cable/.test(id)), `${d} días ${s.nombre}: lateral tumbado sin polea`);
+      if (ids.length > 1) conTraspaso++;
+    });
   });
-  assert.ok(conExcedente >= 5, 'en varios perfiles de referencia el excedente ya tiene adónde ir');
+  assert.ok(conTraspaso > 0, 'el excedente tiene adónde ir');
 });
 
-test('DEC-038: la banda (a_verificar) entra por necesidad en muy pocas sesiones del barrido y siempre con la marca; polea y lateral tumbado sí se usan', () => {
-  // El orden por evidencia del relleno es del paso 2 de DEC-037: mientras tanto el excedente elige por uso, así que la banda puede entrar. Este test
-  // fija que su aparición sea rara y visible, no que sea imposible.
+test('DEC-038: sin hip thrust, patada ni polea, el excedente llega al lateral tumbado y, solo cuando ya no hay más, a la banda (a_verificar), siempre marcada', () => {
+  const cat = sinOtrosGluteos(['glutes.hip_thrust', 'glutes.kickback_cable', 'glutes.hip_abduction_cable']);
+  let banda = 0, lateral = 0;
+  [3, 4, 5, 6].forEach(d => REP.generarPlan(perfilGluteo(d), { catalogo: cat }).sesiones.forEach(s => s.ejercicios.filter(e => e.patron === 'abduccion_cadera').forEach(e => {
+    assert.equal(e.evidenciaPorVerificar, e.varianteId.endsWith('band'), e.varianteId);
+    if (e.varianteId.endsWith('band')) { banda++; assert.ok(s.ejercicios.some(x => x.varianteId.endsWith('sidelying')), 'la banda entra después del lateral tumbado'); }
+    if (e.varianteId.endsWith('sidelying')) lateral++;
+  })));
+  assert.ok(lateral > 0, 'el lateral tumbado se usa');
+});
+
+test('DEC-038 y DEC-037 punto 5: con el catálogo completo la banda y el lateral tumbado no hacen falta: las variantes con mejor evidencia (hip thrust, patada, máquina) absorben el glúteo', () => {
   const { profiles } = require('../../scripts/perfiles-barrido.js');
   const veces = { band: 0, sidelying: 0, cable: 0 }; let sesiones = 0;
   profiles.forEach(p => [3, 4, 5, 6].forEach(d => {
@@ -80,5 +98,4 @@ test('DEC-038: la banda (a_verificar) entra por necesidad en muy pocas sesiones 
     });
   }));
   assert.ok(veces.band <= sesiones * 0.01, `la banda aparece en ${veces.band} de ${sesiones} sesiones`);
-  assert.ok(veces.cable > 0 && veces.sidelying > 0);
 });

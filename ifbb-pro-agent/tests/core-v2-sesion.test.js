@@ -10,10 +10,12 @@ const SS = require('../js/sessionStore.js');
 const perfil = () => ({ sex: 'M', level: 'intermediate', daysPerWeek: 5, division: 'physique_m', goal: 'cut', laggingMuscles: ['quads'] });
 const plan = () => REP.generarPlan(perfil());
 const fila = (exerciseId, date, sessionId, setType, n, weight, reps, savedAt) => ({ exerciseId, date, sessionId, setType, setNumber: n, weight, reps, savedAt: savedAt || 0 });
+// Una sesión con un solo ejercicio de tirón vertical: el día de tirón puede llevar dos por el traspaso del tope de 5 series (DEC-031), y entonces la otra variante ya está en la sesión.
+const conUnTironVertical = () => plan().sesiones.find(x => x.ejercicios.filter(e => e.patron === 'tiron_vertical').length === 1 && x.ejercicios.some(e => e.patron === 'tiron_horizontal'));
 const idx = (sesion, patron) => sesion.ejercicios.findIndex(e => e.patron === patron);
 
 test('las variantes de un ejercicio son las del mismo patrón, habilitadas por el perfil y que no están ya en la sesión', () => {
-  const s = plan().sesiones.find(x => x.principal === 'tiron_vertical');
+  const s = conUnTironVertical();
   const i = idx(s, 'tiron_vertical');
   const op = SES.variantesDelEjercicio(s, i, perfil(), []);
   assert.deepEqual(op.map(o => o.varianteId).sort(), ['back.lat_pulldown', 'back.pull_up']);
@@ -38,7 +40,7 @@ test('las variantes de un ejercicio son las del mismo patrón, habilitadas por e
 });
 
 test('por defecto arranca con la última variante usada del patrón; sin historial, con la planificada', () => {
-  const s = plan().sesiones.find(x => x.principal === 'tiron_vertical');
+  const s = conUnTironVertical();
   const i = idx(s, 'tiron_vertical');
   const planificada = s.ejercicios[i].varianteId;
   const otra = planificada === 'back.pull_up' ? 'back.lat_pulldown' : 'back.pull_up';
@@ -57,7 +59,7 @@ test('por defecto arranca con la última variante usada del patrón; sin histori
 });
 
 test('cambiar de variante avisa (A2, top set) y nunca bloquea; una variante no disponible sí se rechaza', () => {
-  const s = plan().sesiones.find(x => x.principal === 'tiron_vertical');
+  const s = conUnTironVertical();
   const i = idx(s, 'tiron_vertical'), otra = s.ejercicios[i].varianteId === 'back.pull_up' ? 'back.lat_pulldown' : 'back.pull_up';
   const ok = SES.evaluarCambio(s, i, otra, perfil());
   assert.equal(ok.permitido, true); assert.deepEqual(ok.avisos, []);

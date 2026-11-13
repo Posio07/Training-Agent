@@ -111,6 +111,13 @@
     return w;
   }
 
+  /* Orden de decisión del relleno (DEC-037 punto 5, DEC-039): compara dos claves { evidencia, redundancia, tiempo, lumbar }. Negativo si `x` es mejor
+   * que `y`; 0 si empatan en los cuatro criterios. Evidencia y lumbar: índice menor es mejor; redundancia: mayor cobertura por segundo es mejor; tiempo: menor. */
+  const compararDecision = (x, y) => (x.evidencia - y.evidencia)
+    || (Math.abs(x.redundancia - y.redundancia) > EPS ? y.redundancia - x.redundancia : 0)
+    || (Math.abs(x.tiempo - y.tiempo) > EPS ? x.tiempo - y.tiempo : 0)
+    || (x.lumbar - y.lumbar);
+
   /* ---------- Plan ---------- */
   function generarPlan(src, opciones) {
     const cat = (opciones && opciones.catalogo) || CATALOGO;
@@ -267,9 +274,22 @@
       else avisos.sinDirecto.push({ musculo: m, motivo: 'sin sesión compatible con tiempo, seguridad o variantes disponibles' });
     });
 
-    // Paso 5 · relleno por cobertura marginal. Entra la serie con más necesidad no cubierta por minuto; R1 es una restricción.
-    // Evalúa un movimiento (sumar series a un ejercicio de la sesión, o ejercicio nuevo). Devuelve { ok, util, seg, motivo, excedeR1 }.
-    function evaluar(ses, mov, permitirExceso) {
+    // Paso 5 · relleno. Orden de decisión (DEC-037 punto 5, DEC-039; criterio de diseño E4, lo revisa Emanuel):
+    //   1 restricciones duras (acá: capacidad, R1, necesidad por cubrir; antes: seguridad, estructura y cuota por sub-patrón) ·
+    //   2 evidencia de la relación del ejercicio con el músculo de su grupo (ORDEN_EVIDENCIA: mejor primero), entre ejercicios del MISMO grupo ·
+    //   3 redundancia: la cobertura marginal, necesidad sin cubrir por segundo (o por serie, MEDIDA_REDUNDANCIA; más es menos redundante: lo que ya cubre la sesión no suma) ·
+    //   4 tiempo por serie y, a igual tiempo, menor demanda lumbar del perfil de la Fase 3 (no se crea otra regla de fatiga).
+    // La evidencia solo ordena candidatos ya factibles: no mueve pesos ni relaciones (regla 4 de CLAUDE.md).
+    const ORDEN_EVIDENCIA = valor('ORDEN_EVIDENCIA');
+    const NIVEL_LUMBAR = ['baja', 'media', 'alta'];
+    const claveDecision = (v, redundancia) => ({
+      evidencia: valor('EVIDENCIA_ORDENA_RELLENO') ? ORDEN_EVIDENCIA.indexOf(cat.evidenciaDe(v.id)) : 0, redundancia, tiempo: segSerie(v),
+      lumbar: Math.max(0, NIVEL_LUMBAR.indexOf((cat.perfilArticularDe(v.id).lumbar || {}).nivel)),
+    });
+    const comparar = compararDecision;
+    // Evalúa un movimiento (sumar series a un ejercicio de la sesión, o ejercicio nuevo). Devuelve { ok, util, seg, redundancia, motivo, excedeR1 }.
+    // `sinNecesidad`: la cuota por sub-patrón se exige aunque la necesidad del músculo ya esté cubierta.
+    function evaluar(ses, mov, permitirExceso, sinNecesidad) {
       const w = pesos[mov.v.id], seg = mov.series * segSerie(mov.v);
       if (ses.seg + seg > ses.capacidadSeg + EPS) return { ok: false, motivo: 'capacidad' };
       const excedeR1 = [];
@@ -283,35 +303,77 @@
       Object.keys(w).forEach(m => { util += Math.min(w[m] * mov.series, faltaDe(m)); });
       const g = cat.grupoDe(mov.v.id);
       util += Math.min(mov.series, faltaRealDe(g));
-      if (util <= EPS) return { ok: false, motivo: 'sin necesidad' };
-      return { ok: true, util, seg, score: util / seg, excedeR1 };
+      if (util <= EPS && !sinNecesidad) return { ok: false, motivo: 'sin necesidad' };
+      return { ok: true, util, seg, redundancia: valor('MEDIDA_REDUNDANCIA') === 'segundo' ? util / seg : util / mov.series, porSegundo: util / seg, excedeR1 };
+    }
+    // ¿Puede la variante entrar como ejercicio nuevo en la sesión? Patrón libre, A3, grupo compatible, A2 y días de los grupos chicos.
+    function puedeEntrar(ses, v) {
+      const g = cat.grupoDe(v.id);
+      if (ses.patrones.has(v.patron) || excluyeA3(ses, v.patron)) return false;
+      if (!ses.spec.grupos.includes(g)) return false;
+      if (bloqueaA2(ses, v)) return false; // A2
+      if (GRUPOS_CHICOS.includes(g) && !diasGrupo[g].has(ses.indice) && diasGrupo[g].size >= valor('MAX_DIAS_GRUPO_CHICO')) return false;
+      return true;
     }
     function movimientos(ses) {
       const movs = [];
       ses.ejercicios.forEach(ex => movs.push({ ex, v: ex.v, series: 1, nuevo: false }));
       candidatas.forEach(v => {
-        if (ses.patrones.has(v.patron) || excluyeA3(ses, v.patron)) return;
-        const g = cat.grupoDe(v.id);
-        if (!ses.spec.grupos.includes(g)) return;
-        if (bloqueaA2(ses, v)) return; // A2
-        if (GRUPOS_CHICOS.includes(g) && !diasGrupo[g].has(ses.indice) && diasGrupo[g].size >= valor('MAX_DIAS_GRUPO_CHICO')) return;
+        if (!puedeEntrar(ses, v)) return;
         movs.push({ v, series: valor('SERIES_MIN_POR_EJERCICIO'), nuevo: true });
       });
       return movs;
     }
+
+    // Paso 4 (cuota) · si el objetivo semanal del músculo llega a UMBRAL_CUOTA_SUB_PATRON, cada sub-patrón del mapa (menos `otros`) lleva al menos un
+    // ejercicio programado EN ESE GRUPO (DEC-016) con las series mínimas en la semana (DEC-037 punto 3; cómo se mide, DEC-039). Es una restricción dura:
+    // entra antes del relleno, con R1 estricta y dentro de la capacidad; si no cabe, no se incumple en silencio: va al aviso único. No hay superseries.
+    avisos.cuotaSinCubrir = [];
+    const SIN_CUOTA = 'otros'; // clave reservada del mapa (DEC-037): aporta al músculo, pero no cuenta para ninguna cuota
+    const MIN_EJERCICIO = valor('SERIES_MIN_CUOTA_SUB_PATRON');
+    const mapaSubPatrones = valor('SUB_PATRONES_POR_MUSCULO');
+    const subPatronCubierto = (m, patrones) => sesiones.some(ses => ses.ejercicios.some(ex => cat.grupoDe(ex.v.id) === m && patrones.includes(ex.v.patron) && ex.series >= MIN_EJERCICIO));
+    MUSCULOS.forEach(m => {
+      if (!mapaSubPatrones[m] || dem[m].objetivo < valor('UMBRAL_CUOTA_SUB_PATRON')) return;
+      Object.keys(mapaSubPatrones[m]).forEach(sp => {
+        const patrones = mapaSubPatrones[m][sp];
+        if (sp === SIN_CUOTA || subPatronCubierto(m, patrones)) return;
+        let mejor = null, hayVariante = false, porR1 = false;
+        sesiones.forEach(ses => candidatas.forEach(v => {
+          if (cat.grupoDe(v.id) !== m || !patrones.includes(v.patron) || !puedeEntrar(ses, v)) return;
+          hayVariante = true;
+          const r = evaluar(ses, { v, series: MIN_EJERCICIO, nuevo: true }, false, true);
+          if (!r.ok) { if (r.motivo === 'R1') porR1 = true; return; }
+          const clave = claveDecision(v, r.redundancia), resto = ses.capacidadSeg - ses.seg;
+          const c = mejor ? comparar(clave, mejor.clave) : -1;
+          if (!mejor || c < 0 || (c === 0 && resto > mejor.resto + EPS)) mejor = { ses, v, clave, resto };
+        }));
+        if (mejor) agregar(mejor.ses, mejor.v, MIN_EJERCICIO, false);
+        else avisos.cuotaSinCubrir.push({ musculo: m, subPatron: sp, causa: !hayVariante ? 'sin ejercicios disponibles' : porR1 ? 'R1' : 'tiempo' });
+      });
+    });
+
     // Primero con R1 estricta; recién cuando no queda ningún movimiento, y solo si una demanda mínima sigue sin cubrir, R1 cede para esa demanda
     // (DEC-025, punto 4). Así R1 no se pasa mientras otra sesión pueda alojar la serie.
     let permitirExceso = false;
     // Cada vuelta agrega al menos una serie, que cuesta como mínimo lo que la más corta del catálogo: eso acota las vueltas por el tiempo total disponible.
     const maxVueltas = Math.ceil(sesiones.reduce((a, s) => a + s.capacidadSeg, 0) / Math.min(...candidatas.map(segSerie))) + 1;
     for (let guarda = 0; guarda < maxVueltas; guarda++) {
-      let mejor = null;
+      // Dentro de cada grupo gana el orden de decisión; entre grupos, la necesidad por minuto de siempre (la evidencia de ejercicios de músculos
+      // distintos no es comparable: ordenarlos por evidencia dejaría sin tiempo a los músculos cuyo mejor ejercicio es `probable`, DEC-039).
+      const porGrupo = {};
       sesiones.forEach(ses => movimientos(ses).forEach(mov => {
         const r = evaluar(ses, mov, permitirExceso);
         if (!r.ok) return;
-        const resto = ses.capacidadSeg - ses.seg;
-        if (!mejor || r.score > mejor.r.score + EPS || (Math.abs(r.score - mejor.r.score) <= EPS && resto > mejor.resto + EPS)) mejor = { ses, mov, r, resto };
+        const g = cat.grupoDe(mov.v.id), resto = ses.capacidadSeg - ses.seg, clave = claveDecision(mov.v, r.redundancia);
+        const c = porGrupo[g] ? comparar(clave, porGrupo[g].clave) : -1;
+        if (!porGrupo[g] || c < 0 || (c === 0 && resto > porGrupo[g].resto + EPS)) porGrupo[g] = { ses, mov, r, resto, clave };
       }));
+      let mejor = null;
+      Object.keys(porGrupo).forEach(g => {
+        const x = porGrupo[g], score = x.r.porSegundo;
+        if (!mejor || score > mejor.score + EPS || (Math.abs(score - mejor.score) <= EPS && x.resto > mejor.resto + EPS)) mejor = Object.assign({ score }, x);
+      });
       if (!mejor) {
         if (!permitirExceso && MUSCULOS.some(minimoSinCubrir)) { permitirExceso = true; continue; }
         break;
@@ -327,20 +389,26 @@
       permitirExceso = false; // tras un movimiento vuelve la restricción estricta
     }
 
-    // Paso 5 (cierre) · tope de series por ejercicio y sesión (DEC-031). El excedente pasa a otra variante del mismo patrón si existe y cabe
-    // (tiempo, R1, A2 y A3); si no existe, se queda en el mismo ejercicio. El volumen no se recorta: solo cambia entre qué variantes se reparte.
-    // Es el único caso en que una sesión lleva dos variantes del mismo patrón (cláusula de DEC-006 que DEC-031 reemplaza desde el corte).
+    // Paso 5 (cierre) · tope de series por ejercicio y sesión (DEC-031; el excedente en dos pasos, DEC-037 punto 4). El excedente pasa, en orden, (a) a otra
+    // variante del mismo patrón y, si no hay o no cabe, (b) a otro ejercicio del MISMO músculo que entre en la sesión (tiempo, R1, A2, A3 y grupos de la
+    // sesión). Mover series a otro día del split queda fuera (cambia el reparto semanal). Si no hay destino, el excedente se queda y el aviso lo dice:
+    // el volumen no se recorta. Dentro de cada paso el orden es el de decisión del relleno: evidencia primero; en (a) sigue la variedad entre días
+    // (menos usada) y la preferida, y en ambos el menor tiempo y la menor demanda lumbar. Es el único caso en que una sesión lleva dos variantes del
+    // mismo patrón (cláusula de DEC-006 que DEC-031 reemplaza desde el corte).
     avisos.topeExcedido = [];
     if (!(opciones && opciones.sinTopePorEjercicio)) {
       const TOPE = valor('MAX_SERIES_POR_EJERCICIO'), MIN = valor('SERIES_MIN_POR_EJERCICIO');
+      const claveTope = v => claveDecision(v, 0);
       sesiones.forEach(ses => {
         ses.ejercicios.slice().forEach(ex => {
           if (ex.series <= TOPE) return;
           const g = cat.grupoDe(ex.v.id);
-          const alternativas = candidatas.filter(v => v.patron === ex.v.patron && v.id !== ex.v.id && cat.grupoDe(v.id) === g && !ses.ejercicios.some(e => e.v.id === v.id)
+          const mismoPatron = candidatas.filter(v => v.patron === ex.v.patron && v.id !== ex.v.id && cat.grupoDe(v.id) === g && !ses.ejercicios.some(e => e.v.id === v.id)
             && !excluyeA3(ses, v.patron) && !bloqueaA2(ses, v))
-            .sort((a, b) => (uso[a.id] || 0) - (uso[b.id] || 0) || (b.preferida ? 1 : 0) - (a.preferida ? 1 : 0));
-          for (const v of alternativas) {
+            .sort((a, b) => (claveTope(a).evidencia - claveTope(b).evidencia) || (uso[a.id] || 0) - (uso[b.id] || 0) || (b.preferida ? 1 : 0) - (a.preferida ? 1 : 0) || comparar(claveTope(a), claveTope(b)));
+          const otroEjercicio = candidatas.filter(v => v.patron !== ex.v.patron && cat.grupoDe(v.id) === g && puedeEntrar(ses, v))
+            .sort((a, b) => comparar(claveTope(a), claveTope(b)));
+          for (const v of mismoPatron.concat(otroEjercicio)) {
             if (ex.series <= TOPE) break;
             const nuevas = Math.min(TOPE, Math.max(ex.series - TOPE, MIN));
             if (ex.series - nuevas < MIN) continue;
@@ -355,10 +423,11 @@
             ses.seg += dSeg;
             const nuevo = { v, series: nuevas, topSet: false, pesos: wn };
             ses.ejercicios.splice(ses.ejercicios.indexOf(ex) + 1, 0, nuevo);
+            ses.patrones.add(v.patron);
             if (lumbarAlta(v.id)) ses.nLumbarAlta++;
             uso[v.id] = (uso[v.id] || 0) + 1;
           }
-          if (ex.series > TOPE) avisos.topeExcedido.push({ sesion: ses.nombre, varianteId: ex.v.id, series: ex.series, motivo: 'no hay otra variante del patrón que quepa (tiempo, R1, A2 o A3)' });
+          if (ex.series > TOPE) avisos.topeExcedido.push({ sesion: ses.nombre, varianteId: ex.v.id, series: ex.series, motivo: 'no hay otra variante del patrón ni otro ejercicio del músculo que quepa (tiempo, R1, A2 o A3)' });
         });
       });
     }
@@ -415,8 +484,8 @@
     const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
     // Frecuencia mínima de los grupos mayores (DEC-036): un grupo mayor que entrena menos días por semana que el mínimo va al aviso único, no se fuerza (no es una restricción).
     const frecuenciaBaja = GRUPOS_MAYORES.filter(m => semanal[m].sesiones < valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES')).map(m => ({ musculo: m, sesiones: semanal[m].sesiones, minimo: valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES') }));
-    const avisoUnico = (sinCubrir.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length || frecuenciaBaja.length)
-      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, frecuenciaBaja, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
+    const avisoUnico = (sinCubrir.length || avisos.cuotaSinCubrir.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length || frecuenciaBaja.length)
+      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, frecuenciaBaja, cuotaSinCubrir: avisos.cuotaSinCubrir, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
       : null;
 
     // Paso 6 · orden (A1): lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos;
@@ -441,5 +510,5 @@
     return { version: 'core-v2-paso2', catalogo: cat.nombre || 'nuevo', perfil, sesiones: salida, semanal, avisoUnico, avisos };
   }
 
-  return { SPLITS, TIPOS: T, MUSCULOS, GRUPOS_MAYORES, GRUPOS_CHICOS, normalizarPerfil, demandas, pesosDe, generarPlan };
+  return { SPLITS, TIPOS: T, MUSCULOS, GRUPOS_MAYORES, GRUPOS_CHICOS, normalizarPerfil, demandas, pesosDe, compararDecision, generarPlan };
 });
