@@ -117,3 +117,45 @@ test('DEC-037 punto 4: el excedente del tope pasa a otra variante del patrón (a
   }));
   assert.ok(a > 0 && b > 0, `(a) ${a} y (b) ${b}: los dos pasos se usan`);
 });
+
+/* ---------- Parámetros reversibles y cuota con 2 series (decisiones de Emanuel, 2026-11-13) ---------- */
+
+// Cambia un parámetro del registro durante `fn` y lo restaura.
+const conParametro = (id, valor, fn) => { const r = R.regla(id), antes = r.valor; try { r.valor = valor; return fn(); } finally { r.valor = antes; } };
+const semanalAbduccion = pl => pl.sesiones.flatMap(s => s.ejercicios).filter(e => e.patron === 'abduccion_cadera').reduce((a, e) => a + e.series, 0);
+
+test('DEC-039: el orden por evidencia es un parámetro reversible: apagado, el relleno vuelve a apilar la abducción; encendido, no', () => {
+  assert.equal(R.valor('EVIDENCIA_ORDENA_RELLENO'), true);
+  const maxAbduccion = () => Math.max(...barrido().map(({ pl }) => semanalAbduccion(pl)));
+  const conEvidencia = maxAbduccion();
+  const sinEvidencia = conParametro('EVIDENCIA_ORDENA_RELLENO', false, maxAbduccion);
+  assert.ok(conEvidencia <= 7, `con evidencia: ${conEvidencia}`);
+  assert.ok(sinEvidencia > conEvidencia + 5, `sin evidencia vuelve el apilamiento: ${sinEvidencia} series de abducción por semana`);
+  assert.equal(maxAbduccion(), conEvidencia, 'al restaurar el parámetro el plan vuelve a ser el mismo');
+});
+
+test('DEC-039: la medida de la redundancia (por serie o por segundo) es un parámetro del registro y cambia el reparto', () => {
+  assert.equal(R.valor('MEDIDA_REDUNDANCIA'), 'serie');
+  const huella = () => JSON.stringify(barrido().map(({ pl }) => pl.sesiones.map(s => s.ejercicios.map(e => e.varianteId + e.series))));
+  const porSerie = huella(), porSegundo = conParametro('MEDIDA_REDUNDANCIA', 'segundo', huella);
+  assert.notEqual(porSerie, porSegundo);
+  // En las dos medidas el caso del glúteo queda corregido: ningún plan sin extensión directa y la abducción acotada.
+  ['serie', 'segundo'].forEach(m => conParametro('MEDIDA_REDUNDANCIA', m, () => barrido().forEach(({ p, d, pl }) => {
+    assert.ok(semanalAbduccion(pl) <= 7, `${m} ${p.level}/${p.division} ${d} días: ${semanalAbduccion(pl)} abducciones`);
+    if (pl.semanal.glutes.objetivo >= R.valor('UMBRAL_CUOTA_SUB_PATRON')) assert.ok(pl.semanal.glutes.porSubPatron.extension_cadera.directas >= 2);
+  })));
+});
+
+test('DEC-039: la cuota exige SERIES_MIN_CUOTA_SUB_PATRON (2) series o más: un ejercicio con menos no la cubre, y con 3 la cuota se programa con 3', () => {
+  assert.equal(R.valor('SERIES_MIN_CUOTA_SUB_PATRON'), 2);
+  // Cualquier ejercicio que cubra un sub-patrón en el barrido tiene el mínimo de series; con el mínimo en 3, todo sub-patrón exigido queda cubierto por
+  // un ejercicio de 3 series o más (o avisado): si la cuota contara ejercicios de 1 o 2 series, este test fallaría.
+  conParametro('SERIES_MIN_CUOTA_SUB_PATRON', 3, () => barrido().forEach(({ p, d, pl }) => Object.keys(MAPA()).forEach(m => {
+    if (pl.semanal[m].objetivo < R.valor('UMBRAL_CUOTA_SUB_PATRON')) return;
+    Object.keys(MAPA()[m]).filter(sp => sp !== 'otros').forEach(sp => {
+      const ok = pl.sesiones.some(s => s.ejercicios.some(e => e.grupo === m && MAPA()[m][sp].includes(e.patron) && e.series >= 3));
+      const avisada = ((pl.avisoUnico || {}).cuotaSinCubrir || []).some(x => x.musculo === m && x.subPatron === sp);
+      assert.ok(ok || avisada, `${p.level}/${p.division} ${d} días: ${m}/${sp} sin un ejercicio de 3 series`);
+    });
+  })));
+});

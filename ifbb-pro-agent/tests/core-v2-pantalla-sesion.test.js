@@ -21,14 +21,18 @@ test('la sesión sale del plan guardado con el id de la variante en cada ejercic
 });
 
 test('por defecto entra la última variante que usó el usuario, si sigue habilitada, en lugar de la planificada', () => {
-  const plan = S.prepararSesion(perfil(), DIA_SENTADILLA, { hoy });
-  const planificada = plan.ejercicios.find(e => e.exerciseId === 'hamstrings.leg_curl_seated');
-  assert.ok(planificada, 'el plan trae el curl femoral sentado');
-  const filas = [{ exerciseId: 'hamstrings.leg_curl_lying', date: '2026-11-01', savedAt: 1, sessionId: 's0', setType: 'normal', weight: 40, reps: 10, setNumber: 1 }];
-  const r = S.prepararSesion(perfil({ workouts: filas }), DIA_SENTADILLA, { hoy });
-  assert.ok(r.ejercicios.some(e => e.exerciseId === 'hamstrings.leg_curl_lying') && !r.ejercicios.some(e => e.exerciseId === 'hamstrings.leg_curl_seated'));
-  assert.equal(r.ejercicios.find(e => e.exerciseId === 'hamstrings.leg_curl_lying').cambiadaDe, planificada.name);
-  assert.equal(r.elecciones[r.ejercicios.findIndex(e => e.exerciseId === 'hamstrings.leg_curl_lying')], 'hamstrings.leg_curl_lying');
+  // Un día con un solo curl femoral: el día de pierna puede llevar los dos por el traspaso del tope (DEC-031) y entonces la otra variante ya está en la sesión.
+  const CURLS = ['hamstrings.leg_curl_seated', 'hamstrings.leg_curl_lying'];
+  const dia = [0, 1, 2, 3].find(i => S.prepararSesion(perfil(), i, { hoy }).ejercicios.filter(e => CURLS.includes(e.exerciseId)).length === 1);
+  assert.notEqual(dia, undefined, 'algún día lleva un solo curl femoral');
+  const plan = S.prepararSesion(perfil(), dia, { hoy });
+  const planificada = plan.ejercicios.find(e => CURLS.includes(e.exerciseId));
+  const otra = CURLS.find(id => id !== planificada.exerciseId);
+  const filas = [{ exerciseId: otra, date: '2026-11-01', savedAt: 1, sessionId: 's0', setType: 'normal', weight: 40, reps: 10, setNumber: 1 }];
+  const r = S.prepararSesion(perfil({ workouts: filas }), dia, { hoy });
+  assert.ok(r.ejercicios.some(e => e.exerciseId === otra) && !r.ejercicios.some(e => e.exerciseId === planificada.exerciseId));
+  assert.equal(r.ejercicios.find(e => e.exerciseId === otra).cambiadaDe, planificada.name);
+  assert.equal(r.elecciones[r.ejercicios.findIndex(e => e.exerciseId === otra)], otra);
 });
 
 test('"hoy tengo X min": menos ejercicios, dentro del tiempo, y no toca el plan guardado', () => {

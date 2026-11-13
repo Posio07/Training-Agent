@@ -277,13 +277,13 @@
     // Paso 5 · relleno. Orden de decisión (DEC-037 punto 5, DEC-039; criterio de diseño E4, lo revisa Emanuel):
     //   1 restricciones duras (acá: capacidad, R1, necesidad por cubrir; antes: seguridad, estructura y cuota por sub-patrón) ·
     //   2 evidencia de la relación del ejercicio con el músculo de su grupo (ORDEN_EVIDENCIA: mejor primero), entre ejercicios del MISMO grupo ·
-    //   3 redundancia: la cobertura marginal de hoy, necesidad sin cubrir por segundo (más es menos redundante: lo que ya cubre la sesión no suma) ·
+    //   3 redundancia: la cobertura marginal, necesidad sin cubrir por serie (o por segundo, MEDIDA_REDUNDANCIA; más es menos redundante: lo que ya cubre la sesión no suma) ·
     //   4 tiempo por serie y, a igual tiempo, menor demanda lumbar del perfil de la Fase 3 (no se crea otra regla de fatiga).
     // La evidencia solo ordena candidatos ya factibles: no mueve pesos ni relaciones (regla 4 de CLAUDE.md).
     const ORDEN_EVIDENCIA = valor('ORDEN_EVIDENCIA');
     const NIVEL_LUMBAR = ['baja', 'media', 'alta'];
     const claveDecision = (v, redundancia) => ({
-      evidencia: ORDEN_EVIDENCIA.indexOf(cat.evidenciaDe(v.id)), redundancia, tiempo: segSerie(v),
+      evidencia: valor('EVIDENCIA_ORDENA_RELLENO') ? ORDEN_EVIDENCIA.indexOf(cat.evidenciaDe(v.id)) : 0, redundancia, tiempo: segSerie(v),
       lumbar: Math.max(0, NIVEL_LUMBAR.indexOf((cat.perfilArticularDe(v.id).lumbar || {}).nivel)),
     });
     const comparar = compararDecision;
@@ -304,7 +304,7 @@
       const g = cat.grupoDe(mov.v.id);
       util += Math.min(mov.series, faltaRealDe(g));
       if (util <= EPS && !sinNecesidad) return { ok: false, motivo: 'sin necesidad' };
-      return { ok: true, util, seg, redundancia: util / seg, excedeR1 };
+      return { ok: true, util, seg, redundancia: valor('MEDIDA_REDUNDANCIA') === 'serie' ? util / mov.series : util / seg, porSegundo: util / seg, excedeR1 };
     }
     // ¿Puede la variante entrar como ejercicio nuevo en la sesión? Patrón libre, A3, grupo compatible, A2 y días de los grupos chicos.
     function puedeEntrar(ses, v) {
@@ -330,7 +330,7 @@
     // entra antes del relleno, con R1 estricta y dentro de la capacidad; si no cabe, no se incumple en silencio: va al aviso único. No hay superseries.
     avisos.cuotaSinCubrir = [];
     const SIN_CUOTA = 'otros'; // clave reservada del mapa (DEC-037): aporta al músculo, pero no cuenta para ninguna cuota
-    const MIN_EJERCICIO = valor('SERIES_MIN_POR_EJERCICIO');
+    const MIN_EJERCICIO = valor('SERIES_MIN_CUOTA_SUB_PATRON');
     const mapaSubPatrones = valor('SUB_PATRONES_POR_MUSCULO');
     const subPatronCubierto = (m, patrones) => sesiones.some(ses => ses.ejercicios.some(ex => cat.grupoDe(ex.v.id) === m && patrones.includes(ex.v.patron) && ex.series >= MIN_EJERCICIO));
     MUSCULOS.forEach(m => {
@@ -371,7 +371,7 @@
       }));
       let mejor = null;
       Object.keys(porGrupo).forEach(g => {
-        const x = porGrupo[g], score = x.r.redundancia;
+        const x = porGrupo[g], score = x.r.porSegundo;
         if (!mejor || score > mejor.score + EPS || (Math.abs(score - mejor.score) <= EPS && x.resto > mejor.resto + EPS)) mejor = Object.assign({ score }, x);
       });
       if (!mejor) {

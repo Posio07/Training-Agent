@@ -77,17 +77,17 @@ test('DEC-038 y DEC-037 paso 2: a 90 min las variantes más caras llenan el día
   const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 90 };
   const g = nuevo(p);
   const causas = g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa);
-  assert.deepEqual(causas, ['back:R1', 'shoulders:R1', 'quads:tiempo', 'glutes:tiempo']);
+  assert.deepEqual(causas, ['chest:R1', 'back:R1', 'shoulders:R1', 'quads:tiempo']);
   const a = AVISO.construirAviso(g.plan);
   assert.equal(a.soloR1, false);
   assert.equal(a.salidas[0].disponible, true); // más tiempo sí ayuda
 });
 
 test('un faltante solo por R1 también se puede aceptar: las sesiones afectadas son las que están en el tope por sesión', () => {
-  // 100 min y no 90: con las variantes unilaterales de la abducción (DEC-038, el doble de tiempo por serie) a 90 min el cuádriceps queda corto por tiempo y no solo por R1 (lo fija el test de arriba). A 100 min el aviso es el mismo que a 90 min antes de DEC-038: espalda, hombros y cuádriceps, solo R1.
+  // 100 min y no 90: con las variantes unilaterales de la abducción (DEC-038, el doble de tiempo por serie) a 90 min el cuádriceps queda corto por tiempo y no solo por R1 (lo fija el test de arriba). A 100 min el aviso sigue siendo solo R1: antes de DEC-038 eran espalda, hombros y cuádriceps; el orden del paso 2 (DEC-039) suma el pecho.
   const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 100 };
   const g = nuevo(p);
-  assert.deepEqual(g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa), ['back:R1', 'shoulders:R1', 'quads:R1']); // los mismos tres faltantes que el test original a 90 min
+  assert.deepEqual(g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa), ['chest:R1', 'back:R1', 'shoulders:R1', 'quads:R1']); // todos solo por R1; con el orden del paso 2 (DEC-039) el pecho se suma a los tres faltantes del test original a 90 min
   const a = AVISO.construirAviso(g.plan);
   assert.ok(a.sesionesAfectadas.length > 0 && a.soloR1);
   assert.equal(a.salidas[0].disponible, false); // más tiempo no ayuda: sobra tiempo

@@ -50,16 +50,16 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 7. Porcentaje de planes (de los 360) en que R1 deja necesidad semanal sin cubrir, por músculo y por número de días
 
-**ℹ️ informe.** 36 de 360 planes (10 %) con algún músculo sin cubrir por R1; Emanuel lo revisa.
+**ℹ️ informe.** 94 de 360 planes (26.1 %) con algún músculo sin cubrir por R1; Emanuel lo revisa.
 
 | Músculo | Total | 3 días | 4 días | 5 días | 6 días |
 | --- | --- | --- | --- | --- | --- |
-| Pecho | 12 (3.3 %) | 0 de 90 | 12 de 90 | 0 de 90 | 0 de 90 |
-| Espalda | 24 (6.7 %) | 0 de 90 | 8 de 90 | 8 de 90 | 8 de 90 |
-| Hombros | 12 (3.3 %) | 0 de 90 | 12 de 90 | 0 de 90 | 0 de 90 |
-| Cuádriceps | 2 (0.6 %) | 0 de 90 | 0 de 90 | 0 de 90 | 2 de 90 |
-| Isquiotibiales | 4 (1.1 %) | 0 de 90 | 0 de 90 | 2 de 90 | 2 de 90 |
-| Glúteos | 6 (1.7 %) | 0 de 90 | 0 de 90 | 2 de 90 | 4 de 90 |
+| Pecho | 5 (1.4 %) | 0 de 90 | 5 de 90 | 0 de 90 | 0 de 90 |
+| Espalda | 16 (4.4 %) | 0 de 90 | 0 de 90 | 8 de 90 | 8 de 90 |
+| Hombros | 6 (1.7 %) | 2 de 90 | 4 de 90 | 0 de 90 | 0 de 90 |
+| Cuádriceps | 8 (2.2 %) | 0 de 90 | 2 de 90 | 4 de 90 | 2 de 90 |
+| Isquiotibiales | 12 (3.3 %) | 0 de 90 | 4 de 90 | 4 de 90 | 4 de 90 |
+| Glúteos | 69 (19.2 %) | 0 de 90 | 5 de 90 | 32 de 90 | 32 de 90 |
 | Pantorrillas | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Bíceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Tríceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
@@ -71,7 +71,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 9. La frecuencia y las garantías de DEC-014, DEC-017 y DEC-020 se cumplen, o el usuario ve el aviso único
 
-**⚠️ cumple con aviso.** Pisos (DEC-014/017/020: 10 series fraccionadas por semana para los grupos mayores, 5 con énfasis reducido, 5 los chicos) y series reales: 0 sin aviso. Frecuencia mínima de 2 sesiones por semana en los grupos mayores: 74 caso(s) por debajo con aviso en el aviso único (DEC-036, aviso y no restricción) y 0 sin aviso.
+**⚠️ cumple con aviso.** Pisos (DEC-014/017/020: 10 series fraccionadas por semana para los grupos mayores, 5 con énfasis reducido, 5 los chicos) y series reales: 0 sin aviso. Frecuencia mínima de 2 sesiones por semana en los grupos mayores: 56 caso(s) por debajo con aviso en el aviso único (DEC-036, aviso y no restricción) y 0 sin aviso.
 
 ## 10. Los ejercicios prioritarios aparecen en todos los días de su patrón, salvo restricción de seguridad avisada
 
@@ -87,7 +87,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037)
 
-**✅ cumple.** 0 incumplimientos en 10651 ejercicios (230 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34055 series con el tope, 34055 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
+**✅ cumple.** 0 incumplimientos en 10517 ejercicios (26 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 32833 series con el tope, 32833 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 
