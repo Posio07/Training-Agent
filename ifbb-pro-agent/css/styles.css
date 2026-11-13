@@ -8,6 +8,8 @@
  * colores reales (`--disco-*`): son el dibujo de un objeto, no un estado. */
 * { box-sizing: border-box; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur-rapida); }
+/* color-scheme: los controles nativos (casillas, desplegables, selector de fecha) se dibujan en oscuro. */
+html { color-scheme: dark; }
 html, body { margin: 0; padding: 0; background: var(--fondo); color: var(--texto); font: 16px/var(--interlinea-texto) var(--font-body); -webkit-text-size-adjust: 100%; }
 body { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); min-height: 100vh; }
 h1, h2, h3, h4 { margin: 0 0 var(--esp-2); line-height: var(--interlinea-titulo); font-weight: var(--peso-fuerte); }
@@ -76,10 +78,25 @@ form label { display: block; font-size: var(--txt-s); color: var(--texto-suave);
 input, select { width: 100%; padding: var(--esp-3) var(--esp-4); border-radius: var(--radio-s); border: 1px solid var(--borde); background: var(--superficie-2); color: var(--texto); font-size: var(--txt-base); font-family: var(--font-body); min-height: var(--toque-min); }
 ::placeholder { color: var(--texto-suave); opacity: 1; }
 input:focus, select:focus { outline: var(--foco) solid var(--acento); outline-offset: 0; border-color: transparent; }
+/* Casillas: el rótulo entero es el objetivo táctil (44 px de alto como mínimo).
+ * El relleno centra la casilla con un rótulo de una línea y la deja arriba,
+ * junto al primer renglón, cuando el rótulo ocupa varios. */
+input[type="checkbox"] { width: var(--casilla); height: var(--casilla); min-height: 0; padding: 0; margin: 0; flex-shrink: 0; accent-color: var(--acento); }
+.check, form .check { display: flex; align-items: flex-start; gap: var(--esp-3); min-height: var(--toque-min); padding: calc((var(--toque-min) - var(--casilla)) / 2) 0; margin: 0; font-size: var(--txt-m); line-height: var(--casilla); color: var(--texto); cursor: pointer; }
+.check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--esp-3); }
+.stack { display: grid; gap: var(--esp-3); }
+/* Zonas de lesión: el diagnóstico y el dolor actual cuelgan de su zona. El display lo pone el JS al marcar la zona. */
+.injury-sub { flex-wrap: wrap; align-items: center; gap: 0 var(--esp-5); padding-left: calc(var(--casilla) + var(--esp-3)); margin-bottom: var(--esp-2); }
+.injury-sub .check, form .injury-sub .check { font-size: var(--txt-s); color: var(--texto-suave); }
+fieldset .help { margin: var(--esp-1) 0 var(--esp-3); }
+fieldset details.card { margin: var(--esp-3) 0 0; background: var(--superficie-2); padding: 0 var(--esp-4); }
+fieldset details.card summary { margin: 0; padding: var(--esp-4) 0; }
+fieldset details.card[open] { padding-bottom: var(--esp-4); }
+fieldset details.card label { margin-top: 0; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-3); }
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--esp-3); }
 fieldset { border: 1px solid var(--borde); border-radius: var(--radio-l); padding: var(--esp-3) var(--esp-5) var(--esp-5); margin: 0 0 var(--esp-5); }
-legend { color: var(--texto); font-weight: var(--peso-fuerte); padding: 0 var(--esp-2); }
+legend { color: var(--texto); font-weight: var(--peso-fuerte); font-size: var(--txt-l); padding: 0 var(--esp-2); }
 .help { font-size: var(--txt-s); color: var(--texto-suave); margin-top: var(--esp-1); }
 
 .alert { border-radius: var(--radio-s); padding: var(--esp-3) var(--esp-4); margin-bottom: var(--esp-3); font-size: var(--txt-m); border-left: var(--marca) solid; background: var(--superficie-2); }

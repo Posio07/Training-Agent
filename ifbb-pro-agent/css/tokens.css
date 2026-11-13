@@ -104,6 +104,7 @@
   --barra-gruesa: 14px;     /* la barra de macronutrientes */
   --punto: 8px;             /* el punto de color de una leyenda */
   --foco: 3px;              /* el anillo de foco */
+  --casilla: 22px;          /* una casilla de verificación */
   --opacidad-inactivo: .45; /* un control que no se puede usar */
   --ancho-contenido: 720px;
   --ancho-sesion: 560px;

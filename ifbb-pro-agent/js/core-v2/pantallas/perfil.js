@@ -15,7 +15,7 @@
   function platesCheckboxes(unit, selected) {
     const canon = unit === 'lb' ? K.PLATES_LB : K.PLATES_KG;
     const sel = Array.isArray(selected) && selected.length ? selected.map(Number) : canon;
-    return canon.map(p => `<label style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0;font-size:.85rem;color:var(--tiza)"><input type="checkbox" name="availablePlates" value="${p}" style="width:auto" ${sel.includes(p) ? 'checked' : ''}> ${n1(p)} ${unit}</label>`).join('');
+    return canon.map(p => `<label class="check"><input type="checkbox" name="availablePlates" value="${p}" ${sel.includes(p) ? 'checked' : ''}> ${n1(p)} ${unit}</label>`).join('');
   }
 
   /* DEC-009: una fila por zona de lesión, con el diagnóstico y el dolor
@@ -28,11 +28,11 @@
     // la hoja del navegador, así que quedaría visible igual. El propio
     // display inline (none/flex) es lo único que hace falta.
     return `<div class="injury-zone" data-zone="${zone}">
-      <label style="display:flex;align-items:center;gap:.5rem;margin:.25rem 0"><input type="checkbox" name="injuryZones" value="${zone}" class="injury-toggle" style="width:auto" ${checked ? 'checked' : ''}> ${esc(label)}</label>
-      <div class="injury-sub" style="padding-left:1.7rem;display:${checked ? 'flex' : 'none'};gap:1.1rem;flex-wrap:wrap;margin:0 0 .6rem">
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--acero)"><input type="checkbox" name="injuryDiagnosed" value="${zone}" style="width:auto" ${inj && inj.diagnosed ? 'checked' : ''}> Diagnóstico profesional</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--acero)"><input type="checkbox" name="injuryPainNow" value="${zone}" style="width:auto" ${inj && inj.painNow ? 'checked' : ''}> Dolor actualmente</label>
-        ${inj && inj.clearanceDate ? `<span style="font-size:.78rem;color:var(--acero)">Autorización profesional registrada el ${esc(inj.clearanceDate)}</span>` : ''}
+      <label class="check"><input type="checkbox" name="injuryZones" value="${zone}" class="injury-toggle" ${checked ? 'checked' : ''}> ${esc(label)}</label>
+      <div class="injury-sub" style="display:${checked ? 'flex' : 'none'}">
+        <label class="check"><input type="checkbox" name="injuryDiagnosed" value="${zone}" ${inj && inj.diagnosed ? 'checked' : ''}> Diagnóstico profesional</label>
+        <label class="check"><input type="checkbox" name="injuryPainNow" value="${zone}" ${inj && inj.painNow ? 'checked' : ''}> Dolor actualmente</label>
+        ${inj && inj.clearanceDate ? `<span class="nota">Autorización profesional registrada el ${esc(inj.clearanceDate)}</span>` : ''}
       </div>
     </div>`;
   }
@@ -100,7 +100,7 @@
           <select name="daysPerWeek">${[3, 4, 5, 6].map(n => `<option value="${n}" ${Number(d.daysPerWeek) === n ? 'selected' : ''}>${n} días</option>`).join('')}</select>
           <label>Grupos musculares rezagados (opcional)</label>
           <p class="help">Reciben un 25 % más de series que el resto, por encima incluso del recorte que les tocaría por tu división.</p>
-          <div class="row3">${Object.entries(K.MUSCLE_LABELS).map(([id, label]) => `<label style="display:flex;align-items:center;gap:.4rem;margin:.2rem 0;font-size:.85rem;color:var(--tiza)"><input type="checkbox" name="laggingMuscles" value="${id}" style="width:auto" ${(d.laggingMuscles || []).includes(id) ? 'checked' : ''}> ${esc(label)}</label>`).join('')}</div>
+          <div class="check-grid">${Object.entries(K.MUSCLE_LABELS).map(([id, label]) => `<label class="check"><input type="checkbox" name="laggingMuscles" value="${id}" ${(d.laggingMuscles || []).includes(id) ? 'checked' : ''}> ${esc(label)}</label>`).join('')}</div>
         </fieldset>
         <fieldset>
           <legend>Tiempo y ejercicios prioritarios</legend>
@@ -112,7 +112,7 @@
           </details>
           <label>Ejercicios prioritarios (hasta ${REGISTRO.valor('MAX_EJERCICIOS_PRIORITARIOS')}, opcional)</label>
           <p class="help">Entran fijos en los días cuyo tipo de sesión incluye su patrón, antes de repartir el resto. Si una lesión declarada lo contraindica, la seguridad gana y el plan te avisa.</p>
-          <div class="row3">${Array.from({ length: REGISTRO.valor('MAX_EJERCICIOS_PRIORITARIOS') }, (_, i) => `<select name="prioritarios" aria-label="Ejercicio prioritario ${i + 1}"><option value="">—</option>${opcionesPrioritarios((d.prioritarios || [])[i])}</select>`).join('')}</div>
+          <div class="stack">${Array.from({ length: REGISTRO.valor('MAX_EJERCICIOS_PRIORITARIOS') }, (_, i) => `<select name="prioritarios" aria-label="Ejercicio prioritario ${i + 1}"><option value="">—</option>${opcionesPrioritarios((d.prioritarios || [])[i])}</select>`).join('')}</div>
         </fieldset>
         <fieldset>
           <legend>Objetivo</legend>
@@ -134,9 +134,9 @@
             <input name="classicLimitLb" type="number" inputmode="numeric" value="${esc(d.classicLimitLb || '')}" placeholder="Deja vacío para usar la tabla orientativa">
             <p class="help">La tabla incluida es la de agosto de 2023 y no pudo verificarse contra el reglamento vigente. Si conoces el límite actual, escríbelo aquí.</p>
           </div>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="healthGoal" style="width:auto" ${d.healthGoal ? 'checked' : ''}> Priorizar salud/funcional sobre estética</label>
+          <label class="check"><input type="checkbox" name="healthGoal" ${d.healthGoal ? 'checked' : ''}> Priorizar salud/funcional sobre estética</label>
           <p class="help">En definición, mantiene el cardio en 150 min/semana (3 sesiones de 50 min) en vez de recortarlo, y suma sentadilla búlgara, step-up con carga y paseo del granjero en los días que entrenan cuádriceps.</p>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:1rem"><input type="checkbox" name="barbellRow" style="width:auto" ${d.barbellRow ? 'checked' : ''}> Incluir remo con barra</label>
+          <label class="check"><input type="checkbox" name="barbellRow" ${d.barbellRow ? 'checked' : ''}> Incluir remo con barra</label>
           <p class="help">Por defecto el remo del plan es con apoyo de pecho, que carga menos la espalda baja. No hay estudios que muestren más hipertrofia de espalda con el remo con barra. Si lo incluyes, el plan puede avisarte cuando junte dos ejercicios de mucha demanda lumbar en un día.</p>
         </fieldset>
         <fieldset>
@@ -147,26 +147,26 @@
             <div><label>Peso de la barra</label><input name="barWeight" id="barWeight" type="number" inputmode="decimal" step="0.5" value="${esc(d.barWeight || '')}" placeholder="${(d.plateUnit || 'kg') === 'lb' ? '45' : '20'}"></div>
           </div>
           <label>Discos disponibles</label>
-          <div class="row3" id="plates-wrap">${platesCheckboxes(d.plateUnit || 'kg', d.availablePlates)}</div>
+          <div class="check-grid" id="plates-wrap">${platesCheckboxes(d.plateUnit || 'kg', d.availablePlates)}</div>
         </fieldset>
         <fieldset>
           <legend>Salud</legend>
           <p class="help">La app NO reemplaza a un médico, fisioterapeuta ni entrenador certificado. El tamizaje y los avisos de diabetes aplican posicionamientos oficiales. Para lesiones la app no adapta la rutina: te pide la autorización de un profesional y solo evita, como precaución (E4), algunos ejercicios de la zona. Una condición sin regla cargada queda registrada y no cambia nada.</p>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthRegularExercise" style="width:auto" ${h.screening.regularExercise ? 'checked' : ''}> Hago ejercicio planificado ≥30 min, 3 días/semana, desde hace al menos 3 meses</label>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthCvMetabolicRenal" style="width:auto" ${h.screening.cvMetabolicRenal ? 'checked' : ''}> Tengo diagnóstico de enfermedad cardiovascular, metabólica (diabetes) o renal</label>
-          <label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" name="healthSymptoms" style="width:auto" ${h.screening.symptoms ? 'checked' : ''}> Tengo dolor/molestia en el pecho, falta de aire en reposo o con poco esfuerzo, mareo o desmayo, palpitaciones, hinchazón de tobillos, dolor en las piernas al caminar, soplo cardíaco conocido o fatiga inusual</label>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem"><input type="checkbox" name="healthMedicalClearance" style="width:auto" ${h.screening.medicalClearance ? 'checked' : ''}> Tengo autorización médica para entrenar a intensidad vigorosa (vigente, últimos 12 meses)</label>
+          <label class="check"><input type="checkbox" name="healthRegularExercise" ${h.screening.regularExercise ? 'checked' : ''}> Hago ejercicio planificado ≥30 min, 3 días/semana, desde hace al menos 3 meses</label>
+          <label class="check"><input type="checkbox" name="healthCvMetabolicRenal" ${h.screening.cvMetabolicRenal ? 'checked' : ''}> Tengo diagnóstico de enfermedad cardiovascular, metabólica (diabetes) o renal</label>
+          <label class="check"><input type="checkbox" name="healthSymptoms" ${h.screening.symptoms ? 'checked' : ''}> Tengo dolor/molestia en el pecho, falta de aire en reposo o con poco esfuerzo, mareo o desmayo, palpitaciones, hinchazón de tobillos, dolor en las piernas al caminar, soplo cardíaco conocido o fatiga inusual</label>
+          <label class="check"><input type="checkbox" name="healthMedicalClearance" ${h.screening.medicalClearance ? 'checked' : ''}> Tengo autorización médica para entrenar a intensidad vigorosa (vigente, últimos 12 meses)</label>
           <p class="help">Si marcaste síntomas, o la condición cardiovascular/metabólica/renal sin entrenar de forma regular, el plan queda oculto hasta marcar esta autorización.</p>
 
-          <label style="margin-top:.8rem">Diabetes</label>
+          <label>Diabetes</label>
           <select name="diabetesType">
             <option value="none" ${h.diabetes.type === 'none' ? 'selected' : ''}>Ninguna</option>
             <option value="type1" ${h.diabetes.type === 'type1' ? 'selected' : ''}>Tipo 1</option>
             <option value="type2" ${h.diabetes.type === 'type2' ? 'selected' : ''}>Tipo 2</option>
           </select>
-          <label style="display:flex;align-items:center;gap:.5rem;margin-top:.4rem"><input type="checkbox" name="healthDiabetesMed" style="width:auto" ${h.diabetes.medication ? 'checked' : ''}> Uso insulina u otro fármaco que baja la glucosa</label>
+          <label class="check"><input type="checkbox" name="healthDiabetesMed" ${h.diabetes.medication ? 'checked' : ''}> Uso insulina u otro fármaco que baja la glucosa</label>
 
-          <label style="margin-top:.8rem">Lesiones (marcá la zona si tenés una)</label>
+          <label>Lesiones (marcá la zona si tenés una)</label>
           <div id="injury-zones">${K.INJURY_ZONES.map(z => injuryZoneRow(z, K.INJURY_LABELS[z], injuriesByZone[z])).join('')}</div>
           <p class="help">Con cualquier zona marcada, el plan queda en pausa hasta que confirmes que un profesional te autorizó a entrenar con esa lesión (se pide una vez por zona y se vuelve a pedir si agregás otra, si el dolor de una zona aumenta o si cambia su diagnóstico). Como precaución (E4) se evitan algunos ejercicios de la zona: no es una adaptación a tu lesión. En Modo sesión podés registrar el dolor de cada serie que la involucre.</p>
 
