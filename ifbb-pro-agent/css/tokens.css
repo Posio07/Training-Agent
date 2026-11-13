@@ -101,6 +101,7 @@
   --icono-m: 1.4rem;
   --marca: 4px;             /* la marca de color a la izquierda de una fila */
   --barra-fina: 6px;        /* la barra de reparto de series del día */
+  --barra-gruesa: 14px;     /* la barra de macronutrientes */
   --punto: 8px;             /* el punto de color de una leyenda */
   --foco: 3px;              /* el anillo de foco */
   --opacidad-inactivo: .45; /* un control que no se puede usar */

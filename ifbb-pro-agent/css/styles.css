@@ -16,6 +16,11 @@ h3 { font-size: var(--txt-l); color: var(--texto); }
 p { margin: 0 0 var(--esp-3); }
 a { color: var(--info-ui); }
 small, .muted { color: var(--texto-suave); }
+/* Notas al pie y descargos. */
+.nota { font-size: var(--txt-s); color: var(--texto-suave); }
+/* Un veredicto dentro de una frase: dentro o fuera de un límite. */
+.estado-ok { color: var(--exito); }
+.estado-mal { color: var(--peligro); }
 hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 :focus-visible { outline: var(--foco) solid var(--acento); outline-offset: 2px; }
 
@@ -42,6 +47,10 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 .card { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-l); padding: var(--esp-5); margin-bottom: var(--esp-5); }
 .card.accent { border-color: var(--acento); }
 .card.card-aviso { border-color: var(--aviso); }
+.card.card-peligro { border-color: var(--peligro); }
+/* Una tarjeta dentro de otra (una zona de lesión en la pausa del plan). */
+.card.card-interior { margin: var(--esp-3) 0; background: var(--superficie-2); }
+.card.card-interior .btn { margin-top: var(--esp-1); }
 /* Las salidas del aviso llevan frases largas: una por renglón, a todo el ancho. */
 .card-aviso .btn-row { flex-direction: column; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--esp-3); }
@@ -93,13 +102,16 @@ th, td { text-align: left; padding: var(--esp-2) var(--esp-1); border-bottom: 1p
 th { color: var(--texto-suave); font-weight: var(--peso-medio); font-size: var(--txt-xs); }
 td.num { text-align: right; white-space: nowrap; }
 
-.macro-bar { display: flex; height: 14px; border-radius: var(--radio-pastilla); overflow: hidden; margin: .5rem 0; }
+.macro-bar { display: flex; height: var(--barra-gruesa); border-radius: var(--radio-pastilla); overflow: hidden; margin: var(--esp-4) 0 var(--esp-3); }
 .macro-bar span { display: block; height: 100%; }
 .macro-bar .p { background: var(--macro-proteina); }
 .macro-bar .c { background: var(--macro-carbohidrato); }
 .macro-bar .f { background: var(--macro-grasa); }
-.legend { display: flex; gap: var(--esp-5); font-size: .8rem; color: var(--texto-suave); flex-wrap: wrap; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+.legend { display: flex; gap: var(--esp-1) var(--esp-5); font-size: var(--txt-s); color: var(--texto-suave); flex-wrap: wrap; }
+.legend i { display: inline-block; width: var(--punto); height: var(--punto); border-radius: 50%; margin-right: var(--esp-2); }
+.legend .p { background: var(--macro-proteina); }
+.legend .c { background: var(--macro-carbohidrato); }
+.legend .f { background: var(--macro-grasa); }
 
 /* ---------- Pantalla Plan · Entreno ----------
  * Una tarjeta por día. La marca de color a la izquierda de cada ejercicio
@@ -345,7 +357,7 @@ li { margin-bottom: var(--esp-1); }
 
 
 /* DEC-011: etiqueta de nivel de evidencia (E4 · heurística) junto a avisos y ejercicios de precaución */
-.ev-tag { display: inline-block; font-size: .68rem; padding: .05rem var(--esp-2); border-radius: var(--radio-xs); margin-left: .3rem; vertical-align: middle; border: 1px solid var(--acero); color: var(--texto-suave); font-weight: var(--peso-fuerte); white-space: nowrap; }
+.ev-tag { display: inline-block; font-size: var(--txt-xs); padding: 0 var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-1); vertical-align: middle; border: 1px solid var(--texto-suave); color: var(--texto-suave); font-weight: var(--peso-medio); white-space: nowrap; }
 
 /* DEC-015 · editar y borrar series (mínimo; el rediseño visual lo reemplaza) */
 .hist-session { border-top: 1px solid var(--borde); padding: var(--esp-2) 0; }

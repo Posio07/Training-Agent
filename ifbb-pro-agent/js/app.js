@@ -156,7 +156,7 @@
       ${items || `<div class="empty"><div class="big">${icon('person')}</div><p>Aún no hay perfiles.<br>Crea el primero para obtener tu plan.</p></div>`}
       ${active() ? `<div class="card">
         <h3>Perfil activo: ${esc(active().data.name)}</h3>
-        ${(() => { const hs = ENGINE.computeHealthScreen(ENGINE.normalizeProfile(active().data)); return hs.anyCondition ? `<p class="muted" style="font-size:.78rem">${esc(hs.disclaimer)}</p>` : ''; })()}
+        ${(() => { const hs = ENGINE.computeHealthScreen(ENGINE.normalizeProfile(active().data)); return hs.anyCondition ? `<p class="nota">${esc(hs.disclaimer)}</p>` : ''; })()}
         <div class="btn-row">
           <button class="btn" id="btn-edit">Editar datos</button>
           <button class="btn" id="btn-dup">Duplicar</button>
@@ -164,7 +164,7 @@
           <button class="btn btn-danger" id="btn-del">Eliminar</button>
         </div>
       </div>` : ''}
-      <p class="muted" style="font-size:.78rem">${esc(ENGINE.buildPlan({ name: 'x', age: 30, heightCm: 170, weightKg: 70 }).disclaimer)}</p>
+      <p class="nota">${esc(ENGINE.buildPlan({ name: 'x', age: 30, heightCm: 170, weightKg: 70 }).disclaimer)}</p>
     `;
 
     $('#btn-new').onclick = () => { ui.editingId = null; go('data'); };
@@ -253,7 +253,7 @@
     if (plan.health.blocked) { view.innerHTML = htmlHealthBlock(plan); wireHealthBlock(p); return; }
     const tabs = [['summary', 'Resumen'], ['nutrition', 'Dieta'], ['training', 'Entreno'], ['targets', 'Medidas'], ['supps', 'Suplementos']];
     view.innerHTML = `
-      ${plan.health.disclaimer ? `<p class="muted" style="font-size:.78rem">${esc(plan.health.disclaimer)}</p>` : ''}
+      ${plan.health.disclaimer ? `<p class="nota">${esc(plan.health.disclaimer)}</p>` : ''}
       <div class="subtabs">${tabs.map(([id, l]) => `<button class="btn ${ui.planTab === id ? 'active' : ''}" data-pt="${id}">${l}</button>`).join('')}</div>
       <div id="plan-body"></div>`;
     view.querySelectorAll('[data-pt]').forEach(b => b.onclick = () => { ui.planTab = b.dataset.pt; renderPlan(); });
@@ -310,13 +310,13 @@
         <div class="alert danger">${esc(h.injuryBlockReason)} ${evTag('E4')}</div>
         <p class="muted">Derivación: un médico o fisioterapeuta puede decirte si podés entrenar y cómo. La app no reemplaza esa valoración.</p>
         ${h.injuryClearance.pendingZones.map(z => `
-        <div class="card" style="margin:.5rem 0">
+        <div class="card card-interior">
           <strong>${esc(KNOWLEDGE.INJURY_LABELS[z] || z)}</strong>
-          <p class="muted" style="margin:.3rem 0">¿Un profesional te autorizó a entrenar con esta lesión? Se guarda con la fecha de hoy.</p>
+          <p class="muted">¿Un profesional te autorizó a entrenar con esta lesión? Se guarda con la fecha de hoy.</p>
           <button class="btn btn-primary" data-injury-clearance="${esc(z)}">Sí, un profesional me autorizó</button>
         </div>`).join('')}` : '';
     return `
-      <div class="card accent" style="border-color:var(--peligro)">
+      <div class="card card-peligro">
         <h2>Plan en pausa</h2>
         ${screeningPart}
         ${injuryPart}
@@ -374,7 +374,7 @@
         </ul>
         <div class="btn-row"><button class="btn" id="btn-share">Compartir / copiar resumen</button></div>
       </div>
-      <p class="muted" style="font-size:.78rem">${esc(plan.disclaimer)}</p>`;
+      <p class="nota">${esc(plan.disclaimer)}</p>`;
   }
 
   function htmlNutrition(plan) {
@@ -394,7 +394,7 @@
           <div class="stat"><div class="v">${n.waterL} L</div><div class="l">agua total (bebidas + alimentos)</div><div class="s">ingesta adecuada (EFSA); 20-30 % suele venir de la comida · más si sudas mucho</div></div>
         </div>
         <div class="macro-bar"><span class="p" style="width:${pct(n.protein * 4)}%"></span><span class="c" style="width:${pct(n.carbs * 4)}%"></span><span class="f" style="width:${pct(n.fat * 9)}%"></span></div>
-        <div class="legend"><span><i style="background:var(--macro-proteina)"></i>Proteína ${pct(n.protein * 4)} %</span><span><i style="background:var(--macro-carbohidrato)"></i>Carbohidrato ${pct(n.carbs * 4)} %</span><span><i style="background:var(--macro-grasa)"></i>Grasa ${pct(n.fat * 9)} %</span></div>
+        <div class="legend"><span><i class="p"></i>Proteína ${pct(n.protein * 4)} %</span><span><i class="c"></i>Carbohidrato ${pct(n.carbs * 4)} %</span><span><i class="f"></i>Grasa ${pct(n.fat * 9)} %</span></div>
         <div class="src">Fuentes: ${cite(n.sources)}</div>
       </div>
       <div class="card">
@@ -456,7 +456,7 @@
       ${cl ? `<div class="card">
         <h3>Classic Physique · límite de peso</h3>
         <p>Estatura ${n1(p.heightCm)} cm → límite <b>${cl.lb} lb (${n1(cl.kg)} kg)</b> <span class="muted">(${esc(cl.source)})</span>.</p>
-        <p>Peso objetivo ${n1(t.targetWeight)} kg: ${cl.status === 'ok' ? `<b style="color:var(--exito)">dentro del límite</b> con ${n1(cl.marginKg)} kg de margen.` : `<b style="color:var(--peligro)">supera el límite</b> en ${n1(-cl.marginKg)} kg.`}</p>
+        <p>Peso objetivo ${n1(t.targetWeight)} kg: ${cl.status === 'ok' ? `<b class="estado-ok">dentro del límite</b> con ${n1(cl.marginKg)} kg de margen.` : `<b class="estado-mal">supera el límite</b> en ${n1(-cl.marginKg)} kg.`}</p>
         <p class="help">La tabla de la app es la de agosto de 2023 y hubo cambios para 2025. Confirma el límite en el reglamento vigente de la IFBB Pro League e introdúcelo en Datos si difiere.</p>
       </div>` : ''}
       <div class="card">
@@ -465,7 +465,7 @@
         <ul>
           <li>Ritmo: ${t.ratePct} % del peso/semana (${n1(t.rateKg * 1000)} g/semana).</li>
           <li>Duración estimada: <b>${n0(t.weeksNeeded)} semanas</b> → ${fmtDate(t.estimatedDate)}.</li>
-          ${p.targetDate ? `<li>Fecha objetivo indicada: ${fmtDate(p.targetDate)} → ${t.dateFeasible === false ? '<b style="color:var(--peligro)">no alcanzable con seguridad</b>' : '<b style="color:var(--exito)">alcanzable</b>'}.</li>` : ''}
+          ${p.targetDate ? `<li>Fecha objetivo indicada: ${fmtDate(p.targetDate)} → ${t.dateFeasible === false ? '<b class="estado-mal">no alcanzable con seguridad</b>' : '<b class="estado-ok">alcanzable</b>'}.</li>` : ''}
           ${p.goal === 'cut' ? '<li>Reserva las últimas 1-2 semanas para ajustes finales (peak week) con supervisión: la evidencia sobre manipulación de agua y sodio es limitada y arriesgada.</li><li>Tras la competición, planifica 4-8 semanas de subida gradual de calorías ("reverse diet") para recuperar función hormonal.</li>' : '<li>Cuando alcances el techo de grasa off-season, pasa a una minidefinición de 4-8 semanas antes de seguir en volumen.</li>'}
         </ul>`}
       </div>
@@ -664,7 +664,7 @@
           <li>La app no sustituye a un médico, dietista-nutricionista o entrenador certificado.</li>
         </ul>
       </div>
-      <p class="muted" style="font-size:.75rem">Training Agent · versión 1.0 · datos guardados solo en este dispositivo.</p>`;
+      <p class="nota">Training Agent · versión 1.0 · datos guardados solo en este dispositivo.</p>`;
   }
 
   /* ---------- PWA ---------- */
