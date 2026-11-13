@@ -1,11 +1,11 @@
 /* Sistema visual — identidad basada en los discos olímpicos.
  * Los valores (colores, espaciado, radios, sombras, tipografía y tamaños)
  * viven en `tokens.css`, que se carga antes: acá solo se usan sus variables.
- * Los 4 colores de disco tienen significado fijo y no se usan como
- * decoración: rojo = top set / máxima intensidad, azul = multiarticular
- * de trabajo, verde = aislamiento, amarillo = acción principal. Para todo
- * lo demás (alertas, indicadores de selección, gráficos) se usan tonos
- * separados que no pisan ese significado. */
+ * Los colores tienen significado fijo y no se usan como decoración:
+ * amarillo (acento) = acción principal y top set, azul = multiarticular de
+ * trabajo, verde = aislamiento, ámbar = aviso o dato por verificar, rojo =
+ * solo errores y avisos reales. Los discos de la barra cargada conservan sus
+ * colores reales (`--disco-*`): son el dibujo de un objeto, no un estado. */
 * { box-sizing: border-box; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--dur-rapida); }
 html, body { margin: 0; padding: 0; background: var(--fondo); color: var(--texto); font: 16px/var(--interlinea-texto) var(--font-body); -webkit-text-size-adjust: 100%; }
@@ -41,6 +41,7 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 
 .card { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-l); padding: var(--esp-5); margin-bottom: var(--esp-5); }
 .card.accent { border-color: var(--acento); }
+.card.card-aviso { border-color: var(--aviso); }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--esp-3); }
 .stat { background: var(--superficie-2); border-radius: var(--radio-s); padding: var(--esp-3) .7rem; }
 .stat .v { font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-medio); line-height: var(--interlinea-cifra); }
@@ -59,6 +60,7 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 
 form label { display: block; font-size: var(--txt-s); color: var(--texto-suave); margin: .7rem 0 .25rem; }
 input, select { width: 100%; padding: .65rem .7rem; border-radius: var(--radio-s); border: 1px solid var(--borde); background: var(--superficie-2); color: var(--texto); font-size: var(--txt-base); font-family: var(--font-body); min-height: var(--toque-min); }
+::placeholder { color: var(--texto-suave); opacity: 1; }
 input:focus, select:focus { outline: 2px solid var(--acento); border-color: transparent; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-3); }
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--esp-3); }
@@ -94,7 +96,8 @@ td.num { text-align: right; white-space: nowrap; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
 
 /* Sesiones de entreno: la barra de color a la izquierda identifica el
- * tipo de ejercicio (rojo top set, azul multiarticular, verde aislamiento). */
+ * tipo de ejercicio (acento top set, azul multiarticular, verde aislamiento).
+ * La barra del día reparte sus series por tipo y lleva debajo su leyenda. */
 .session { border: 1px solid var(--borde); border-radius: var(--radio-m); margin-bottom: .7rem; background: var(--superficie); overflow: hidden; }
 .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--esp-3); padding: var(--esp-4) .9rem; cursor: pointer; background: none; border: 0; width: 100%; text-align: left; color: var(--texto); min-height: var(--toque-min); font-family: var(--font-body); }
 /* El mismo inset que el texto de .ex-row (borde de 4px + padding de .7rem
@@ -111,6 +114,12 @@ td.num { text-align: right; white-space: nowrap; }
 .session-bar .top { background: var(--serie-top); }
 .session-bar .compound { background: var(--serie-multiarticular); }
 .session-bar .isolation { background: var(--serie-aislamiento); }
+.session-legend { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-4); margin-top: var(--esp-2); font-size: var(--txt-xs); color: var(--texto-suave); }
+.session-legend .ley { display: inline-flex; align-items: center; gap: var(--esp-2); white-space: nowrap; }
+.session-legend .ley::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.session-legend .top::before { background: var(--serie-top); }
+.session-legend .compound::before { background: var(--serie-multiarticular); }
+.session-legend .isolation::before { background: var(--serie-aislamiento); }
 .session-muscles { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .55rem; }
 .session-muscles .chip { font-size: .7rem; padding: .15rem .55rem; border-radius: var(--radio-pastilla); background: var(--superficie); border: 1px solid var(--acero); color: var(--texto-suave); }
 .session-head .chev { color: var(--texto-suave); flex-shrink: 0; width: 20px; height: 20px; margin-top: .1rem; }
@@ -139,7 +148,9 @@ td.num { text-align: right; white-space: nowrap; }
 .ex-row.type-isolation { border-left-color: var(--serie-aislamiento); }
 .ex-row .ex-main { flex: 1; padding: var(--esp-2) .7rem; min-width: 0; }
 .ex-row .ex-name { font-weight: var(--peso-medio); font-size: var(--txt-m); }
-.ex-row .ex-tag { display: inline-block; font-size: .68rem; padding: .05rem var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-2); vertical-align: middle; background: var(--serie-top); color: var(--sobre-color); font-weight: var(--peso-fuerte); }
+.ex-row .ex-tag { display: inline-block; font-size: .68rem; padding: .05rem var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-2); vertical-align: middle; background: var(--serie-top); color: var(--sobre-acento); font-weight: var(--peso-fuerte); }
+/* DEC-038: dato que falta leer, no un error. Ámbar y sin relleno para que no compita con el top set, pero siempre a la vista. */
+.ex-row .ex-tag.ex-tag-evidencia { background: transparent; color: var(--aviso); border: 1px solid var(--aviso); font-weight: var(--peso-medio); }
 .ex-row .ex-fields { display: flex; gap: .9rem; margin-top: .25rem; font-size: var(--txt-xs); color: var(--texto-suave); flex-wrap: wrap; }
 .ex-row .ex-fields .f { display: inline-flex; align-items: center; gap: .25rem; }
 .ex-row .ex-fields .icon { width: .85rem; height: .85rem; }
@@ -178,7 +189,7 @@ td.num { text-align: right; white-space: nowrap; }
 .chart .dot { fill: var(--exito); }
 .chart .dot-faint { fill: var(--acero); opacity: .5; }
 .chart text { fill: var(--texto-suave); font-size: 10px; font-family: var(--font-body); }
-.chart .target { stroke: var(--peligro); stroke-dasharray: 4 4; }
+.chart .target { stroke: var(--acento); stroke-dasharray: 4 4; }
 
 details summary { cursor: pointer; color: var(--texto); font-weight: var(--peso-medio); margin-bottom: var(--esp-2); }
 ul { padding-left: var(--esp-6); margin: .3rem 0 var(--esp-3); }
@@ -291,7 +302,7 @@ li { margin-bottom: .25rem; }
 .topset-cmp { display: inline-flex; align-items: center; gap: var(--esp-1); font-weight: var(--peso-medio); font-size: var(--txt-s); white-space: nowrap; }
 .topset-cmp .icon { width: .9rem; height: .9rem; }
 .topset-cmp.cmp-up { color: var(--exito); }
-.topset-cmp.cmp-down { color: var(--peligro); }
+.topset-cmp.cmp-down { color: var(--texto); }
 .topset-cmp.cmp-flat { color: var(--texto-suave); }
 
 

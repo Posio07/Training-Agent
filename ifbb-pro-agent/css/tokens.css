@@ -29,20 +29,23 @@
   --acento: var(--disco-amarillo);      /* la acción principal y lo que hay que mirar primero */
   --sobre-acento: #23270a;              /* texto encima del acento */
   --sobre-claro: #1a1d20;               /* texto encima de tiza (el aviso flotante) */
-  --sobre-color: #fff;                  /* texto encima de un color saturado */
   --velo: rgba(35,39,43,.75);           /* fondo de los diálogos */
   --velo-fuerte: rgba(35,39,43,.92);    /* fondo del cronómetro de descanso */
 
-  /* Estados */
-  --peligro: #E27B74;
-  --aviso: #D9A23B;
-  --info-ui: #639ED7;
-  --exito: #5DAF74;
+  /* Estados. Los cuatro dan al menos 4.5:1 como texto sobre las tres superficies.
+   * El rojo (--peligro) es solo para errores y avisos reales. El ámbar (--aviso)
+   * es más anaranjado que el acento para que no se confundan. */
+  --peligro: #EC8E87;
+  --aviso: #E59F50;
+  --info-ui: #74ABE0;
+  --exito: #66B97D;
 
-  /* Tipo de serie (significado fijo, no decoración) */
-  --serie-top: var(--disco-rojo);
-  --serie-multiarticular: var(--disco-azul);
-  --serie-aislamiento: var(--disco-verde);
+  /* Tipo de serie (significado fijo, no decoración). El top set usa el acento:
+   * es lo más importante del día, no un error. Los otros dos son los colores de
+   * disco aclarados para que la marca se distinga sobre el fondo oscuro. */
+  --serie-top: var(--acento);
+  --serie-multiarticular: #5B9BD8;
+  --serie-aislamiento: #5FB077;
 
   /* Macronutrientes */
   --macro-proteina: #4FA868;

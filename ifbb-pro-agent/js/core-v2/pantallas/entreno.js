@@ -19,7 +19,7 @@
     const clase = e.tipo === 'multiarticular' ? 'type-compound' : 'type-isolation';
     const fila = (extra, nombre, reps, series, descanso, rir, etiqueta) => `<div class="ex-row ${extra}">
       <div class="ex-main">
-        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
+        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag ex-tag-evidencia" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
         <div class="ex-fields">
           <span class="f">${esc(etiquetaGrupo(e.grupo))}</span>
           ${rir ? `<span class="f">${icon('gauge')} RIR ${esc(rango(rir))}</span>` : ''}
@@ -47,6 +47,8 @@
     });
     const pct = n => (s.series ? (n / s.series * 100) : 0);
     const musculos = [...new Set(s.ejercicios.map(e => etiquetaGrupo(e.grupo)))];
+    // Leyenda de la barra: qué significa cada color y cuántas series hay de cada tipo (solo los tipos que el día tiene).
+    const leyenda = [['top', conteo.top, 'top set'], ['compound', conteo.compound, 'multiarticular'], ['isolation', conteo.isolation, 'aislamiento']].filter(x => x[1] > 0);
     return `<div class="session">
       <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${esSiguiente}" aria-controls="day-body-${i}">
         <div class="session-head-main">
@@ -60,6 +62,7 @@
             <span class="compound" style="width:${pct(conteo.compound)}%"></span>
             <span class="isolation" style="width:${pct(conteo.isolation)}%"></span>
           </div>
+          <div class="session-legend">${leyenda.map(([clase, n, tipo]) => `<span class="ley ${clase}">${n} ${tipo}</span>`).join('')}</div>
           <div class="session-muscles">${musculos.map(m => `<span class="chip">${esc(m)}</span>`).join('')}</div>
         </div>
         ${icon('chevron', 'chev')}
@@ -86,7 +89,7 @@
       const extra = s.id === 'mas-dias' ? ` (${s.dias})` : '';
       return `<button class="btn${s.id === 'mas-tiempo' ? ' btn-primary' : ''}" data-salida="${esc(s.id)}">${esc(s.texto)}${extra}</button>`;
     }).join('');
-    return `<div class="card" style="border-color:var(--alerta)">
+    return `<div class="card card-aviso">
       <h3>${esc(aviso.titulo)}</h3>
       <ul>${aviso.lineas.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
       <div class="btn-row">${botones}</div>
@@ -115,7 +118,7 @@
     const filasSemana = Object.keys(plan.semanal).map(m => `<tr><td>${esc(K.MUSCLE_LABELS[m] || m)}${plan.semanal[m].rezagado ? ' <span class="cite" title="Grupo rezagado: +25 % de series">rezagado</span>' : ''}</td><td class="num">${n1(plan.semanal[m].cubierto)}</td><td class="num">${n1(plan.semanal[m].objetivo)}</td></tr>`).join('');
     const avisos = avisosDelPlan(plan);
     return `
-      ${estado.versionNueva ? `<div class="card" style="border-color:var(--alerta)"><p>Hay una versión nueva del generador. Tu plan sigue como está hasta que decidas aplicarla.</p><div class="btn-row"><button class="btn btn-primary" data-aplicar-version>Aplicar la versión nueva</button></div></div>` : ''}
+      ${estado.versionNueva ? `<div class="card card-aviso"><p>Hay una versión nueva del generador. Tu plan sigue como está hasta que decidas aplicarla.</p><div class="btn-row"><button class="btn btn-primary" data-aplicar-version>Aplicar la versión nueva</button></div></div>` : ''}
       <div class="card accent">
         <h2>Entrenamiento · ${plan.sesiones.length} días por semana</h2>
         <p class="muted">Plan generado el ${esc(g.creadoEn)} (generador ${esc(g.versionMotor)}). No cambia solo: se regenera cuando cambias el tiempo, los días, el objetivo, el nivel, la división, los rezagados, los prioritarios, las lesiones, el remo con barra o la bandera de salud, o cuando lo pides.</p>
