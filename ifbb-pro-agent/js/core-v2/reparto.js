@@ -277,7 +277,7 @@
     // Paso 5 · relleno. Orden de decisión (DEC-037 punto 5, DEC-039; criterio de diseño E4, lo revisa Emanuel):
     //   1 restricciones duras (acá: capacidad, R1, necesidad por cubrir; antes: seguridad, estructura y cuota por sub-patrón) ·
     //   2 evidencia de la relación del ejercicio con el músculo de su grupo (ORDEN_EVIDENCIA: mejor primero), entre ejercicios del MISMO grupo ·
-    //   3 redundancia: la cobertura marginal, necesidad sin cubrir por serie (o por segundo, MEDIDA_REDUNDANCIA; más es menos redundante: lo que ya cubre la sesión no suma) ·
+    //   3 redundancia: la cobertura marginal, necesidad sin cubrir por segundo (o por serie, MEDIDA_REDUNDANCIA; más es menos redundante: lo que ya cubre la sesión no suma) ·
     //   4 tiempo por serie y, a igual tiempo, menor demanda lumbar del perfil de la Fase 3 (no se crea otra regla de fatiga).
     // La evidencia solo ordena candidatos ya factibles: no mueve pesos ni relaciones (regla 4 de CLAUDE.md).
     const ORDEN_EVIDENCIA = valor('ORDEN_EVIDENCIA');
@@ -304,7 +304,7 @@
       const g = cat.grupoDe(mov.v.id);
       util += Math.min(mov.series, faltaRealDe(g));
       if (util <= EPS && !sinNecesidad) return { ok: false, motivo: 'sin necesidad' };
-      return { ok: true, util, seg, redundancia: valor('MEDIDA_REDUNDANCIA') === 'serie' ? util / mov.series : util / seg, porSegundo: util / seg, excedeR1 };
+      return { ok: true, util, seg, redundancia: valor('MEDIDA_REDUNDANCIA') === 'segundo' ? util / seg : util / mov.series, porSegundo: util / seg, excedeR1 };
     }
     // ¿Puede la variante entrar como ejercicio nuevo en la sesión? Patrón libre, A3, grupo compatible, A2 y días de los grupos chicos.
     function puedeEntrar(ses, v) {

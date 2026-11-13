@@ -133,16 +133,19 @@ test('DEC-039: el orden por evidencia es un parámetro reversible: apagado, el r
   assert.equal(maxAbduccion(), conEvidencia, 'al restaurar el parámetro el plan vuelve a ser el mismo');
 });
 
-test('DEC-039: la medida de la redundancia (por serie o por segundo) es un parámetro del registro y cambia el reparto', () => {
-  assert.equal(R.valor('MEDIDA_REDUNDANCIA'), 'serie');
+test('DEC-039: la medida de la redundancia es un parámetro del registro (por defecto por segundo; por serie se midió y se descartó) y cambia el reparto', () => {
+  assert.equal(R.valor('MEDIDA_REDUNDANCIA'), 'segundo');
   const huella = () => JSON.stringify(barrido().map(({ pl }) => pl.sesiones.map(s => s.ejercicios.map(e => e.varianteId + e.series))));
-  const porSerie = huella(), porSegundo = conParametro('MEDIDA_REDUNDANCIA', 'segundo', huella);
+  const porSegundo = huella(), porSerie = conParametro('MEDIDA_REDUNDANCIA', 'serie', huella);
   assert.notEqual(porSerie, porSegundo);
-  // En las dos medidas el caso del glúteo queda corregido: ningún plan sin extensión directa y la abducción acotada.
-  ['serie', 'segundo'].forEach(m => conParametro('MEDIDA_REDUNDANCIA', m, () => barrido().forEach(({ p, d, pl }) => {
+  // Con las dos medidas el caso del glúteo queda corregido: ningún plan sin extensión directa y la abducción acotada.
+  ['segundo', 'serie'].forEach(m => conParametro('MEDIDA_REDUNDANCIA', m, () => barrido().forEach(({ p, d, pl }) => {
     assert.ok(semanalAbduccion(pl) <= 7, `${m} ${p.level}/${p.division} ${d} días: ${semanalAbduccion(pl)} abducciones`);
     if (pl.semanal.glutes.objetivo >= R.valor('UMBRAL_CUOTA_SUB_PATRON')) assert.ok(pl.semanal.glutes.porSubPatron.extension_cadera.directas >= 2);
   })));
+  // Por serie cuesta volumen: es la razón del descarte (DEC-039).
+  const series = () => barrido().reduce((a, { pl }) => a + pl.sesiones.reduce((b, s) => b + s.series, 0), 0);
+  assert.ok(conParametro('MEDIDA_REDUNDANCIA', 'serie', series) < series() * 0.98, 'por serie baja el volumen total más de un 2 %');
 });
 
 test('DEC-039: la cuota exige SERIES_MIN_CUOTA_SUB_PATRON (2) series o más: un ejercicio con menos no la cubre, y con 3 la cuota se programa con 3', () => {
