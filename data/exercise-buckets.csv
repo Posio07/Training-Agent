@@ -23,6 +23,9 @@ glutes.hip_thrust,glutes
 glutes.bulgarian_hip,glutes
 glutes.hip_abduction_machine,glutes
 glutes.kickback_cable,glutes
+glutes.hip_abduction_cable,glutes
+glutes.hip_abduction_sidelying,glutes
+glutes.hip_abduction_band,glutes
 calves.calf_raise_standing,calves
 calves.calf_raise_seated,calves
 biceps.curl_barbell,biceps

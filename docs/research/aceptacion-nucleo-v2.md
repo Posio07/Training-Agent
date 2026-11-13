@@ -2,7 +2,7 @@
 
 Generado por `node scripts/aceptacion-nucleo-v2.js --escribir`. Solo lee: **no corrige nada**. Si un criterio no se cumple, este informe lo dice y la decisión es de Emanuel.
 
-Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.3`.
+Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.5`.
 
 **Resultado: 13 cumplen · 1 cumplen con aviso · 0 no cumplen · 1 son un informe.**
 
@@ -50,16 +50,16 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 7. Porcentaje de planes (de los 360) en que R1 deja necesidad semanal sin cubrir, por músculo y por número de días
 
-**ℹ️ informe.** 43 de 360 planes (11.9 %) con algún músculo sin cubrir por R1; Emanuel lo revisa.
+**ℹ️ informe.** 36 de 360 planes (10 %) con algún músculo sin cubrir por R1; Emanuel lo revisa.
 
 | Músculo | Total | 3 días | 4 días | 5 días | 6 días |
 | --- | --- | --- | --- | --- | --- |
 | Pecho | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Espalda | 16 (4.4 %) | 0 de 90 | 0 de 90 | 8 de 90 | 8 de 90 |
 | Hombros | 4 (1.1 %) | 0 de 90 | 4 de 90 | 0 de 90 | 0 de 90 |
-| Cuádriceps | 10 (2.8 %) | 0 de 90 | 2 de 90 | 4 de 90 | 4 de 90 |
-| Isquiotibiales | 12 (3.3 %) | 0 de 90 | 4 de 90 | 4 de 90 | 4 de 90 |
-| Glúteos | 29 (8.1 %) | 3 de 90 | 12 de 90 | 10 de 90 | 4 de 90 |
+| Cuádriceps | 6 (1.7 %) | 0 de 90 | 2 de 90 | 2 de 90 | 2 de 90 |
+| Isquiotibiales | 8 (2.2 %) | 0 de 90 | 4 de 90 | 2 de 90 | 2 de 90 |
+| Glúteos | 22 (6.1 %) | 3 de 90 | 9 de 90 | 8 de 90 | 2 de 90 |
 | Pantorrillas | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Bíceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Tríceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
@@ -87,16 +87,15 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que su patrón no tenga otra variante que quepa; el volumen total no baja (DEC-031)
 
-**✅ cumple.** 0 incumplimientos en 9605 ejercicios (893 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34849 series con el tope, 34849 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
+**✅ cumple.** 0 incumplimientos en 9912 ejercicios (590 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34849 series con el tope, 34849 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 
-**✅ cumple.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 0 exportación(es) que nadie usa y 29 que solo usan los tests: 0 declaradas para borrar en el corte (B-057), 29 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
+**✅ cumple.** 0 número(s) de entrenamiento fuera del registro (no cuentan 0, 1, 2, 100, las conversiones de unidad, las tolerancias ni la interfaz); 0 exportación(es) que nadie usa y 28 que solo usan los tests: 0 declaradas para borrar en el corte (B-057), 28 que prueban comportamiento real y se conservan, 0 sin declarar. Es una lectura automática: son candidatos, no veredictos.
 
 - por archivo: 
 - solo tests: ifbb-pro-agent/js/core-v2/almacen.js: `CLAVE`
 - solo tests: ifbb-pro-agent/js/core-v2/aviso.js: `bloqueMinimoMin`
-- solo tests: ifbb-pro-agent/js/core-v2/catalogo.js: `PATRONES`
 - solo tests: ifbb-pro-agent/js/core-v2/catalogo.js: `variantesDePatron`
 - solo tests: ifbb-pro-agent/js/core-v2/dolor.js: `clasificarBackoff`
 - solo tests: ifbb-pro-agent/js/core-v2/dolor.js: `aplicarLectura`

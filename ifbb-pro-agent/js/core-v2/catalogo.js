@@ -108,6 +108,11 @@
     v('glutes.hip_thrust', 'Hip thrust con barra', 'puente_cadera', M, REGISTRO.valor('REPS_RANGO_PESADO')),
     v('glutes.bulgarian_hip', 'Sentadilla búlgara con énfasis en cadera', 'zancada', M, REGISTRO.valor('REPS_RANGO_MODERADO'), null, { unilateral: true }),
     v('glutes.hip_abduction_machine', 'Abducción de cadera en máquina', 'abduccion_cadera', A, REGISTRO.valor('REPS_RANGO_AISLAMIENTO_ALTO')),
+    // DEC-038: variantes del patrón abducción de cadera (B-044), con el respaldo que dejó el investigador: la polea (verificado, 1 estudio),
+    // el lateral tumbado (probable, solo EMG) y la banda (a_verificar). Las tres son unilaterales: cuentan ambos lados en el tiempo (DEC-007).
+    v('glutes.hip_abduction_cable', 'Abducción de cadera en polea de pie', 'abduccion_cadera', A, REGISTRO.valor('REPS_RANGO_AISLAMIENTO_ALTO'), null, { unilateral: true }),
+    v('glutes.hip_abduction_sidelying', 'Abducción de cadera tumbado de lado', 'abduccion_cadera', A, REGISTRO.valor('REPS_RANGO_AISLAMIENTO_ALTO'), null, { unilateral: true }),
+    v('glutes.hip_abduction_band', 'Abducción de cadera de pie con banda', 'abduccion_cadera', A, REGISTRO.valor('REPS_RANGO_AISLAMIENTO_ALTO'), null, { unilateral: true }),
     v('glutes.kickback_cable', 'Patada de glúteo en polea', 'patada_gluteo', A, REGISTRO.valor('REPS_RANGO_AISLAMIENTO_ALTO'), null, { unilateral: true }),
     // Pantorrillas
     v('calves.calf_raise_standing', 'Elevación de talones de pie', 'pantorrilla', A, REGISTRO.valor('REPS_RANGO_MODERADO')),
@@ -176,6 +181,9 @@
     const x = VARIANTE_POR_ID[id];
     return x ? (EXERCISE_MUSCLES.buckets[x.hereda] || null) : null;
   };
+  // DEC-038: la variante entra al plan con "evidencia por verificar" cuando la relación directa con el músculo de su grupo está a_verificar
+  // (sin fuente leída). Se calcula de los datos, sin lista aparte: una variante cuya fila se verifica deja de llevar la marca sola.
+  const evidenciaPorVerificar = id => aportesDe(id).some(r => r.muscle === grupoDe(id) && r.relacion === 'directa' && r.evidencia === 'a_verificar');
   // Perfil articular: el propio de la variante partida o, si no se partió, el de su fila de data/perfil-articular.csv.
   const perfilArticularDe = id => {
     const x = VARIANTE_POR_ID[id];
@@ -202,5 +210,5 @@
     return (zonas || []).some(z => (mapa[z] || []).includes(id));
   };
 
-  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, perfilArticularDe, segundosPorSerie, excluidaPorLesion };
+  return { nombre: 'nuevo', PATRONES, VARIANTES, patronPorId: id => PATRON_POR_ID[id] || null, variantePorId, variantesDePatron, aportesDe, grupoDe, evidenciaPorVerificar, perfilArticularDe, segundosPorSerie, excluidaPorLesion };
 });

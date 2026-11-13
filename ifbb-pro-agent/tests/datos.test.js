@@ -104,7 +104,7 @@ test('DEC-012: todo exerciseId del CSV existe en el catálogo y viceversa (salvo
     else assert.ok(inCsv.has(id), `el ejercicio del catálogo no tiene filas en el CSV: ${id}`);
   });
   assert.deepEqual(SIN_APORTE, ['functional.farmer_carry'], 'el paseo del granjero es el único sin aporte');
-  assert.ok(inCatalog.size === 36 && inCsv.size === 35);
+  assert.ok(inCatalog.size === 39 && inCsv.size === 38);
 });
 test('DEC-013: el bucket es un campo único por ejercicio, separado de las relaciones, y coincide con el catálogo', () => {
   const buckets = csvBuckets();
@@ -160,7 +160,7 @@ test('DEC-012: el parser lee igual un CSV con coma y uno con punto y coma (Excel
   assert.deepEqual(semi.rows, comma.rows, 'coma y punto y coma tienen que dar las mismas filas');
   const crlf = MB.parseExerciseMuscles(table.map(r => r.map(c => quote(c, ',')).join(',')).join('\r\n'));
   assert.deepEqual(crlf.rows, comma.rows);
-  assert.equal(comma.rows.length, 64);
+  assert.equal(comma.rows.length, 67);
   // Lo mismo con el CSV de buckets.
   const bt = MB.parseCsv(bucketsText(), ',');
   const bSemi = MB.parseBuckets('﻿' + bt.map(r => r.join(';')).join('\r\n') + '\r\n');
@@ -238,9 +238,12 @@ test('DEC-013: los cambios de la fase son exactamente los aprobados, cada uno mu
   const ab = row('glutes.hip_abduction_machine', 'glutes');
   assert.deepEqual([ab.relacion, ab.evidencia], ['directa', 'verificado (1 estudio)']);
   assert.match(ab.notes, /glúteo mayor y medio\/menor/);
+  // DEC-038: las variantes nuevas de la abducción llevan su propia fila (polea: verificado 1 estudio; lateral tumbado: probable; banda: a_verificar).
+  assert.deepEqual(['cable', 'sidelying', 'band'].map(x => row('glutes.hip_abduction_' + x, 'glutes')).map(r => [r.relacion, r.evidencia]),
+    [['directa', 'verificado (1 estudio)'], ['directa', 'probable'], ['directa', 'a_verificar']]);
   // Umbral de evidencia: "verificado (1 estudio)" solo aparece en las filas que movió o confirmó un único estudio.
   assert.deepEqual(csvRows().filter(r => r.evidencia === 'verificado (1 estudio)').map(r => `${r.exerciseId}/${r.muscle}`).sort(),
-    ['glutes.hip_abduction_machine/glutes', 'glutes.hip_thrust/hamstrings', 'quads.leg_press/glutes']);
+    ['glutes.hip_abduction_cable/glutes', 'glutes.hip_abduction_machine/glutes', 'glutes.hip_thrust/hamstrings', 'quads.leg_press/glutes']);
 });
 
 /* ---------- DEC-021: perfil articular de todo el catálogo ---------- */

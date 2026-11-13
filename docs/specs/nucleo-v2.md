@@ -92,6 +92,8 @@ Un músculo no se cubre con un movimiento cualquiera: la abducción de cadera no
 
 La bisagra no figura en los sub-patrones de glúteos aunque sea extensión de cadera: hoy su peso con glúteos es 0 en los datos de músculos. Qué porción de cada músculo cubre cada movimiento está **pendiente de validar por el investigador**: el mapa es criterio de diseño (E4) hasta entonces.
 
+**Variantes de la abducción de cadera (DEC-038, Propuesto; B-044).** El patrón `abduccion_cadera` pasa de una a cuatro variantes: máquina, polea de pie (`verificado (1 estudio)`), lateral tumbado (`probable`) y banda (`a_verificar`), las tres nuevas unilaterales. El reparto no cambia: el excedente del tope de 5 series (DEC-031) ya pasa a otra variante del mismo patrón. **Marca de evidencia:** cada ejercicio del plan lleva `evidenciaPorVerificar`, verdadero cuando su relación directa con el músculo de su grupo está `a_verificar` (se calcula de los datos, sin lista de ids), y Entreno muestra "Evidencia por verificar". El orden por evidencia del relleno sigue siendo el punto 5 de DEC-037 (paso 2).
+
 ## Algoritmo de reparto
 
 Un solo paso, en este orden. Ningún paso posterior corrige a uno anterior.

@@ -430,7 +430,7 @@
         ejercicios: ordenados.map(ex => ({
           varianteId: ex.v.id, nombre: ex.v.nombre, patron: ex.v.patron, grupo: cat.grupoDe(ex.v.id), tipo: ex.v.tipo, series: ex.series, unilateral: !!ex.v.unilateral,
           topSet: ex.topSet ? { series: 1, repeticiones: valor('TOP_SET_REPETICIONES'), rir: valor('TOP_SET_RIR'), backoffs: ex.series - 1, backoffReduccionPorcentaje: valor('BACKOFF_REDUCCION_PORCENTAJE') } : null,
-          heredado: !!ex.v.heredado, lumbarAlta: lumbarAlta(ex.v.id),
+          heredado: !!ex.v.heredado, lumbarAlta: lumbarAlta(ex.v.id), evidenciaPorVerificar: cat.evidenciaPorVerificar(ex.v.id),
         })),
         series: ses.ejercicios.reduce((a, e) => a + e.series, 0),
         minutos: Math.round(ses.seg / 60), capacidadMin: Math.round(ses.capacidadSeg / 60),

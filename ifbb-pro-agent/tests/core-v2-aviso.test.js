@@ -74,9 +74,10 @@ test('una salida desconocida falla', () => {
 });
 
 test('un faltante solo por R1 también se puede aceptar: las sesiones afectadas son las que están en el tope por sesión', () => {
-  const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 90 };
+  // 100 min y no 90: con las variantes unilaterales de la abducción (DEC-038, el doble de tiempo por serie) a 90 min el cuádriceps queda corto por tiempo y no solo por R1.
+  const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 100 };
   const g = nuevo(p);
-  assert.ok(g.plan.avisoUnico.sinCubrir.every(x => x.causa === 'R1'));
+  assert.ok(g.plan.avisoUnico.sinCubrir.length > 0 && g.plan.avisoUnico.sinCubrir.every(x => x.causa === 'R1'));
   const a = AVISO.construirAviso(g.plan);
   assert.ok(a.sesionesAfectadas.length > 0 && a.soloR1);
   assert.equal(a.salidas[0].disponible, false); // más tiempo no ayuda: sobra tiempo
