@@ -102,17 +102,19 @@
   --marca: 4px;             /* la marca de color a la izquierda de una fila */
   --barra-fina: 6px;        /* la barra de reparto de series del día */
   --punto: 8px;             /* el punto de color de una leyenda */
+  --foco: 3px;              /* el anillo de foco */
+  --opacidad-inactivo: .45; /* un control que no se puede usar */
   --ancho-contenido: 720px;
   --ancho-sesion: 560px;
   --ancho-dialogo: 360px;
 
   /* ---------- Capas ---------- */
   --z-barra: 10;
-  --z-toast: 20;
   --z-sesion: 30;
   --z-cronometro: 40;
   --z-dialogo: 50;
   --z-flotante: 60;
+  --z-toast: 70;            /* el aviso flotante se ve siempre, también sobre el modo sesión */
 
   /* ---------- Movimiento ---------- */
   --dur-rapida: 150ms;
