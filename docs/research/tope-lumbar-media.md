@@ -22,9 +22,9 @@ Medición pedida por Emanuel (2026-11-13) después de que el paso 2 de DEC-037 (
 | Lumbar media por sesión de pierna: máximo | 11 | 10 | **8** | 6 |
 | Sesiones de pierna con más de 8 series de media (de 810) | 21 | 24 | **0** | 0 |
 | Sesiones de pierna con más de 10 series de media | 2 | 0 | **0** | 0 |
-| Series de hip thrust / patada / abducción | 2869 / 453 / 884 | 2880 / 439 / 890 | **2830 / 481 / 892** | 2734 / 577 / — |
+| Series de hip thrust / patada / abducción | 2869 / 453 / 884 | 2880 / 439 / 890 | **2830 / 481 / 892** | 2734 / 577 / 881 |
 | Uso del tiempo (global) | 72,0 % | 72,0 % | **72,1 %** | 72,1 % |
-| Abducción máxima por semana · planes sin extensión directa | 7 · 0 | 6 · 0 | **6 · 0** | — |
+| Abducción máxima por semana · planes sin extensión directa | 7 · 0 | 6 · 0 | **6 · 0** | 5 · 0 |
 
 ## Lectura
 - **Tope de 10: casi no hace nada.** Solo 2 de las 810 sesiones de pierna pasan hoy de 10 series de `media`; el efecto en el barrido es de +3 series y +2 faltantes.
