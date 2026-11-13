@@ -33,6 +33,9 @@ Medición pedida por Emanuel (2026-11-13) después de que el paso 2 de DEC-037 (
 - **Tope de 6 (extra): ya cuesta.** 145 planes con aviso (frente a 124) y glúteos sin cubrir a 4, 5 y 6 días (37, 23, 23).
 - **10 perfiles de referencia:** el máximo de lumbar `media` en una sesión es 7 sin tope, así que el tope de 10 no cambia ninguna sesión, el de 8 cambia 5 (1 serie en total) y el de 6 cambia 12 (1 serie en total).
 
+## Ejercicios sobre el tope de 5 series: 230 → 286 con el tope de 8 (aclaración, 2026-11-13)
+`avisos.topeExcedido` cuenta los ejercicios que terminan con más de 5 series porque el traspaso del excedente no encontró destino. Los 230 de `main` son excedente permitido por falta de destino. **Los 56 de más los provoca el tope lumbar en el relleno**, no en el traspaso: sin el tope solo en el traspaso quedan 284, sin el tope solo en el relleno y la cuota quedan 232. El relleno no puede sumar a los ejercicios de lumbar `media` y apila en los de lumbar `baja` que ya están llenos (la extensión de cuádriceps llega a 8 series en 28 sesiones; el hip thrust a 6 en 22). El volumen no baja (34055 → 34106), queda concentrado. El detalle, el mecanismo y el ajuste propuesto sin implementar (B-063) están en DEC-040.
+
 ## Qué dice el investigador sobre el nivel lumbar del hip thrust y de la patada
 Revisión del 2026-11-13. Todo es una propuesta de nivel 2. **Conclusión: no hay base para cambiar ninguna celda, y tampoco para sostener `media` con evidencia.**
 
