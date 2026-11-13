@@ -69,7 +69,7 @@ test('DEC-037 punto 5: el orden de decisión es evidencia > redundancia > tiempo
   const k = (evidencia, redundancia, tiempo, lumbar) => ({ evidencia, redundancia, tiempo, lumbar });
   const antes = (x, y) => REP.compararDecision(x, y) < 0;
   assert.ok(antes(k(0, 0.1, 999, 2), k(1, 9, 1, 0)), 'la evidencia gana sobre todo lo demás');
-  assert.ok(antes(k(1, 0.5, 999, 2), k(1, 0.4, 1, 0)), 'a igual evidencia, más cobertura por segundo (menos redundante)');
+  assert.ok(antes(k(1, 0.5, 999, 2), k(1, 0.4, 1, 0)), 'a igual evidencia, más cobertura marginal (menos redundante)');
   assert.ok(antes(k(1, 0.5, 100, 2), k(1, 0.5, 120, 0)), 'a igual redundancia, el más corto');
   assert.ok(antes(k(1, 0.5, 100, 0), k(1, 0.5, 100, 2)), 'a igual duración, la menor demanda lumbar');
   assert.equal(REP.compararDecision(k(1, 0.5, 100, 1), k(1, 0.5, 100, 1)), 0);
@@ -91,7 +91,6 @@ test('DEC-037 punto 5: dentro del glúteo ganan las variantes con mejor evidenci
 });
 
 test('DEC-037 punto 5: la evidencia no mueve pesos ni relaciones: el conteo fraccionado de cada ejercicio es el mismo que antes del paso 2', () => {
-  const { profiles: _p } = { profiles };
   // Directa 1, indirecta 0,5 y a_verificar 0 para los demás músculos, igual que siempre; el grupo donde se programa cuenta 1 (DEC-016).
   assert.deepEqual(REP.pesosDe(C, 'glutes.hip_abduction_machine'), { glutes: 1 });
   assert.deepEqual(REP.pesosDe(C, 'glutes.hip_abduction_band'), { glutes: 1 }, 'a_verificar no baja el peso del grupo: lo marca');
