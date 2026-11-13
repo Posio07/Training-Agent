@@ -72,9 +72,9 @@ Cada día del split tiene un tipo, y el tipo define los patrones obligatorios y 
 
 Los patrones obligatorios son un criterio de diseño (E4). El investigador debe buscar respaldo para la cobertura mínima por tipo de sesión.
 
-## Sub-patrones del músculo (DEC-037, propuesto)
+## Sub-patrones del músculo (DEC-037, aceptado)
 
-> **Sección agregada por el agente el 2026-11-12** a pedido de Emanuel, con sus decisiones del plan de la FASE A. El texto de las demás secciones no se tocó. Mientras DEC-037 esté `Propuesto`, de esta sección solo está implementado el punto 1.
+> **Sección agregada por el agente el 2026-11-12** a pedido de Emanuel, con sus decisiones del plan de la FASE A. El texto de las demás secciones no se tocó. DEC-037 quedó `Aceptado` el 2026-11-13 (comentario de Emanuel en el PR #68); de esta sección solo está implementado el punto 1, y los puntos 3 a 5 entran en el paso 2.
 
 Un músculo no se cubre con un movimiento cualquiera: la abducción de cadera no sustituye a la extensión, ni el jalón al remo. Los **patrones** que aportan a un músculo se agrupan en **sub-patrones**, y el objetivo semanal se exige por sub-patrón, no solo por músculo.
 
