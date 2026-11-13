@@ -71,6 +71,15 @@ glutes.hip_abduction_machine,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-0
 glutes.kickback_cable,lumbar,baja,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: baja en las tres articulaciones.",2026-11-07
 glutes.kickback_cable,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
 glutes.kickback_cable,rodilla,baja,a_verificar,criterio_e4,no,,"Decidido por Emanuel (2026-11-07), caso nombrado aparte: baja en las tres articulaciones.",2026-11-07
+glutes.hip_abduction_cable,lumbar,baja,a_verificar,criterio_e4,no,,"De pie, aislamiento ligero con polea y tobillera, misma lógica que la patada de glúteo en polea.",2026-11-13
+glutes.hip_abduction_cable,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-13
+glutes.hip_abduction_cable,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-13
+glutes.hip_abduction_sidelying,lumbar,baja,a_verificar,criterio_e4,no,,"Tumbado de lado, tronco apoyado en el suelo; el hombro no mueve carga. Salvedad del investigador: el EMG del cuadrado lumbar en este ejercicio es alto (Nam SJ et al. 2025. Comparison of the effects of 3 side-lying exercises on electromyographic activities of lumbopelvic muscles in young females with hip abductor weakness. J Manipulative Physiol Ther, doi:10.1016/j.jmpt.2025.09.016, PMID 41139328; 80 % de la contracción máxima; solo resumen), pero es un estabilizador y no mide carga espinal; media sería defendible. Decide Emanuel.",2026-11-13
+glutes.hip_abduction_sidelying,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-13
+glutes.hip_abduction_sidelying,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-13
+glutes.hip_abduction_band,lumbar,baja,a_verificar,criterio_e4,no,,"De pie, aislamiento ligero con banda elástica en el tobillo.",2026-11-13
+glutes.hip_abduction_band,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-13
+glutes.hip_abduction_band,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-13
 calves.calf_raise_standing,lumbar,media,a_verificar,criterio_e4,no,,"Desempate, regla 2 (Emanuel, 2026-11-07): carga axial sin bisagra ni flexión profunda.",2026-11-07
 calves.calf_raise_standing,hombro,baja,a_verificar,criterio_e4,no,,,2026-11-07
 calves.calf_raise_standing,rodilla,baja,a_verificar,criterio_e4,no,,,2026-11-07

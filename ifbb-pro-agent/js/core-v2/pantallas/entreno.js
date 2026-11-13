@@ -19,7 +19,7 @@
     const clase = e.tipo === 'multiarticular' ? 'type-compound' : 'type-isolation';
     const fila = (extra, nombre, reps, series, descanso, rir, etiqueta) => `<div class="ex-row ${extra}">
       <div class="ex-main">
-        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}</div>
+        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
         <div class="ex-fields">
           <span class="f">${esc(etiquetaGrupo(e.grupo))}</span>
           ${rir ? `<span class="f">${icon('gauge')} RIR ${esc(rango(rir))}</span>` : ''}

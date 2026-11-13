@@ -168,7 +168,7 @@ test('catálogo: cada ejercicio que juntaba dos opciones con "o" tiene una varia
   // Las bases que NO están en la tabla tienen exactamente una variante (no juntaban opciones).
   bases.filter(b => !partidos[b]).forEach(b => assert.equal(C.VARIANTES.filter(x => x.hereda === b).length, 1, `${b}: una sola variante`));
   assert.equal(Object.values(partidos).flat().length, 31);
-  assert.equal(C.VARIANTES.length, 52, 'el catálogo son 52 variantes sobre 36 bases');
+  assert.equal(C.VARIANTES.length, 55, 'el catálogo son 55 variantes sobre 39 bases');
   // Ningún nombre de variante junta opciones con "o" o "/".
   C.VARIANTES.forEach(v => assert.ok(!/\s[oó]\s|\//.test(v.nombre), `${v.id} ("${v.nombre}") junta opciones`));
 });
