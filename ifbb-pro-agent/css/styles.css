@@ -47,6 +47,7 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 @media (prefers-reduced-motion: no-preference) { .tab::before { transition: background-color var(--dur-rapida) ease; } }
 
 .card { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-l); padding: var(--esp-5); margin-bottom: var(--esp-5); }
+.card > :last-child { margin-bottom: 0; }
 .card.accent { border-color: var(--acento); }
 .card.card-aviso { border-color: var(--aviso); }
 .card.card-peligro { border-color: var(--peligro); }
@@ -237,9 +238,13 @@ td .btn-ghost { min-width: var(--toque-min); padding: 0; }
 .src b { color: var(--texto); }
 .cite { display: inline-block; font-size: var(--txt-xs); padding: 0 var(--esp-2); border-radius: var(--radio-xs); background: var(--superficie-2); border: 1px solid var(--borde); color: var(--texto-suave); margin-left: var(--esp-1); vertical-align: middle; }
 
-.source-item { padding: .7rem 0; border-bottom: 1px solid var(--borde); font-size: .88rem; }
-.source-item .t { font-weight: var(--peso-medio); }
-.source-item .k { font-size: .72rem; color: var(--texto-suave); }
+/* Fuentes: una entrada por referencia; el enlace es un objetivo táctil de 44 px. */
+.source-item { padding: var(--esp-4) 0 var(--esp-2); border-bottom: 1px solid var(--borde); font-size: var(--txt-m); }
+.source-item:first-child { padding-top: 0; }
+.source-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.source-item .t { font-weight: var(--peso-medio); font-size: var(--txt-base); margin: var(--esp-1) 0; }
+.source-item .k { font-size: var(--txt-xs); color: var(--texto-suave); letter-spacing: .02em; }
+.source-item a { display: inline-flex; align-items: center; min-height: var(--toque-min); font-weight: var(--peso-medio); }
 
 /* El aviso flotante va por encima de todo, también del modo sesión y del cronómetro: ahí es donde avisa de una serie mal cargada. */
 .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--esp-8) + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(var(--esp-6)); background: var(--tiza); color: var(--sobre-claro); padding: var(--esp-3) var(--esp-5); border-radius: var(--radio-l); font-size: var(--txt-m); font-weight: var(--peso-medio); text-align: center; opacity: 0; pointer-events: none; transition: opacity var(--dur-rapida) ease, transform var(--dur-rapida) ease; z-index: var(--z-toast); width: max-content; max-width: 90vw; box-shadow: var(--sombra-flotante); }
