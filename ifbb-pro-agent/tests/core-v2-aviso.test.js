@@ -73,11 +73,20 @@ test('una salida desconocida falla', () => {
   assert.throws(() => AVISO.aplicarSalida({ id: 'x' }, apretado(), nuevo(apretado())), /desconocida/);
 });
 
+test('DEC-038: a 90 min las variantes unilaterales de la abducción llenan el día y el cuádriceps falta por tiempo, no por R1: el aviso lo dice y "más tiempo" ayuda', () => {
+  const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 90 };
+  const g = nuevo(p);
+  assert.deepEqual(g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa), ['back:R1', 'shoulders:R1', 'quads:tiempo']);
+  const a = AVISO.construirAviso(g.plan);
+  assert.equal(a.soloR1, false);
+  assert.equal(a.salidas[0].disponible, true); // más tiempo sí ayuda
+});
+
 test('un faltante solo por R1 también se puede aceptar: las sesiones afectadas son las que están en el tope por sesión', () => {
-  // 100 min y no 90: con las variantes unilaterales de la abducción (DEC-038, el doble de tiempo por serie) a 90 min el cuádriceps queda corto por tiempo y no solo por R1.
+  // 100 min y no 90: con las variantes unilaterales de la abducción (DEC-038, el doble de tiempo por serie) a 90 min el cuádriceps queda corto por tiempo y no solo por R1 (lo fija el test de arriba). A 100 min el aviso es el mismo que a 90 min antes de DEC-038: espalda, hombros y cuádriceps, solo R1.
   const p = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 100 };
   const g = nuevo(p);
-  assert.ok(g.plan.avisoUnico.sinCubrir.length > 0 && g.plan.avisoUnico.sinCubrir.every(x => x.causa === 'R1'));
+  assert.deepEqual(g.plan.avisoUnico.sinCubrir.map(x => x.musculo + ':' + x.causa), ['back:R1', 'shoulders:R1', 'quads:R1']); // los mismos tres faltantes que el test original a 90 min
   const a = AVISO.construirAviso(g.plan);
   assert.ok(a.sesionesAfectadas.length > 0 && a.soloR1);
   assert.equal(a.salidas[0].disponible, false); // más tiempo no ayuda: sobra tiempo
