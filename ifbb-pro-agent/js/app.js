@@ -514,7 +514,7 @@
     const fmtKg = v => v == null ? '—' : `${v > 0 ? '+' : ''}${n1(v)} kg`;
     const fmtRate = v => v == null ? '—' : `${v > 0 ? '+' : ''}${n2(v)} kg/sem`;
     const previstoLabel = plan.input.goal === 'maintain' ? 'previsto 0' : `previsto ${plan.input.goal === 'cut' ? '−' : '+'}${n2(Math.abs(t.rateKg))} kg/sem`;
-    return `<div class="grid" style="margin-top:.8rem">
+    return `<div class="grid">
       <div class="stat"><div class="v">${avg7 != null ? n1(avg7) + ' kg' : '—'}</div><div class="l">peso actual</div><div class="s">promedio 7 días</div></div>
       <div class="stat"><div class="v">${fmtKg(totalChange)}</div><div class="l">cambio desde el inicio</div></div>
       <div class="stat"><div class="v">${fmtRate(realRate)}</div><div class="l">ritmo real</div><div class="s">${previstoLabel}</div></div>
@@ -545,7 +545,7 @@
           <div class="row2">
             <div><label>Cadera (cm)</label><input name="hipCm" type="number" step="0.5" inputmode="decimal"></div>
           </div>
-          <div><label>Notas</label><input name="notes" placeholder="energía, fuerza, sueño…" style="width:100%"></div>
+          <div><label>Notas</label><input name="notes" placeholder="energía, fuerza, sueño…"></div>
           <div class="btn-row"><button class="btn btn-primary btn-block" type="submit">Guardar medición</button></div>
         </form>
       </div>
@@ -558,7 +558,7 @@
       <div class="card">
         <h3>Historial</h3>
         ${log.length ? `<table><tr><th>Fecha</th><th class="num">Peso</th><th class="num">% grasa</th><th class="num">Cintura</th><th></th></tr>
-        ${log.slice().reverse().map((e, i) => `<tr><td>${fmtDate(e.date)}<br><small>${esc(e.notes || '')}</small></td><td class="num">${n1(e.weightKg)} kg</td><td class="num">${e.bodyFatPct ? n1(e.bodyFatPct) + ' %' : '—'}</td><td class="num">${e.waistCm ? n1(e.waistCm) : '—'}</td><td class="num"><button class="btn btn-ghost" data-del="${log.length - 1 - i}" title="Eliminar">✕</button></td></tr>`).join('')}</table>` : '<p class="muted">Sin mediciones todavía.</p>'}
+        ${log.slice().reverse().map((e, i) => `<tr><td>${fmtDate(e.date)}<br><small>${esc(e.notes || '')}</small></td><td class="num">${n1(e.weightKg)} kg</td><td class="num">${e.bodyFatPct ? n1(e.bodyFatPct) + ' %' : '—'}</td><td class="num">${e.waistCm ? n1(e.waistCm) : '—'}</td><td class="num"><button class="btn btn-ghost" data-del="${log.length - 1 - i}" title="Eliminar" aria-label="Eliminar medición">✕</button></td></tr>`).join('')}</table>` : '<p class="muted">Sin mediciones todavía.</p>'}
         ${log.length ? '<div class="btn-row"><button class="btn" id="btn-apply">Usar la última medición y recalcular</button></div>' : ''}
       </div>`;
 

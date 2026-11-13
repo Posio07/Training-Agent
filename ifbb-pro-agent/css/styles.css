@@ -56,6 +56,7 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 /* Las salidas del aviso llevan frases largas: una por renglón, a todo el ancho. */
 .card-aviso .btn-row { flex-direction: column; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--esp-3); }
+.card h2 + .grid { margin-top: var(--esp-4); }
 .stat { background: var(--superficie-2); border-radius: var(--radio-s); padding: var(--esp-3) var(--esp-4); }
 .stat .v { font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-cifra); }
 .stat .l { font-size: var(--txt-xs); color: var(--texto-suave); margin-top: var(--esp-1); }
@@ -122,6 +123,8 @@ table { width: 100%; border-collapse: collapse; font-size: var(--txt-s); }
 th, td { text-align: left; padding: var(--esp-2) var(--esp-1); border-bottom: 1px solid var(--borde); vertical-align: top; }
 th { color: var(--texto-suave); font-weight: var(--peso-medio); font-size: var(--txt-xs); }
 td.num { text-align: right; white-space: nowrap; }
+td small { font-size: var(--txt-xs); }
+td .btn-ghost { min-width: var(--toque-min); padding: 0; }
 
 .macro-bar { display: flex; height: var(--barra-gruesa); border-radius: var(--radio-pastilla); overflow: hidden; margin: var(--esp-4) 0 var(--esp-3); }
 .macro-bar span { display: block; height: 100%; }
@@ -246,23 +249,26 @@ td.num { text-align: right; white-space: nowrap; }
 .empty { text-align: center; padding: var(--esp-8) var(--esp-5); color: var(--texto-suave); }
 .empty .big { font-size: var(--txt-5xl); line-height: var(--interlinea-cifra); margin-bottom: var(--esp-3); }
 
-.chart { width: 100%; height: 160px; display: block; }
+/* Gráficos de peso y de fuerza. El tamaño del texto va en unidades del viewBox del SVG (casi 1:1 con el píxel en un teléfono). */
+.chart { width: 100%; height: var(--alto-grafico); display: block; margin: var(--esp-3) 0; }
 .chart .axis { stroke: var(--borde); }
 /* pathLength="100" normaliza el largo del trazo a 100 unidades sin
  * importar cuánto mida la curva real, para poder animarlo con un
  * dasharray/dashoffset fijo. Se dibuja una sola vez al entrar (es una
  * animation, no una transition: corre siempre que el path se inserta). */
-.chart .line { fill: none; stroke: var(--exito); stroke-width: 2; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.chart .line { fill: none; stroke: var(--exito); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
 @media (prefers-reduced-motion: no-preference) { .chart .line { animation: chart-draw var(--dur-lenta) var(--ease-salida) forwards; } }
 @media (prefers-reduced-motion: reduce) { .chart .line { stroke-dashoffset: 0; } }
 @keyframes chart-draw { to { stroke-dashoffset: 0; } }
-.chart .line2 { fill: none; stroke: var(--acero); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.chart .line2 { fill: none; stroke: var(--texto-suave); stroke-width: 1.5; stroke-dasharray: 4 3; }
 .chart .dot { fill: var(--exito); }
-.chart .dot-faint { fill: var(--acero); opacity: .5; }
-.chart text { fill: var(--texto-suave); font-size: 10px; font-family: var(--font-body); }
-.chart .target { stroke: var(--acento); stroke-dasharray: 4 4; }
+.chart .dot-faint { fill: var(--texto-suave); opacity: .5; }
+.chart text { fill: var(--texto-suave); font-size: var(--txt-grafico); font-family: var(--font-body); }
+.chart .target { stroke: var(--acento); stroke-width: 1.5; stroke-dasharray: 4 4; }
 
 details summary { cursor: pointer; color: var(--texto); font-weight: var(--peso-medio); margin-bottom: var(--esp-2); }
+details.card > summary { margin: 0; }
+details.card[open] > summary { margin-bottom: var(--esp-3); }
 ul { padding-left: var(--esp-6); margin: var(--esp-2) 0 var(--esp-3); }
 li { margin-bottom: var(--esp-1); }
 
@@ -299,8 +305,6 @@ li { margin-bottom: var(--esp-1); }
 @keyframes sm-row-dim { from { opacity: 1; } to { opacity: .7; } }
 .sm-set .idx { font-family: var(--font-display); font-size: 1.1rem; color: var(--texto-suave); width: 1.6rem; text-align: center; flex-shrink: 0; }
 .sm-set input { text-align: center; font-family: var(--font-display); font-size: 1.2rem; min-height: var(--toque-comodo); }
-.sm-set .unit { font-size: var(--txt-xs); color: var(--texto-suave); text-align: center; margin-top: .15rem; }
-.sm-set .fieldwrap { flex: 1; min-width: 0; }
 .sm-set .done-btn { min-width: var(--toque-grande); min-height: var(--toque-comodo); }
 
 .sm-nav { display: flex; gap: var(--esp-3); margin: var(--esp-5) 0; }
@@ -380,12 +384,19 @@ li { margin-bottom: var(--esp-1); }
 /* DEC-011: etiqueta de nivel de evidencia (E4 · heurística) junto a avisos y ejercicios de precaución */
 .ev-tag { display: inline-block; font-size: var(--txt-xs); padding: 0 var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-1); vertical-align: middle; border: 1px solid var(--texto-suave); color: var(--texto-suave); font-weight: var(--peso-medio); white-space: nowrap; }
 
-/* DEC-015 · editar y borrar series (mínimo; el rediseño visual lo reemplaza) */
-.hist-session { border-top: 1px solid var(--borde); padding: var(--esp-2) 0; }
-.hist-session summary { cursor: pointer; padding: .3rem 0; }
-.hist-rows { list-style: none; margin: .3rem 0 0; padding: 0; }
-.hist-row { margin: .15rem 0; }
-.hist-row .btn { width: 100%; justify-content: flex-start; text-align: left; min-height: var(--toque-min); }
-.hist-row.editing, .sm-set.editing { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-m); padding: var(--esp-3) .7rem; }
+/* DEC-015 · historial de sesiones: editar y borrar series. Cada sesión se abre con un toque (44 px) y cada serie es un botón a todo el ancho. */
+.hist-session { border-top: 1px solid var(--borde); }
+.hist-session summary { cursor: pointer; margin: 0; padding: var(--esp-3) 0; min-height: var(--toque-min); }
+.hist-rows { list-style: none; margin: 0 0 var(--esp-3); padding: 0; }
+.hist-row { margin: var(--esp-1) 0; }
+.hist-row > .btn { width: 100%; text-align: left; min-height: var(--toque-min); font-weight: 400; }
+.hist-row.editing, .sm-set.editing { background: var(--superficie-2); border: 1px solid var(--acento); border-radius: var(--radio-m); padding: var(--esp-3) var(--esp-4); }
+/* Editor de una serie (lo comparten el historial y el modo sesión): los dos campos con su unidad debajo; Guardar a todo el ancho y, debajo, borrar y cancelar. */
+.fieldwrap { flex: 1; min-width: 0; }
+.unit { font-size: var(--txt-xs); color: var(--texto-suave); text-align: center; margin-top: var(--esp-1); }
 .set-editor { margin-top: var(--esp-2); }
+.set-editor input { text-align: center; font-family: var(--font-display); font-size: var(--txt-xl); min-height: var(--toque-comodo); }
+.set-editor .btn-row .btn { min-height: var(--toque-comodo); }
+.set-editor .btn-row .btn[type="submit"] { flex: 1 1 100%; }
+.set-editor [data-editor-delete] { color: var(--peligro); border-color: var(--peligro); background: transparent; }
 .sm-set-title { font-weight: var(--peso-medio); margin-bottom: var(--esp-1); }

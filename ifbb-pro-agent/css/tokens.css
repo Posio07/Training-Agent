@@ -109,6 +109,8 @@
   --ancho-contenido: 720px;
   --ancho-sesion: 560px;
   --ancho-dialogo: 360px;
+  --alto-grafico: 160px;
+  --txt-grafico: 12px;      /* texto de los ejes, en unidades del SVG */
 
   /* ---------- Capas ---------- */
   --z-barra: 10;
