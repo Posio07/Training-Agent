@@ -132,3 +132,12 @@ test('DEC-040: si el tope impide cubrir un sub-patrón de la cuota, el aviso lo 
     assert.ok(a.lineas.some(l => /extensión de cadera/.test(l) && /tope de series de lumbar media/.test(l)), a.lineas.join(' | '));
   });
 });
+
+test('DEC-040: un aviso con una sesión sobre el tope de lumbar media nunca se presenta como "solo R1" aunque lo demás sea R1', () => {
+  const plan = ex => ({ avisoUnico: { sinCubrir: [{ musculo: 'back', falta: 1, faltaReal: 0, causa: 'R1' }], obligatoriosSinLugar: [], sinDirecto: [], principalReducido: [], lumbarMediaExcedida: ex },
+    sesiones: [{ nombre: 'A', minutos: 60, capacidadMin: 90, fraccionado: { back: 11 } }], perfil: { dias: 3 } });
+  assert.equal(AVISO.construirAviso(plan([])).soloR1, true, 'sin sesión sobre el tope, R1 solo');
+  const a = AVISO.construirAviso(plan([{ sesion: 'A', series: 9, tope: 8 }]));
+  assert.equal(a.soloR1, false);
+  assert.ok(a.sesionesAfectadas.includes(0));
+});

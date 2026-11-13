@@ -1,6 +1,6 @@
 # Tope de lumbar media por sesión: medición y revisión del investigador (2026-11-13)
 
-Medición pedida por Emanuel (2026-11-13) después de que el paso 2 de DEC-037 (PR #72, DEC-039) subiera la demanda lumbar `media` de las sesiones de pierna al entrar el hip thrust. **Solo medición: no se implementó ningún tope.** La decisión de implementarlo es de Emanuel (B-062, propuesto).
+Medición pedida por Emanuel (2026-11-13) después de que el paso 2 de DEC-037 (PR #72, DEC-039) subiera la demanda lumbar `media` de las sesiones de pierna al entrar el hip thrust. **Este documento describe la medición previa, hecha con un prototipo sin implementar.** Después Emanuel pidió implementar el tope de 8 y eso es DEC-040 (Propuesto); la decisión de aceptarlo es suya (B-062, propuesto). Las cifras del prototipo coinciden con la implementación real.
 
 ## Cómo se midió
 - Estado base: `main` con el paso 2 mergeado (#72), barrido de 360 planes (`scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días) y los 10 perfiles de referencia.
@@ -51,7 +51,7 @@ Revisión del 2026-11-13. Todo es una propuesta de nivel 2. **Conclusión: no ha
 | Referencia | Qué se leyó | Qué mide |
 | --- | --- | --- |
 | Brazil A et al. 2021. A comprehensive biomechanical analysis of the barbell hip thrust. PLoS One 16(3):e0249307 (doi:10.1371/journal.pone.0249307, PMID 33780488) | Texto completo, sin las figuras | Cinemática y cinética, n=19 hombres entrenados; no mide compresión lumbar ni EMG. Un valor del momento extensor del tronco difiere entre resultados (4,39) y discusión (4,93): probable errata |
-| Takeshita Y et al. 2022. Effects of knee flexion angles on the joint force and muscle force during bridge exercise. J Healthc Eng 2022:7975827 (doi:10.1155/2022/7975827, PMID 35677781) | Solo resumen | Simulación del puente en suelo sin carga (n=15): fuerza lumbar de 150 a 200 % del peso corporal según la flexión de rodilla. No es hip thrust con carga |
+| Takeshita Y et al. 2022. Effects of knee flexion angles on the joint force and muscle force during bridging exercise: a musculoskeletal model simulation. J Healthc Eng 2022:7975827 (doi:10.1155/2022/7975827, PMID 35677781) | Solo resumen | Simulación del puente en suelo sin carga (n=15): fuerza lumbar de 150 a 200 % del peso corporal según la flexión de rodilla. No es hip thrust con carga |
 | Andersen V et al. 2018. Electromyographic comparison of barbell deadlift, hex bar deadlift, and hip thrust exercises. J Strength Cond Res 32(3):587-593 (doi:10.1519/JSC.0000000000001826, PMID 28151780) | Solo resumen | EMG, n=13: erector espinal sin diferencias entre el peso muerto y el hip thrust |
 | Kim TH, Jeon IC. 2026. Activation of the gluteus maximus and multifidus muscles in bridge and hip thrust exercises. Physiother Theory Pract, publicación anticipada, pp. 1-10 (doi:10.1080/09593985.2026.2714954, PMID 42578527) | Solo resumen | EMG, n=20: el multífido se activa más en el hip thrust que en el puente en suelo |
 | Hammond A et al. 2019. The effects of a 4-week mesocycle of barbell back squat or barbell hip thrust training. PeerJ 7:e7337 (doi:10.7717/peerj.7337, PMID 31388473) | Solo resumen | Fuerza isométrica extensora lumbar; no mide carga espinal |
@@ -61,4 +61,4 @@ Revisión del 2026-11-13. Todo es una propuesta de nivel 2. **Conclusión: no ha
 No se leyó texto completo de Takeshita, Kim y Jeon, Andersen ni Hammond. De fichas de ejercicios y blogs solo se leyeron extractos de la búsqueda. Para subir la confianza haría falta un modelo musculoesquelético del hip thrust cargado, o las figuras de Brazil 2021; un estudio así podría mover la celda un paso, hacia `baja` o hacia `alta`.
 
 ## Qué queda para Emanuel
-Ver B-062. No se implementó nada y no se cerró ningún ítem.
+Ver B-062 y DEC-040. No se cerró ningún ítem.
