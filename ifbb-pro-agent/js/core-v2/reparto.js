@@ -129,6 +129,11 @@
     // A2 (DEC-022): una sola variante de lumbar alta por sesión. Es restricción por defecto; si el usuario eligió el remo con barra, esa variante puede
     // sumarse a otra de lumbar alta y el plan lo avisa (aviso, no restricción).
     const bloqueaA2 = (ses, v) => lumbarAlta(v.id) && ses.nLumbarAlta >= valor('MAX_LUMBAR_ALTA_POR_SESION') && v.habilitaPor !== 'remoConBarra';
+    // Tope de lumbar media por sesión (DEC-040): en series, no en ejercicios. `seriesLumbarMedia` cuenta las series de la sesión de variantes de lumbar `media`.
+    const TOPE_LUMBAR_MEDIA = valor('MAX_SERIES_LUMBAR_MEDIA_POR_SESION');
+    const lumbarMedia = id => (cat.perfilArticularDe(id).lumbar || {}).nivel === 'media';
+    const seriesLumbarMedia = ses => ses.ejercicios.reduce((a, e) => a + (lumbarMedia(e.v.id) ? e.series : 0), 0);
+    const pasaLumbarMedia = (ses, v, series) => lumbarMedia(v.id) && seriesLumbarMedia(ses) + series > TOPE_LUMBAR_MEDIA;
 
     // Paso 2 · seguridad y variantes habilitadas por el perfil.
     const elegible = v => {
@@ -259,6 +264,7 @@
           if (GRUPOS_CHICOS.includes(m) && !diasGrupo[m].has(ses.indice) && diasGrupo[m].size >= valor('MAX_DIAS_GRUPO_CHICO')) return;
           candidatas.filter(v => cat.grupoDe(v.id) === m && !ses.patrones.has(v.patron) && !excluyeA3(ses, v.patron) && !bloqueaA2(ses, v)).forEach(v => {
             const w = pesos[v.id], seg = minDirecto * segSerie(v);
+            if (pasaLumbarMedia(ses, v, minDirecto)) return; // tope de lumbar media (DEC-040)
             if (ses.seg + seg > ses.capacidadSeg + EPS) return;
             if (Object.keys(w).some(x => (ses.frac[x] || 0) + w[x] * minDirecto > R1 + EPS && !(permitir && minimoSinCubrir(x)))) return;
             const resto = ses.capacidadSeg - ses.seg - seg;
@@ -292,6 +298,7 @@
     function evaluar(ses, mov, permitirExceso, sinNecesidad) {
       const w = pesos[mov.v.id], seg = mov.series * segSerie(mov.v);
       if (ses.seg + seg > ses.capacidadSeg + EPS) return { ok: false, motivo: 'capacidad' };
+      if (pasaLumbarMedia(ses, mov.v, mov.series)) return { ok: false, motivo: 'lumbarMedia' }; // DEC-040: restricción dura, no cede a nada
       const excedeR1 = [];
       for (const m of Object.keys(w)) {
         if ((ses.frac[m] || 0) + w[m] * mov.series > R1 + EPS) {
@@ -338,18 +345,18 @@
       Object.keys(mapaSubPatrones[m]).forEach(sp => {
         const patrones = mapaSubPatrones[m][sp];
         if (sp === SIN_CUOTA || subPatronCubierto(m, patrones)) return;
-        let mejor = null, hayVariante = false, porR1 = false;
+        let mejor = null, hayVariante = false, porR1 = false, porLumbarMedia = false;
         sesiones.forEach(ses => candidatas.forEach(v => {
           if (cat.grupoDe(v.id) !== m || !patrones.includes(v.patron) || !puedeEntrar(ses, v)) return;
           hayVariante = true;
           const r = evaluar(ses, { v, series: MIN_EJERCICIO, nuevo: true }, false, true);
-          if (!r.ok) { if (r.motivo === 'R1') porR1 = true; return; }
+          if (!r.ok) { if (r.motivo === 'R1') porR1 = true; if (r.motivo === 'lumbarMedia') porLumbarMedia = true; return; }
           const clave = claveDecision(v, r.redundancia), resto = ses.capacidadSeg - ses.seg;
           const c = mejor ? comparar(clave, mejor.clave) : -1;
           if (!mejor || c < 0 || (c === 0 && resto > mejor.resto + EPS)) mejor = { ses, v, clave, resto };
         }));
         if (mejor) agregar(mejor.ses, mejor.v, MIN_EJERCICIO, false);
-        else avisos.cuotaSinCubrir.push({ musculo: m, subPatron: sp, causa: !hayVariante ? 'sin ejercicios disponibles' : porR1 ? 'R1' : 'tiempo' });
+        else avisos.cuotaSinCubrir.push({ musculo: m, subPatron: sp, causa: !hayVariante ? 'sin ejercicios disponibles' : porR1 ? 'R1' : porLumbarMedia ? 'lumbar media' : 'tiempo' });
       });
     });
 
@@ -413,6 +420,7 @@
             const nuevas = Math.min(TOPE, Math.max(ex.series - TOPE, MIN));
             if (ex.series - nuevas < MIN) continue;
             const dSeg = nuevas * (segSerie(v) - segSerie(ex.v));
+            if (!lumbarMedia(ex.v.id) && pasaLumbarMedia(ses, v, nuevas)) continue; // DEC-040: el traspaso no puede pasar el tope de lumbar media (entre dos de lumbar media el total no cambia)
             if (ses.seg + dSeg > ses.capacidadSeg + EPS) continue;
             const wo = ex.pesos, wn = pesos[v.id], delta = {};
             Object.keys(wo).forEach(m => { delta[m] = (delta[m] || 0) - wo[m] * nuevas; });
@@ -431,6 +439,11 @@
         });
       });
     }
+
+    // Tope de lumbar media (DEC-040): lo que la estructura (patrones obligatorios, prioritarios, funcionales) mete en una sesión no se descarta por el tope, que
+    // es una restricción del relleno: si la sesión queda sobre el tope, el aviso único lo dice (nunca se ignora en silencio).
+    avisos.lumbarMediaExcedida = sesiones.filter(ses => seriesLumbarMedia(ses) > TOPE_LUMBAR_MEDIA)
+      .map(ses => ({ sesion: ses.nombre, series: seriesLumbarMedia(ses), tope: TOPE_LUMBAR_MEDIA }));
 
     /* Sub-patrones (DEC-037) · la cobertura del músculo, abierta por sub-patrón: `cubierto` en series fraccionadas,
      * `directas` en series reales de ejercicios del grupo y `sesiones` en cuántos días aparece. Sirve para que una cuota
@@ -466,7 +479,7 @@
       const falta = faltaDe(m), faltaReal = faltaRealDe(m);
       let causa = null;
       if (falta > EPS || faltaReal > EPS) {
-        const motivos = { R1: 0, capacidad: 0 };
+        const motivos = { R1: 0, capacidad: 0, lumbarMedia: 0 };
         let candidatos = 0;
         sesiones.forEach(ses => movimientos(ses).forEach(mov => {
           if (!pesos[mov.v.id][m]) return;
@@ -475,17 +488,18 @@
           const bloqueaR1 = Object.keys(w).some(x => (ses.frac[x] || 0) + w[x] * mov.series > R1 + EPS && !minimoSinCubrir(x));
           if (ses.seg + seg > ses.capacidadSeg + EPS) motivos.capacidad++;
           else if (bloqueaR1) motivos.R1++;
+          else if (pasaLumbarMedia(ses, mov.v, mov.series)) motivos.lumbarMedia++;
         }));
         // R1 deja la necesidad sin cubrir si alguna sesión tenía tiempo y solo R1 impidió sumar.
-        causa = motivos.R1 > 0 ? 'R1' : (candidatos === 0 ? 'sin ejercicios disponibles' : 'tiempo');
+        causa = motivos.R1 > 0 ? 'R1' : motivos.lumbarMedia > 0 ? 'lumbar media' : (candidatos === 0 ? 'sin ejercicios disponibles' : 'tiempo');
       }
       semanal[m] = Object.assign({}, dem[m], { cubierto: Math.round(cubierto[m] * 100) / 100, directas: directas[m], faltaReal: Math.round(faltaReal * 100) / 100, sesiones: sesiones.filter(s => (s.frac[m] || 0) > 0).length, falta: Math.round(falta * 100) / 100, causa, porSubPatron: coberturaPorSubPatron(m) });
     });
     const sinCubrir = MUSCULOS.filter(m => semanal[m].falta > EPS || semanal[m].faltaReal > EPS);
     // Frecuencia mínima de los grupos mayores (DEC-036): un grupo mayor que entrena menos días por semana que el mínimo va al aviso único, no se fuerza (no es una restricción).
     const frecuenciaBaja = GRUPOS_MAYORES.filter(m => semanal[m].sesiones < valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES')).map(m => ({ musculo: m, sesiones: semanal[m].sesiones, minimo: valor('FRECUENCIA_MINIMA_GRUPOS_MAYORES') }));
-    const avisoUnico = (sinCubrir.length || avisos.cuotaSinCubrir.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length || frecuenciaBaja.length)
-      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, frecuenciaBaja, cuotaSinCubrir: avisos.cuotaSinCubrir, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
+    const avisoUnico = (sinCubrir.length || avisos.cuotaSinCubrir.length || avisos.lumbarMediaExcedida.length || avisos.obligatoriosSinLugar.length || avisos.sinDirecto.length || avisos.principalReducido.length || frecuenciaBaja.length)
+      ? { sinCubrir: sinCubrir.map(m => ({ musculo: m, falta: semanal[m].falta, faltaReal: semanal[m].faltaReal, causa: semanal[m].causa })), obligatoriosSinLugar: avisos.obligatoriosSinLugar, sinDirecto: avisos.sinDirecto, principalReducido: avisos.principalReducido, frecuenciaBaja, cuotaSinCubrir: avisos.cuotaSinCubrir, lumbarMediaExcedida: avisos.lumbarMediaExcedida, salidas: ['más tiempo ese día', 'más días', 'aceptar la sesión con esas demandas sin cubrir'] }
       : null;
 
     // Paso 6 · orden (A1): lumbar alta primero, luego multiarticulares (el hip thrust al final de ellos) y al final los aislamientos;

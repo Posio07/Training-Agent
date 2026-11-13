@@ -94,6 +94,8 @@ La bisagra no figura en los sub-patrones de glúteos aunque sea extensión de ca
 
 **Variantes de la abducción de cadera (DEC-038, Aceptado; B-044).** El patrón `abduccion_cadera` pasa de una a cuatro variantes: máquina, polea de pie (`verificado (1 estudio)`), lateral tumbado (`probable`) y banda (`a_verificar`), las tres nuevas unilaterales. El reparto no cambia: el excedente del tope de 5 series (DEC-031) ya pasa a otra variante del mismo patrón. **Marca de evidencia:** cada ejercicio del plan lleva `evidenciaPorVerificar`, verdadero cuando su relación directa con el músculo de su grupo está `a_verificar` (se calcula de los datos, sin lista de ids), y Entreno muestra "Evidencia por verificar". El orden por evidencia del relleno sigue siendo el punto 5 de DEC-037 (paso 2).
 
+**Tope de series de lumbar media por sesión (DEC-040, Propuesto; B-062).** `MAX_SERIES_LUMBAR_MEDIA_POR_SESION` (8 series, E4, análogo a A2 pero en series): restricción dura del relleno, de la cuota por sub-patrón, del traspaso del excedente del tope de 5 series y del ejercicio directo semanal. **Un patrón obligatorio (o un prioritario o un funcional) que superaría el tope entra igual** y el aviso único lo dice (`lumbarMediaExcedida`); si un músculo queda sin cubrir por el tope, la causa del aviso es `lumbar media`. El nivel `media` del hip thrust es criterio de diseño E4, `a_verificar`, confianza baja (revisión del investigador, `docs/research/tope-lumbar-media.md`).
+
 ## Algoritmo de reparto
 
 Un solo paso, en este orden. Ningún paso posterior corrige a uno anterior.

@@ -14,7 +14,7 @@
   const ETIQUETAS = { chest: 'Pecho', back: 'Espalda', shoulders: 'Hombros', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales', glutes: 'Glúteos', calves: 'Pantorrillas', biceps: 'Bíceps', triceps: 'Tríceps', abs: 'Abdomen' };
   // Sub-patrones de la cuota (DEC-037) en lenguaje simple para el aviso.
   const SUB_PATRON = { extension_cadera: 'extensión de cadera', abduccion_cadera: 'abducción de cadera', tiron_vertical: 'tirón vertical', tiron_horizontal: 'tirón horizontal', bisagra_cadera: 'bisagra de cadera', flexion_rodilla: 'flexión de rodilla' };
-  const MOTIVO = { R1: 'no cabe sin pasar el límite de series por sesión', tiempo: 'no entra en el tiempo disponible', 'sin ejercicios disponibles': 'no hay ejercicios disponibles con tus lesiones y casillas' };
+  const MOTIVO = { R1: 'no cabe sin pasar el límite de series por sesión', tiempo: 'no entra en el tiempo disponible', 'sin ejercicios disponibles': 'no hay ejercicios disponibles con tus lesiones y casillas', 'lumbar media': 'no entra sin pasar el tope de series de lumbar media por sesión' };
   // Máximo de días del perfil: el que acepta el reparto (no se repite el número a mano).
   const DIAS_MAX = valor('DIAS_POR_SEMANA')[1];
   const serie = n => (n === 1 ? 'serie' : 'series');
@@ -53,6 +53,9 @@
       const entrenan = plan.sesiones.map((s, i) => [i, (s.fraccionado || {})[x.musculo]]).filter(([, f]) => f > 0).map(([i]) => i);
       (entrenan.length ? entrenan : plan.sesiones.map((s, i) => i)).forEach(i => sesiones.add(i));
     });
+    // Tope de lumbar media (DEC-040): la sesión que lo pasa porque un patrón obligatorio entró igual es una sesión afectada: el usuario puede aceptarla.
+    const lumbarMedia = a.lumbarMediaExcedida || [];
+    lumbarMedia.forEach(x => { const i = plan.sesiones.findIndex(s => s.nombre === x.sesion); if (i >= 0) sesiones.add(i); });
     const conTiempo = a.sinCubrir.some(x => x.causa === 'tiempo') || a.sinDirecto.length > 0 || cuota.some(x => x.causa === 'tiempo');
     if (conTiempo || sesiones.size === 0) plan.sesiones.forEach((s, i) => { if (limitadaPorTiempo(s)) sesiones.add(i); });
     const afectadas = [...sesiones].sort((x, y) => x - y);
@@ -62,6 +65,7 @@
     a.principalReducido.forEach(x => lineas.push(`${x.sesion}: el ejercicio principal queda con ${x.series} series en vez de ${x.deseadas} por falta de tiempo.`));
     a.sinDirecto.forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: sin ejercicio directo (${x.motivo}).`));
     cuota.forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: falta un ejercicio de ${SUB_PATRON[x.subPatron] || x.subPatron} para cubrir bien el músculo (${MOTIVO[x.causa] || x.causa}).`));
+    lumbarMedia.forEach(x => lineas.push(`${x.sesion}: lleva ${x.series} series de ejercicios de lumbar media y el tope por sesión es ${x.tope} (un patrón obligatorio entra igual).`));
     (a.frecuenciaBaja || []).forEach(x => lineas.push(`${ETIQUETAS[x.musculo]}: se entrena ${x.sesiones} ${x.sesiones === 1 ? 'día' : 'días'} por semana y lo recomendado es al menos ${x.minimo} (el plan no lo fuerza).`));
     a.sinCubrir.forEach(x => {
       const partes = [];
@@ -79,7 +83,7 @@
     // Si el problema es solo R1 (hay tiempo de sobra), más tiempo no ayuda: se avisa y la salida queda como no disponible.
     if (!conTiempo && a.obligatoriosSinLugar.length === 0 && a.principalReducido.length === 0) salidas[0].disponible = false;
     else salidas[0].disponible = afectadas.length > 0;
-    return { hay: true, titulo: 'Esta semana no entra todo lo que pide el plan', lineas, sesionesAfectadas: afectadas, salidas, soloR1: !conTiempo && a.sinCubrir.length > 0 && a.sinCubrir.every(x => x.causa === 'R1') && !(a.frecuenciaBaja || []).length && cuota.length === 0 };
+    return { hay: true, titulo: 'Esta semana no entra todo lo que pide el plan', lineas, sesionesAfectadas: afectadas, salidas, soloR1: !conTiempo && a.sinCubrir.length > 0 && a.sinCubrir.every(x => x.causa === 'R1') && !(a.frecuenciaBaja || []).length && cuota.length === 0 && lumbarMedia.length === 0 };
   }
 
   // Aplica la salida que eligió el usuario. Devuelve { perfil, planGuardado } nuevos (no muta los recibidos); el llamador regenera el plan

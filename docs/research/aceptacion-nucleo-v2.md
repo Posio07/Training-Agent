@@ -2,7 +2,7 @@
 
 Generado por `node scripts/aceptacion-nucleo-v2.js --escribir`. Solo lee: **no corrige nada**. Si un criterio no se cumple, este informe lo dice y la decisión es de Emanuel.
 
-Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.6`.
+Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados sobre el barrido de **360 planes** (90 perfiles de `scripts/perfiles-barrido.js` × 3, 4, 5 y 6 días), con el reparto nuevo y el catálogo nuevo, sin cambiar el tiempo por defecto (75 min por sesión). Motor del plan guardado: `core-v2.7`.
 
 **Resultado: 13 cumplen · 1 cumplen con aviso · 0 no cumplen · 1 son un informe.**
 
@@ -58,7 +58,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 | Espalda | 24 (6.7 %) | 0 de 90 | 8 de 90 | 8 de 90 | 8 de 90 |
 | Hombros | 12 (3.3 %) | 0 de 90 | 12 de 90 | 0 de 90 | 0 de 90 |
 | Cuádriceps | 2 (0.6 %) | 0 de 90 | 0 de 90 | 0 de 90 | 2 de 90 |
-| Isquiotibiales | 4 (1.1 %) | 0 de 90 | 0 de 90 | 2 de 90 | 2 de 90 |
+| Isquiotibiales | 6 (1.7 %) | 0 de 90 | 2 de 90 | 2 de 90 | 2 de 90 |
 | Glúteos | 6 (1.7 %) | 0 de 90 | 0 de 90 | 2 de 90 | 4 de 90 |
 | Pantorrillas | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
 | Bíceps | 0 (0 %) | 0 de 90 | 0 de 90 | 0 de 90 | 0 de 90 |
@@ -87,7 +87,7 @@ Criterios de `docs/specs/nucleo-v2.md` ("Criterios de aceptación") evaluados so
 
 ## 13. Ningún ejercicio pasa de 5 series en una sesión, salvo que no haya otra variante del patrón ni otro ejercicio del músculo que quepa; el volumen total no baja (DEC-031, DEC-037)
 
-**✅ cumple.** 0 incumplimientos en 10651 ejercicios (230 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34055 series con el tope, 34055 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
+**✅ cumple.** 0 incumplimientos en 10683 ejercicios (286 con más de 5 series, todos avisados si la lista de incumplimientos está vacía); volumen: 34106 series con el tope, 34106 sin él. Salvedad: que un ejercicio avisado de verdad no tenga otra variante del patrón que quepa lo declara el reparto ("avisos.topeExcedido"); esta prueba no lo recalcula.
 
 ## 14. No queda ningún número fuera del registro ni código muerto
 
