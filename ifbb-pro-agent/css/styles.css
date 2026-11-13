@@ -42,6 +42,8 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: var(--esp-5) 0; }
 .card { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-l); padding: var(--esp-5); margin-bottom: var(--esp-5); }
 .card.accent { border-color: var(--acento); }
 .card.card-aviso { border-color: var(--aviso); }
+/* Las salidas del aviso llevan frases largas: una por renglón, a todo el ancho. */
+.card-aviso .btn-row { flex-direction: column; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--esp-3); }
 .stat { background: var(--superficie-2); border-radius: var(--radio-s); padding: var(--esp-3) .7rem; }
 .stat .v { font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-medio); line-height: var(--interlinea-cifra); }
@@ -78,8 +80,11 @@ legend { color: var(--texto); font-weight: var(--peso-fuerte); padding: 0 var(--
 .profile-item .name { font-weight: var(--peso-fuerte); }
 .profile-item .meta { font-size: .78rem; color: var(--texto-suave); }
 
-.subtabs { display: flex; gap: var(--esp-2); overflow-x: auto; margin-bottom: var(--esp-5); padding-bottom: var(--esp-1); }
-.subtabs button { white-space: nowrap; border-radius: var(--radio-pastilla); padding: .45rem .9rem; font-size: var(--txt-s); min-height: var(--toque-min); }
+/* Pestañas del plan: una fila que se desplaza de lado. El borde derecho se
+ * desvanece para avisar que hay más; el relleno final deja la última entera. */
+.subtabs { display: flex; gap: var(--esp-2); overflow-x: auto; margin-bottom: var(--esp-5); padding: 0 var(--esp-8) var(--esp-1) 0; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--esp-8)), transparent); mask-image: linear-gradient(to right, #000 calc(100% - var(--esp-8)), transparent); }
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs button { flex: 0 0 auto; white-space: nowrap; border-radius: var(--radio-pastilla); padding: var(--esp-2) var(--esp-5); font-size: var(--txt-m); min-height: var(--toque-min); }
 .subtabs button.active { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); font-weight: var(--peso-fuerte); }
 
 table { width: 100%; border-collapse: collapse; font-size: .88rem; }
@@ -95,69 +100,100 @@ td.num { text-align: right; white-space: nowrap; }
 .legend { display: flex; gap: var(--esp-5); font-size: .8rem; color: var(--texto-suave); flex-wrap: wrap; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
 
-/* Sesiones de entreno: la barra de color a la izquierda identifica el
- * tipo de ejercicio (acento top set, azul multiarticular, verde aislamiento).
- * La barra del día reparte sus series por tipo y lleva debajo su leyenda. */
-.session { border: 1px solid var(--borde); border-radius: var(--radio-m); margin-bottom: .7rem; background: var(--superficie); overflow: hidden; }
-.session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--esp-3); padding: var(--esp-4) .9rem; cursor: pointer; background: none; border: 0; width: 100%; text-align: left; color: var(--texto); min-height: var(--toque-min); font-family: var(--font-body); }
-/* El mismo inset que el texto de .ex-row (borde de 4px + padding de .7rem
- * de .ex-main), para que título, métricas y ejercicios compartan margen. */
-.session-head-main { flex: 1; min-width: 0; padding-left: calc(4px + .7rem); }
-.session-head h4 { font-family: var(--font-display); font-size: var(--txt-l); margin: 0; font-weight: var(--peso-medio); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.day-tag { font-family: var(--font-body); font-size: .68rem; font-weight: var(--peso-fuerte); border: 1.5px solid var(--acento); color: var(--acento); border-radius: var(--radio-pastilla); padding: .05rem .55rem; }
-.session-metrics { display: flex; gap: 1.1rem; margin-top: .35rem; align-items: baseline; }
-.session-metrics .metric { font-size: .78rem; color: var(--texto-suave); display: inline-flex; align-items: center; gap: .3rem; }
-.session-metrics .metric b { font-family: var(--font-display); font-size: var(--txt-xl); color: var(--texto); font-weight: var(--peso-medio); }
-.session-metrics .metric .icon { width: 1rem; height: 1rem; }
-.session-bar { display: flex; height: 5px; border-radius: var(--radio-pastilla); overflow: hidden; margin-top: .55rem; background: var(--superficie-2); }
+/* ---------- Pantalla Plan · Entreno ----------
+ * Una tarjeta por día. La marca de color a la izquierda de cada ejercicio
+ * dice el tipo de serie (acento top set, azul multiarticular, verde
+ * aislamiento); la barra del día reparte sus series por tipo y lleva debajo
+ * su leyenda. En la cabecera manda el tiempo: cuánto usa la sesión, de cuánto,
+ * y cuánto sobra. El día que sigue lleva el borde de acento. */
+.plan-title { font-size: var(--txt-l); margin: 0 0 var(--esp-3); }
+.session { border: 1px solid var(--borde); border-radius: var(--radio-l); margin-bottom: var(--esp-5); background: var(--superficie); overflow: hidden; }
+.session.session-next { border-color: var(--acento); }
+.session-head { position: relative; display: block; padding: var(--esp-5); cursor: pointer; background: none; border: 0; width: 100%; text-align: left; color: var(--texto); min-height: var(--toque-min); font-family: var(--font-body); }
+.session-head-main { min-width: 0; }
+/* El título deja libre la esquina del indicador de abrir/cerrar; el resto de la cabecera usa todo el ancho. */
+.session-head h4 { font-family: var(--font-display); font-size: var(--txt-xl); font-weight: var(--peso-fuerte); letter-spacing: .01em; margin: 0; padding-right: var(--esp-8); display: flex; align-items: center; gap: var(--esp-1) var(--esp-3); flex-wrap: wrap; }
+.day-tag { font-family: var(--font-body); font-size: var(--txt-xs); font-weight: var(--peso-fuerte); letter-spacing: 0; border: 1px solid var(--acento); color: var(--acento); border-radius: var(--radio-pastilla); padding: 0 var(--esp-3); }
+.day-tag.day-tag-aceptada { border-color: var(--aviso); color: var(--aviso); }
+.session-time { display: flex; align-items: baseline; justify-content: space-between; gap: var(--esp-1) var(--esp-4); flex-wrap: wrap; margin-top: var(--esp-3); }
+.session-time-used { display: inline-flex; align-items: baseline; gap: var(--esp-2); font-size: var(--txt-base); white-space: nowrap; }
+.session-time-used b { font-family: var(--font-display); font-size: var(--txt-3xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-cifra); }
+.session-time-used .icon { align-self: center; width: var(--icono-m); height: var(--icono-m); color: var(--texto-suave); }
+.session-spare { font-size: var(--txt-m); color: var(--texto-suave); white-space: nowrap; }
+.session-spare.over { color: var(--aviso); }
+.session-volume { display: flex; align-items: center; gap: var(--esp-3); margin-top: var(--esp-3); }
+.session-bar { flex: 1; display: flex; height: var(--barra-fina); border-radius: var(--radio-pastilla); overflow: hidden; background: var(--superficie-2); }
 .session-bar span { height: 100%; }
 .session-bar .top { background: var(--serie-top); }
 .session-bar .compound { background: var(--serie-multiarticular); }
 .session-bar .isolation { background: var(--serie-aislamiento); }
+.session-series { font-size: var(--txt-s); color: var(--texto-suave); white-space: nowrap; }
+.session-series b { color: var(--texto); font-weight: var(--peso-medio); }
 .session-legend { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-4); margin-top: var(--esp-2); font-size: var(--txt-xs); color: var(--texto-suave); }
 .session-legend .ley { display: inline-flex; align-items: center; gap: var(--esp-2); white-space: nowrap; }
-.session-legend .ley::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.session-legend .ley::before { content: ''; width: var(--punto); height: var(--punto); border-radius: 50%; flex-shrink: 0; }
 .session-legend .top::before { background: var(--serie-top); }
 .session-legend .compound::before { background: var(--serie-multiarticular); }
 .session-legend .isolation::before { background: var(--serie-aislamiento); }
-.session-muscles { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .55rem; }
-.session-muscles .chip { font-size: .7rem; padding: .15rem .55rem; border-radius: var(--radio-pastilla); background: var(--superficie); border: 1px solid var(--acero); color: var(--texto-suave); }
-.session-head .chev { color: var(--texto-suave); flex-shrink: 0; width: 20px; height: 20px; margin-top: .1rem; }
+/* Los músculos del día son etiquetas, no botones: con relleno y sin borde. */
+.session-muscles { display: flex; gap: var(--esp-2); flex-wrap: wrap; margin-top: var(--esp-3); }
+.session-muscles .chip { font-size: var(--txt-xs); padding: var(--esp-1) var(--esp-3); border-radius: var(--radio-pastilla); background: var(--superficie-2); color: var(--texto); }
+.session-head .chev { position: absolute; top: var(--esp-5); right: var(--esp-5); color: var(--texto-suave); width: var(--icono-m); height: var(--icono-m); }
 .session-head[aria-expanded="true"] .chev { transform: rotate(180deg); }
 @media (prefers-reduced-motion: no-preference) { .session-head .chev { transition: transform var(--dur-rapida) ease; } }
 /* Apertura/cierre de día animado con la técnica grid-rows 0fr->1fr (altura
  * auto animable sin medir en JS) + opacidad. El contenido vive en un div
  * interno con overflow:hidden; el de afuera es el que cambia de fila.
  * El estado interactivo (foco/tab) se controla con `inert`, no con
- * `hidden`, para poder animar el colapso en vez de cortarlo de golpe. */
+ * `hidden`, para poder animar el colapso en vez de cortarlo de golpe.
+ * El aire de abajo lo pone el último bloque (un margen), no un padding del
+ * div interno: el padding seguiría ocupando alto con el día cerrado. */
 .session-body { display: grid; grid-template-rows: 0fr; opacity: 0; }
-.session-body > .session-body-inner { overflow: hidden; min-height: 0; padding: 0 .9rem .9rem; }
+.session-body > .session-body-inner { overflow: hidden; min-height: 0; padding: 0 var(--esp-5); }
 .session-head[aria-expanded="true"] + .session-body { grid-template-rows: 1fr; opacity: 1; }
 @media (prefers-reduced-motion: no-preference) {
   .session-body { transition: grid-template-rows var(--dur-media) var(--ease-salida), opacity var(--dur-media) var(--ease-salida); }
 }
 
-/* Filas con separador fino sobre una única superficie compartida (en vez
- * de una tarjeta propia por ejercicio): más compacto, misma barra de
- * color a la izquierda por tipo de serie. */
-.ex-list { background: var(--superficie-2); border-radius: var(--radio-s); margin-top: var(--esp-3); overflow: hidden; }
-.ex-row { display: flex; border-left: 4px solid var(--borde); border-bottom: 1px solid var(--borde); }
+/* Ejercicios del día: filas sobre una única superficie compartida (en vez de
+ * una tarjeta propia por ejercicio). Jerarquía de cada fila: el nombre y, a la
+ * derecha, series × repeticiones en grande; debajo el músculo y, más tenues, el
+ * RIR y el descanso. */
+.ex-list { background: var(--superficie-2); border-radius: var(--radio-m); overflow: hidden; }
+.ex-row { display: flex; align-items: center; gap: var(--esp-3); border-left: var(--marca) solid var(--borde); border-bottom: 1px solid var(--superficie); }
 .ex-list .ex-group:last-child .ex-row:last-child { border-bottom: 0; }
 .ex-row.type-top { border-left-color: var(--serie-top); }
 .ex-row.type-compound { border-left-color: var(--serie-multiarticular); }
 .ex-row.type-isolation { border-left-color: var(--serie-aislamiento); }
-.ex-row .ex-main { flex: 1; padding: var(--esp-2) .7rem; min-width: 0; }
-.ex-row .ex-name { font-weight: var(--peso-medio); font-size: var(--txt-m); }
-.ex-row .ex-tag { display: inline-block; font-size: .68rem; padding: .05rem var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-2); vertical-align: middle; background: var(--serie-top); color: var(--sobre-acento); font-weight: var(--peso-fuerte); }
+.ex-row .ex-main { flex: 1; padding: var(--esp-3) 0 var(--esp-3) var(--esp-4); min-width: 0; }
+.ex-row .ex-name { font-weight: var(--peso-medio); font-size: var(--txt-base); line-height: var(--interlinea-titulo); }
+.ex-row .ex-tag { display: inline-block; font-size: var(--txt-xs); line-height: var(--interlinea-texto); padding: 0 var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-1); vertical-align: middle; white-space: nowrap; background: var(--serie-top); color: var(--sobre-acento); font-weight: var(--peso-fuerte); }
 /* DEC-038: dato que falta leer, no un error. Ámbar y sin relleno para que no compita con el top set, pero siempre a la vista. */
-.ex-row .ex-tag.ex-tag-evidencia { background: transparent; color: var(--aviso); border: 1px solid var(--aviso); font-weight: var(--peso-medio); }
-.ex-row .ex-fields { display: flex; gap: .9rem; margin-top: .25rem; font-size: var(--txt-xs); color: var(--texto-suave); flex-wrap: wrap; }
-.ex-row .ex-fields .f { display: inline-flex; align-items: center; gap: .25rem; }
-.ex-row .ex-fields .icon { width: .85rem; height: .85rem; }
-.ex-row .ex-sets { font-family: var(--font-display); font-size: 1.5rem; font-weight: var(--peso-medio); padding: var(--esp-2) var(--esp-4); display: flex; align-items: center; white-space: nowrap; }
-.ex-group .backoff { margin-left: .9rem; }
-.ex-group .backoff .ex-row { border-left-width: 3px; }
-.ex-group .backoff .ex-sets { font-size: var(--txt-l); }
+.ex-row .ex-tag.ex-tag-evidencia { margin-left: 0; background: transparent; color: var(--aviso); border: 1px solid var(--aviso); font-weight: var(--peso-medio); }
+.ex-row .ex-fields { display: flex; align-items: center; gap: var(--esp-1) var(--esp-4); margin-top: var(--esp-2); font-size: var(--txt-s); color: var(--texto-suave); flex-wrap: wrap; }
+.ex-row .ex-fields .f { display: inline-flex; align-items: center; gap: var(--esp-1); white-space: nowrap; }
+.ex-row .ex-fields .ex-muscle { color: var(--texto); }
+.ex-row .ex-fields .icon { width: var(--icono-s); height: var(--icono-s); }
+.ex-row .ex-sets { display: flex; align-items: center; gap: var(--esp-2); padding-right: var(--esp-4); font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-cifra); white-space: nowrap; }
+.ex-row .ex-sets .x { font-family: var(--font-body); font-size: var(--txt-base); font-weight: var(--peso-medio); color: var(--texto-suave); }
+.ex-group .backoff { margin-left: var(--esp-4); }
+.ex-group .backoff .ex-name { font-size: var(--txt-m); }
+.ex-group .backoff .ex-sets { font-size: var(--txt-xl); }
+
+/* Zona de empezar: la acción principal sola y a todo el ancho; debajo, en su
+ * propio bloque con etiqueta, la rutina corta de "hoy tengo X min". */
+.session-start { margin-top: var(--esp-4); }
+.session-short { margin: var(--esp-5) 0; padding-top: var(--esp-4); border-top: 1px solid var(--borde); }
+.session-short-label { display: block; font-size: var(--txt-s); color: var(--texto-suave); margin-bottom: var(--esp-2); }
+.session-short-label::first-letter { text-transform: uppercase; }
+.session-short-row { display: flex; gap: var(--esp-3); }
+.session-short-row input { flex: 1 1 0; min-width: 0; min-height: var(--toque-comodo); }
+.session-short-row .btn { flex: 2 1 0; min-height: var(--toque-comodo); }
+
+/* Suplementos: una entrada por suplemento dentro de la tarjeta. */
+.supp-item { border-top: 1px solid var(--borde); margin-top: var(--esp-4); padding-top: var(--esp-4); }
+.supp-item h4 { font-size: var(--txt-base); margin: 0 0 var(--esp-1); }
+.supp-item p { margin: 0 0 var(--esp-1); }
 
 
 .src { font-size: .78rem; color: var(--texto-suave); margin-top: .5rem; }

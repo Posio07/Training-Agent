@@ -477,7 +477,7 @@
       <div class="card accent">
         <h2>Suplementos con respaldo</h2>
         <p class="muted">Solo se listan los que cuentan con posicionamiento oficial de la International Society of Sports Nutrition o evidencia de revisión. Ninguno es obligatorio; la comida y el descanso pesan mucho más.</p>
-        ${plan.supplements.map(s => `<div class="session"><h4>${esc(s.name)} <small>${cite(s.source)}</small></h4><p><b>${esc(s.dose)}</b></p><p class="muted">${esc(s.note)}</p></div>`).join('')}
+        ${plan.supplements.map(s => `<div class="supp-item"><h4>${esc(s.name)} <small>${cite(s.source)}</small></h4><p><b>${esc(s.dose)}</b></p><p class="muted">${esc(s.note)}</p></div>`).join('')}
       </div>
       <div class="card">
         <h3>Qué no incluye este plan y por qué</h3>

@@ -97,6 +97,11 @@
   --toque-comodo: 48px;
   --toque-grande: 56px;     /* modo sesión y acciones principales */
   --tabbar-h: 64px;
+  --icono-s: 1rem;
+  --icono-m: 1.4rem;
+  --marca: 4px;             /* la marca de color a la izquierda de una fila */
+  --barra-fina: 6px;        /* la barra de reparto de series del día */
+  --punto: 8px;             /* el punto de color de una leyenda */
   --ancho-contenido: 720px;
   --ancho-sesion: 560px;
   --ancho-dialogo: 360px;
