@@ -28,6 +28,17 @@ test('DEC-038: "evidencia por verificar" sale de los datos: solo la banda la lle
   ['chest.bench_press_barbell', 'glutes.hip_thrust'].forEach(id => assert.ok(!C.evidenciaPorVerificar(id), id));
 });
 
+test('DEC-038: la marca mira la relación con el músculo del grupo del ejercicio, no con cualquier músculo', () => {
+  const EM = require('../js/exerciseMuscles.js');
+  const fila = { exerciseId: 'chest.bench_press_barbell', muscle: 'triceps', relacion: 'directa', evidencia: 'a_verificar' };
+  EM.rows.push(fila);
+  try {
+    assert.equal(C.evidenciaPorVerificar('chest.bench_press_barbell'), false, 'una fila a_verificar de otro músculo no marca el ejercicio');
+    fila.muscle = 'chest';
+    assert.equal(C.evidenciaPorVerificar('chest.bench_press_barbell'), true, 'la del músculo de su grupo sí');
+  } finally { EM.rows.splice(EM.rows.indexOf(fila), 1); }
+});
+
 test('DEC-038: el plan lleva la marca en cada ejercicio y la pantalla de Entreno la muestra solo donde corresponde', () => {
   const p = { sex: 'F', level: 'advanced', daysPerWeek: 4, division: 'bikini_w', goal: 'bulk', laggingMuscles: ['glutes'], tiempoDisponibleMin: 120 };
   const g = PLAN.crearPlan(p, { id: 'p1', ahora: '2026-11-13' });
