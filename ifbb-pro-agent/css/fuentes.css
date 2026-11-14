@@ -2,8 +2,9 @@
  * service worker las precarga para que estén también sin conexión.
  * Las dos son variables (un archivo cubre todos los pesos) y tienen licencia
  * SIL Open Font License 1.1; el origen, la versión y la licencia de cada una
- * están en `fonts/LEEME.md`. Si un archivo no carga, `styles.css` sigue con la
- * tipografía del sistema (`--font-display` y `--font-body` la traen de reserva). */
+ * están en `fonts/LEEME.md`. Si un archivo no carga, la app sigue con la
+ * tipografía del sistema: `--font-display` y `--font-body`, en `tokens.css`,
+ * la traen de reserva. */
 @font-face {
   font-family: 'Big Shoulders Display';
   src: url('../fonts/BigShouldersDisplay-wght.woff2') format('woff2');
