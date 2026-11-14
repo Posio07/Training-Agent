@@ -1,0 +1,26 @@
+/* Tipografías de la app, servidas desde su propio origen: sin CDN, y el
+ * service worker las precarga para que estén también sin conexión.
+ * Las dos son variables (un archivo cubre todos los pesos) y tienen licencia
+ * SIL Open Font License 1.1; el origen, la versión y la licencia de cada una
+ * están en `fonts/LEEME.md`. Si un archivo no carga, `styles.css` sigue con la
+ * tipografía del sistema (`--font-display` y `--font-body` la traen de reserva). */
+@font-face {
+  font-family: 'Big Shoulders Display';
+  src: url('../fonts/BigShouldersDisplay-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+/* El archivo de Adobe declara otra altura de línea (1000/−326 por mil) que la
+ * versión que servía Google Fonts (1024/−400). Los tres `*-override` le dan a
+ * la app la misma altura de antes sin modificar el archivo de la fuente. */
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('../fonts/SourceSans3VF-Upright.ttf.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 102.4%;
+  descent-override: 40%;
+  line-gap-override: 0%;
+}
