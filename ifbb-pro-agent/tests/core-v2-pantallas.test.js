@@ -165,6 +165,16 @@ test('Entreno: la leyenda de la barra cuenta las series de cada tipo, suma las d
   leyendas(holgado).forEach(({ items }) => assert.ok(!items.some(x => x.clase === 'top'), 'sin top set, la leyenda no lo nombra'));
 });
 
+test('Entreno: "Evidencia por verificar" va junto al nombre del ejercicio, una vez por ejercicio marcado (DEC-038)', () => {
+  const d = P.leerPerfil(campos({})).datos, g = guardado(d);
+  const marcados = g.plan.sesiones.flatMap(s => s.ejercicios).filter(e => e.evidenciaPorVerificar);
+  assert.ok(marcados.length > 0, 'el plan de prueba tiene ejercicios con la marca');
+  const h = E.htmlEntreno({ datos: d, guardado: g });
+  const junto = h.match(/<div class="ex-name">[^<]+(?: <span class="ex-tag">Top set<\/span>)? <span class="ex-tag ex-tag-evidencia"[^>]*>Evidencia por verificar<\/span><\/div>/g) || [];
+  assert.equal(junto.length, marcados.length, 'la etiqueta está dentro del nombre');
+  assert.equal((h.match(/Evidencia por verificar/g) || []).length, marcados.length, 'y en ningún otro lugar');
+});
+
 /* ---------- Sin duplicar ---------- */
 
 test('las pantallas nuevas no copian lo que se queda en app.js: resumen, dieta, medidas y suplementos', () => {
