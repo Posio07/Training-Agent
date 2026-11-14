@@ -137,6 +137,34 @@ test('Entreno: con la bandera de salud el cardio muestra 3 × 50 min y los funci
   assert.equal(conAviso.length, 3); conAviso.forEach(x => assert.ok(!/undefined|\[object/.test(x)));
 });
 
+const DIA = /<div class="session(?: session-next)?">/; // donde empieza la tarjeta de cada día
+
+test('Entreno: la cabecera del día dice cuánto usa, de cuánto y cuánto sobra, con los mismos minutos redondeados', () => {
+  const g = JSON.parse(JSON.stringify(guardado(holgado)));
+  [[57.4, 60], [59, 60], [60, 60]].forEach(([minutos, capacidadMin], i) => Object.assign(g.plan.sesiones[i], { minutos, capacidadMin }));
+  const dias = E.htmlEntreno({ datos: holgado, guardado: g }).split(DIA).slice(1);
+  assert.match(dias[0], /<b>~57<\/b> de 60 min/); assert.match(dias[0], /sobran 3 min/);
+  assert.match(dias[1], /<b>~59<\/b> de 60 min/); assert.match(dias[1], /sobra 1 min/);
+  assert.match(dias[2], /<b>~60<\/b> de 60 min/); assert.ok(!/sobra/.test(dias[2]), 'sin margen no se dice que sobra');
+});
+
+test('Entreno: la leyenda de la barra cuenta las series de cada tipo, suma las del día y solo lista los tipos que el día tiene', () => {
+  const tipos = { top: 'top set', compound: 'multiarticular', isolation: 'aislamiento' };
+  const leyendas = d => { const g = guardado(d); return E.htmlEntreno({ datos: d, guardado: g }).split(DIA).slice(1).map((h, i) => ({ s: g.plan.sesiones[i], items: [...h.matchAll(/<span class="ley (\w+)">(\d+) ([^<]+)<\/span>/g)].map(m => ({ clase: m[1], n: Number(m[2]), texto: m[3] })) })); };
+  const cut = Object.assign({}, holgado, { goal: 'cut' });
+  let conTop = 0;
+  leyendas(cut).forEach(({ s, items }) => {
+    const esperado = { top: 0, compound: 0, isolation: 0 };
+    s.ejercicios.forEach(e => { if (e.topSet) esperado.top += 1; esperado[e.tipo === 'multiarticular' ? 'compound' : 'isolation'] += e.series - (e.topSet ? 1 : 0); });
+    items.forEach(x => { assert.equal(x.texto, tipos[x.clase], 'cada color con su nombre'); assert.equal(x.n, esperado[x.clase], `${s.nombre}: series de ${x.texto}`); });
+    assert.deepEqual(items.map(x => x.clase), Object.keys(tipos).filter(k => esperado[k] > 0), 'solo los tipos presentes, en orden');
+    assert.equal(items.reduce((a, x) => a + x.n, 0), s.series, 'la leyenda suma las series del día');
+    conTop += esperado.top;
+  });
+  assert.ok(conTop > 0, 'el plan de definición tiene top sets que contar');
+  leyendas(holgado).forEach(({ items }) => assert.ok(!items.some(x => x.clase === 'top'), 'sin top set, la leyenda no lo nombra'));
+});
+
 /* ---------- Sin duplicar ---------- */
 
 test('las pantallas nuevas no copian lo que se queda en app.js: resumen, dieta, medidas y suplementos', () => {

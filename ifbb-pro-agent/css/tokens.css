@@ -1,6 +1,7 @@
 /* Tokens de diseño: la única fuente de colores, espaciado, radios, sombras,
- * tipografía y tamaños de la app. `styles.css` y las vistas solo usan estas
- * variables; un valor suelto nuevo se agrega acá con su nombre, no allá.
+ * tipografía y tamaños de la app. `styles.css` y las vistas toman de acá esos
+ * valores; uno nuevo se agrega acá con su nombre, no allá. Quedan escritos en
+ * `styles.css` solo los grosores de trazo y los tiempos de cada animación.
  *
  * Identidad: los discos olímpicos. Fondo de grafito, texto de tiza, acento
  * amarillo y cifras en tipografía condensada. Las media queries no pueden

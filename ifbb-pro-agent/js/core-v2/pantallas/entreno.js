@@ -19,15 +19,14 @@
     const clase = e.tipo === 'multiarticular' ? 'type-compound' : 'type-isolation';
     const fila = (extra, nombre, reps, series, descanso, rir, etiqueta) => `<div class="ex-row ${extra}">
       <div class="ex-main">
-        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}</div>
+        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag ex-tag-evidencia" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
         <div class="ex-fields">
           <span class="f ex-muscle">${esc(etiquetaGrupo(e.grupo))}</span>
           ${rir ? `<span class="f">${icon('gauge')} RIR ${esc(rango(rir))}</span>` : ''}
           <span class="f">${icon('clock')} ${esc(descanso)}</span>
-          ${e.evidenciaPorVerificar && nombre === e.nombre ? '<span class="ex-tag ex-tag-evidencia" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}
         </div>
       </div>
-      <div class="ex-sets"><span class="n">${esc(series)}</span> <span class="x">×</span> <span class="n">${esc(reps)}</span></div>
+      <div class="ex-sets">${esc(series)} <span class="x">×</span> ${esc(reps)}</div>
     </div>`;
     const reps = v ? rango(v.reps) : '';
     const descanso = `${REGISTRO.valor(e.tipo === 'multiarticular' ? 'DESCANSO_MULTIARTICULAR_S' : 'DESCANSO_AISLAMIENTO_S')} s`;
@@ -50,9 +49,9 @@
     const musculos = [...new Set(s.ejercicios.map(e => etiquetaGrupo(e.grupo)))];
     // Leyenda de la barra: qué significa cada color y cuántas series hay de cada tipo (solo los tipos que el día tiene).
     const leyenda = [['top', conteo.top, 'top set'], ['compound', conteo.compound, 'multiarticular'], ['isolation', conteo.isolation, 'aislamiento']].filter(x => x[1] > 0);
-    // El tiempo de la sesión, con los mismos minutos redondeados que se muestran: cuánto usa, de cuánto, y cuánto sobra.
+    // El tiempo de la sesión, con los mismos minutos redondeados que se muestran: cuánto usa, de cuánto, y cuánto sobra (una sesión nunca pasa de su capacidad).
     const usa = Math.round(s.minutos), tiene = Math.round(s.capacidadMin), sobra = tiene - usa;
-    const margen = sobra > 0 ? `<span class="session-spare">${sobra === 1 ? 'sobra 1 min' : `sobran ${sobra} min`}</span>` : sobra < 0 ? `<span class="session-spare over">${-sobra} min de más</span>` : '';
+    const margen = sobra > 0 ? `<span class="session-spare">${sobra === 1 ? 'sobra 1 min' : `sobran ${sobra} min`}</span>` : '';
     return `<div class="session${esSiguiente ? ' session-next' : ''}">
       <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${esSiguiente}" aria-controls="day-body-${i}">
         <div class="session-head-main">

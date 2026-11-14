@@ -156,7 +156,6 @@ td .btn-ghost { min-width: var(--toque-min); padding: 0; }
 .session-time-used b { font-family: var(--font-display); font-size: var(--txt-3xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-cifra); }
 .session-time-used .icon { align-self: center; width: var(--icono-m); height: var(--icono-m); color: var(--texto-suave); }
 .session-spare { font-size: var(--txt-m); color: var(--texto-suave); white-space: nowrap; }
-.session-spare.over { color: var(--aviso); }
 .session-volume { display: flex; align-items: center; gap: var(--esp-3); margin-top: var(--esp-3); }
 .session-bar { flex: 1; display: flex; height: var(--barra-fina); border-radius: var(--radio-pastilla); overflow: hidden; background: var(--superficie-2); }
 .session-bar span { height: 100%; }
@@ -202,11 +201,11 @@ td .btn-ghost { min-width: var(--toque-min); padding: 0; }
 .ex-row.type-compound { border-left-color: var(--serie-multiarticular); }
 .ex-row.type-isolation { border-left-color: var(--serie-aislamiento); }
 .ex-row .ex-main { flex: 1; padding: var(--esp-3) 0 var(--esp-3) var(--esp-4); min-width: 0; }
-.ex-row .ex-name { font-weight: var(--peso-medio); font-size: var(--txt-base); line-height: var(--interlinea-titulo); }
+.ex-row .ex-name { font-weight: var(--peso-medio); font-size: var(--txt-base); line-height: var(--interlinea-texto); }
 .ex-row .ex-tag { display: inline-block; font-size: var(--txt-xs); line-height: var(--interlinea-texto); padding: 0 var(--esp-2); border-radius: var(--radio-xs); margin-left: var(--esp-1); vertical-align: middle; white-space: nowrap; background: var(--serie-top); color: var(--sobre-acento); font-weight: var(--peso-fuerte); }
 /* DEC-038: dato que falta leer, no un error. Ámbar y sin relleno para que no compita con el top set, pero siempre a la vista. */
-.ex-row .ex-tag.ex-tag-evidencia { margin-left: 0; background: transparent; color: var(--aviso); border: 1px solid var(--aviso); font-weight: var(--peso-medio); }
-.ex-row .ex-fields { display: flex; align-items: center; gap: var(--esp-1) var(--esp-4); margin-top: var(--esp-2); font-size: var(--txt-s); color: var(--texto-suave); flex-wrap: wrap; }
+.ex-row .ex-tag.ex-tag-evidencia { background: transparent; color: var(--aviso); border: 1px solid var(--aviso); font-weight: var(--peso-medio); }
+.ex-row .ex-fields { display: flex; align-items: center; gap: var(--esp-1) var(--esp-4); margin-top: var(--esp-1); font-size: var(--txt-s); color: var(--texto-suave); flex-wrap: wrap; }
 .ex-row .ex-fields .f { display: inline-flex; align-items: center; gap: var(--esp-1); white-space: nowrap; }
 .ex-row .ex-fields .ex-muscle { color: var(--texto); }
 .ex-row .ex-fields .icon { width: var(--icono-s); height: var(--icono-s); }
@@ -316,7 +315,7 @@ li { margin-bottom: var(--esp-1); }
 .sm-set .idx { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: var(--esp-7); min-height: var(--toque-grande); font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); color: var(--texto-suave); }
 .sm-set .idx .icon { color: var(--serie-top); }
 .sm-set input { text-align: center; font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); min-height: var(--toque-grande); padding: 0 var(--esp-2); }
-.sm-set .done-btn { flex-shrink: 0; min-width: var(--toque-grande); min-height: var(--toque-grande); font-size: var(--txt-l); }
+.sm-set .done-btn { flex-shrink: 0; min-width: var(--toque-grande); min-height: var(--toque-grande); padding: 0 var(--esp-3); font-size: var(--txt-l); }
 .sm-pain { display: flex; flex-direction: row-reverse; align-items: center; gap: var(--esp-3); border-top: 1px dashed var(--borde); padding-top: var(--esp-3); }
 .sm-pain input { flex: 0 0 auto; width: var(--ancho-dolor); min-height: var(--toque-min); font-size: var(--txt-xl); }
 .sm-pain .unit { flex: 1; margin: 0; text-align: left; font-size: var(--txt-s); }
