@@ -38,7 +38,8 @@
     return `<div class="ex-group">${fila(clase, e.nombre, reps, e.series, descanso, null, false)}</div>`;
   }
 
-  function htmlSesion(s, i, esSiguiente, aceptada) {
+  // `pideMasTiempo`: el aviso único propone alargar este día ("Más tiempo en esos días"); ahí no se dice que sobra tiempo.
+  function htmlSesion(s, i, esSiguiente, aceptada, pideMasTiempo) {
     const conteo = { top: 0, compound: 0, isolation: 0 };
     s.ejercicios.forEach(e => {
       const resto = e.topSet ? e.series - 1 : e.series;
@@ -51,7 +52,7 @@
     const leyenda = [['top', conteo.top, 'top set'], ['compound', conteo.compound, 'multiarticular'], ['isolation', conteo.isolation, 'aislamiento']].filter(x => x[1] > 0);
     // El tiempo de la sesión, con los mismos minutos redondeados que se muestran: cuánto usa, de cuánto, y cuánto sobra (una sesión nunca pasa de su capacidad).
     const usa = Math.round(s.minutos), tiene = Math.round(s.capacidadMin), sobra = tiene - usa;
-    const margen = sobra > 0 ? `<span class="session-spare">${sobra === 1 ? 'sobra 1 min' : `sobran ${sobra} min`}</span>` : '';
+    const margen = sobra > 0 && !pideMasTiempo ? `<span class="session-spare">${sobra === 1 ? 'sobra 1 min' : `sobran ${sobra} min`}</span>` : '';
     return `<div class="session${esSiguiente ? ' session-next' : ''}">
       <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${esSiguiente}" aria-controls="day-body-${i}">
         <div class="session-head-main">
@@ -119,7 +120,10 @@
   function htmlEntreno(ctx) {
     const g = ctx.guardado, plan = g.plan, datos = ctx.datos;
     const estado = PLAN.estadoDelPlan(g, datos);
-    const aviso = AVISO.avisoPendiente(AVISO.construirAviso(plan), datos, g);
+    const avisoDelPlan = AVISO.construirAviso(plan), aviso = AVISO.avisoPendiente(avisoDelPlan, datos, g);
+    // Los días que el aviso propone alargar, si esa salida está disponible. Salen del plan, no de lo pendiente: aceptar la sesión no cambia que le falte.
+    const masTiempo = (avisoDelPlan.salidas || []).find(x => x.id === 'mas-tiempo');
+    const pidenMasTiempo = new Set(masTiempo && masTiempo.disponible !== false ? masTiempo.sesiones : []);
     const cardio = CARDIO.prescribirCardio(datos);
     const siguiente = ctx.siguiente || 0;
     const filasSemana = Object.keys(plan.semanal).map(m => `<tr><td>${esc(K.MUSCLE_LABELS[m] || m)}${plan.semanal[m].rezagado ? ' <span class="cite" title="Grupo rezagado: +25 % de series">rezagado</span>' : ''}</td><td class="num">${n1(plan.semanal[m].cubierto)}</td><td class="num">${n1(plan.semanal[m].objetivo)}</td></tr>`).join('');
@@ -129,7 +133,7 @@
       ${htmlAviso(aviso)}
       ${avisos.length ? `<div class="card"><h3>Avisos del plan</h3><ul>${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
       <h2 class="plan-title">Entrenamiento · ${plan.sesiones.length} días por semana</h2>
-      ${plan.sesiones.map((s, i) => htmlSesion(s, i, i === siguiente, PLAN.aceptacionVigente(g, datos, i))).join('')}
+      ${plan.sesiones.map((s, i) => htmlSesion(s, i, i === siguiente, PLAN.aceptacionVigente(g, datos, i), pidenMasTiempo.has(i))).join('')}
       <div class="card">
         <p class="muted">Plan generado el ${esc(g.creadoEn)} (generador ${esc(g.versionMotor)}). No cambia solo: se regenera cuando cambias el tiempo, los días, el objetivo, el nivel, la división, los rezagados, los prioritarios, las lesiones, el remo con barra o la bandera de salud, o cuando lo pides.</p>
         <ul>

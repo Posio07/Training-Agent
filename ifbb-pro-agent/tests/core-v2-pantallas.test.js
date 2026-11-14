@@ -148,6 +148,25 @@ test('Entreno: la cabecera del día dice cuánto usa, de cuánto y cuánto sobra
   assert.match(dias[2], /<b>~60<\/b> de 60 min/); assert.ok(!/sobra/.test(dias[2]), 'sin margen no se dice que sobra');
 });
 
+test('Entreno: no dice que sobra tiempo en los días que el aviso propone alargar, aunque la sesión esté aceptada; si alargar no es una salida, sí lo dice', () => {
+  const sobra = dia => (dia.match(/sobran? \d+ min/) || [null])[0];
+  const dias = (d, g) => E.htmlEntreno({ datos: d, guardado: g }).split(DIA).slice(1);
+  // Un día con 24 min libres que el aviso incluye en "Más tiempo en esos días" (por la frecuencia de un grupo, no por el tiempo).
+  const d = { sex: 'F', level: 'advanced', daysPerWeek: 4, division: 'bikini_w', goal: 'cut' };
+  const g = guardado(d), salida = AVISO.construirAviso(g.plan).salidas.find(x => x.id === 'mas-tiempo');
+  const libres = g.plan.sesiones.map(s => s.capacidadMin - s.minutos);
+  assert.ok(salida.disponible && salida.sesiones.some(i => libres[i] > 0), 'el aviso propone alargar un día que tiene minutos libres');
+  assert.ok(libres.some((n, i) => n > 1 && !salida.sesiones.includes(i)), 'y hay otro día con minutos libres fuera del aviso');
+  const comprobar = h => g.plan.sesiones.forEach((s, i) => assert.equal(sobra(h[i]), salida.sesiones.includes(i) || libres[i] === 0 ? null : libres[i] === 1 ? 'sobra 1 min' : `sobran ${libres[i]} min`, s.nombre));
+  comprobar(dias(d, g));
+  comprobar(dias(d, AVISO.aplicarSalida(AVISO.construirAviso(g.plan).salidas.find(x => x.id === 'aceptar'), d, g, { ahora: '2026-11-14' }).planGuardado));
+  // Si el problema es solo el tope de series por sesión, alargar no es una salida: el aviso no habla de tiempo y los minutos libres se muestran.
+  const r1 = { sex: 'M', level: 'advanced', daysPerWeek: 4, division: 'classic_m', goal: 'bulk', tiempoDisponibleMin: 120 };
+  const gR1 = guardado(r1), avisoR1 = AVISO.construirAviso(gR1.plan);
+  assert.ok(avisoR1.hay && avisoR1.salidas.find(x => x.id === 'mas-tiempo').disponible === false && avisoR1.sesionesAfectadas.length > 0, 'un aviso sin la salida de más tiempo');
+  dias(r1, gR1).forEach((h, i) => { const s = gR1.plan.sesiones[i]; assert.equal(sobra(h), `sobran ${s.capacidadMin - s.minutos} min`, s.nombre); });
+});
+
 test('Entreno: la leyenda de la barra cuenta las series de cada tipo, suma las del día y solo lista los tipos que el día tiene', () => {
   const tipos = { top: 'top set', compound: 'multiarticular', isolation: 'aislamiento' };
   const leyendas = d => { const g = guardado(d); return E.htmlEntreno({ datos: d, guardado: g }).split(DIA).slice(1).map((h, i) => ({ s: g.plan.sesiones[i], items: [...h.matchAll(/<span class="ley (\w+)">(\d+) ([^<]+)<\/span>/g)].map(m => ({ clase: m[1], n: Number(m[2]), texto: m[3] })) })); };
