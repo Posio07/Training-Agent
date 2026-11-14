@@ -281,53 +281,73 @@ li { margin-bottom: var(--esp-1); }
   .tabbar { max-width: var(--ancho-contenido); left: 50%; transform: translateX(-50%); border-left: 1px solid var(--borde); border-right: 1px solid var(--borde); }
 }
 
-/* ---------- Modo sesión (Fase 4) ---------- */
+/* ---------- Modo sesión ----------
+ * Se usa en el gimnasio, con una mano y de reojo: objetivos táctiles de 56 px
+ * en lo que se toca en cada serie (campos, "Hecha", pie), cifras grandes en la
+ * tipografía condensada y texto con contraste pleno. El cronómetro, el tono y
+ * la pantalla encendida son del JS: acá solo está cómo se ven. */
 .session-mode { position: fixed; inset: 0; z-index: var(--z-sesion); background: var(--fondo); display: flex; flex-direction: column; }
-.session-mode-head { display: flex; align-items: center; justify-content: space-between; padding: calc(.7rem + env(safe-area-inset-top)) var(--esp-5) .7rem; border-bottom: 1px solid var(--borde); background: var(--superficie); gap: var(--esp-3); }
-.session-mode-head .prog { font-size: .8rem; color: var(--texto-suave); }
+.session-mode-head { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-3); padding: calc(var(--esp-3) + env(safe-area-inset-top)) var(--esp-5) var(--esp-3); border-bottom: 1px solid var(--borde); background: var(--superficie); }
+.session-mode-head .prog { flex: 1; text-align: center; font-size: var(--txt-m); font-weight: var(--peso-medio); line-height: var(--interlinea-titulo); color: var(--texto); }
+.session-mode-head .btn { min-height: var(--toque-comodo); }
+.session-mode-head .btn-icon { min-width: var(--toque-comodo); }
 .session-mode-body { flex: 1; overflow-y: auto; padding: var(--esp-5); max-width: var(--ancho-sesion); margin: 0 auto; width: 100%; }
 .session-mode-foot { display: flex; gap: var(--esp-3); padding: var(--esp-4) var(--esp-5) calc(var(--esp-4) + env(safe-area-inset-bottom)); border-top: 1px solid var(--borde); background: var(--superficie); }
 .session-mode-foot .btn { min-height: var(--toque-grande); }
+.session-mode-foot .btn-icon { font-size: var(--txt-3xl); line-height: var(--interlinea-cifra); }
+.session-mode-foot #sm-next { flex: 1; font-size: var(--txt-l); }
 
-.sm-exname { font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-medio); margin: 0 0 var(--esp-1); }
-.sm-exmeta { font-size: var(--txt-s); color: var(--texto-suave); margin-bottom: .9rem; }
-.sm-last { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-m); padding: .7rem .9rem; margin-bottom: var(--esp-5); font-size: var(--txt-s); color: var(--texto-suave); }
+.sm-exname { font-family: var(--font-display); font-size: var(--txt-3xl); font-weight: var(--peso-fuerte); letter-spacing: .01em; margin: 0 0 var(--esp-1); }
+.sm-exmeta { font-size: var(--txt-base); color: var(--texto-suave); margin-bottom: var(--esp-4); }
+.sm-last { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-m); padding: var(--esp-4); margin-bottom: var(--esp-4); font-size: var(--txt-m); color: var(--texto-suave); }
 .sm-last.sm-last-top { border-color: var(--serie-top); }
-.sm-last .v { color: var(--texto); font-weight: var(--peso-medio); }
+.sm-last .v { color: var(--texto); font-weight: var(--peso-medio); white-space: nowrap; }
+.sm-last .icon { color: var(--serie-top); }
 
-.sm-set { display: flex; flex-direction: column; gap: .5rem; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-m); padding: var(--esp-3) .7rem; margin-bottom: var(--esp-3); }
-.sm-set-row { display: flex; align-items: center; gap: var(--esp-3); }
-.sm-pain { border-top: 1px dashed var(--borde); padding-top: .5rem; }
-.sm-set.done { border-color: var(--exito); opacity: .7; }
-.sm-set .done-btn .check-draw { width: 1.3rem; height: 1.3rem; stroke-dasharray: 24; stroke-dashoffset: 24; }
+/* Cambiar la variante: una opción por renglón, con el nombre entero; la del plan lleva el borde de acento. */
+.session-mode-body details.card > summary { padding: var(--esp-3) 0; }
+.session-mode-body details.card { padding-top: var(--esp-2); padding-bottom: var(--esp-2); }
+.session-mode-body details.card[open] { padding-bottom: var(--esp-5); }
+.sm-variantes { flex-direction: column; margin-top: 0; }
+.sm-variantes .btn { text-align: left; min-height: var(--toque-comodo); }
+.sm-variantes .btn.active { border-color: var(--acento); }
+
+/* Una serie: su número, peso y repeticiones, y el botón de registrarla, todo a 56 px de alto. El dolor (opcional) va debajo, en una línea. */
+.sm-set { display: flex; flex-direction: column; gap: var(--esp-3); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-m); padding: var(--esp-4); margin: var(--esp-3) 0; }
+.sm-set-row { display: flex; align-items: flex-start; gap: var(--esp-3); }
+.sm-set .idx { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: var(--esp-7); min-height: var(--toque-grande); font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); color: var(--texto-suave); }
+.sm-set .idx .icon { color: var(--serie-top); }
+.sm-set input { text-align: center; font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); min-height: var(--toque-grande); padding: 0 var(--esp-2); }
+.sm-set .done-btn { flex-shrink: 0; min-width: var(--toque-grande); min-height: var(--toque-grande); font-size: var(--txt-l); }
+.sm-pain { display: flex; flex-direction: row-reverse; align-items: center; gap: var(--esp-3); border-top: 1px dashed var(--borde); padding-top: var(--esp-3); }
+.sm-pain input { flex: 0 0 auto; width: var(--ancho-dolor); min-height: var(--toque-min); font-size: var(--txt-xl); }
+.sm-pain .unit { flex: 1; margin: 0; text-align: left; font-size: var(--txt-s); }
+/* Serie registrada: borde de éxito y las cifras a pleno contraste, como texto (antes se atenuaba toda la fila y el texto quedaba por debajo de 4.5:1). */
+.sm-set.done { border-color: var(--exito); }
+.sm-set.done input:disabled { color: var(--texto); -webkit-text-fill-color: var(--texto); opacity: 1; background: transparent; border-color: transparent; }
+.sm-set .done-btn .check-draw { width: var(--icono-m); height: var(--icono-m); color: var(--exito); stroke-dasharray: 24; stroke-dashoffset: 24; }
 @media (prefers-reduced-motion: no-preference) {
-  .sm-set.done { animation: sm-row-dim var(--dur-media) var(--ease-salida) forwards; }
   .sm-set.done .done-btn .check-draw { animation: check-draw var(--dur-media) var(--ease-salida) forwards; }
 }
 /* Sin la animación, el trazo tiene que quedar dibujado igual (no oculto). */
 @media (prefers-reduced-motion: reduce) { .sm-set .done-btn .check-draw { stroke-dashoffset: 0; } }
 @keyframes check-draw { to { stroke-dashoffset: 0; } }
-@keyframes sm-row-dim { from { opacity: 1; } to { opacity: .7; } }
-.sm-set .idx { font-family: var(--font-display); font-size: 1.1rem; color: var(--texto-suave); width: 1.6rem; text-align: center; flex-shrink: 0; }
-.sm-set input { text-align: center; font-family: var(--font-display); font-size: 1.2rem; min-height: var(--toque-comodo); }
-.sm-set .done-btn { min-width: var(--toque-grande); min-height: var(--toque-comodo); }
 
-.sm-nav { display: flex; gap: var(--esp-3); margin: var(--esp-5) 0; }
-.sm-nav .btn { min-height: var(--toque-grande); font-size: var(--txt-xl); }
-
-.timer-overlay { position: fixed; inset: 0; z-index: var(--z-cronometro); background: var(--velo-fuerte); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--esp-5); padding: var(--esp-5); }
-.timer-num { font-family: var(--font-display); font-size: var(--txt-4xl); font-weight: var(--peso-medio); color: var(--texto); font-variant-numeric: tabular-nums; }
-.timer-label { color: var(--texto-suave); font-size: .9rem; }
-.timer-actions { display: flex; gap: .7rem; }
-.timer-actions .btn { min-height: var(--toque-grande); min-width: 88px; }
+/* Cronómetro de descanso: el número se tiene que leer con el teléfono en el suelo. */
+.timer-overlay { position: fixed; inset: 0; z-index: var(--z-cronometro); background: var(--velo-fuerte); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--esp-5); padding: var(--esp-5); text-align: center; }
+.timer-num { font-family: var(--font-display); font-size: var(--txt-6xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-cifra); color: var(--texto); font-variant-numeric: tabular-nums; }
+.timer-label { color: var(--texto); font-size: var(--txt-l); font-weight: var(--peso-medio); }
+.timer-actions { display: flex; gap: var(--esp-4); }
+.timer-actions .btn { min-height: var(--toque-grande); min-width: var(--ancho-accion); }
+.timer-note { max-width: var(--ancho-dialogo); margin: 0; }
 
 /* Anillo de descanso: se vacía a medida que pasa el tiempo (el trazo
  * visible encoge con stroke-dashoffset). Últimos 10s: --acento.
  * Al llegar a 0: pulso breve + vibración (en JS). */
-.timer-ring-wrap { position: relative; width: 180px; height: 180px; }
+.timer-ring-wrap { position: relative; width: var(--lado-anillo); height: var(--lado-anillo); }
 .timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-.timer-ring .ring-bg { fill: none; stroke: var(--superficie-2); stroke-width: 8; }
-.timer-ring .ring-fg { fill: none; stroke: var(--disco-azul); stroke-width: 8; stroke-linecap: round; }
+.timer-ring .ring-bg { fill: none; stroke: var(--superficie-2); stroke-width: 6; }
+.timer-ring .ring-fg { fill: none; stroke: var(--info-ui); stroke-width: 6; stroke-linecap: round; }
 .timer-ring.urgent .ring-fg { stroke: var(--acento); }
 @media (prefers-reduced-motion: no-preference) {
   .timer-ring .ring-fg { transition: stroke-dashoffset 1s linear, stroke var(--dur-media) ease; }
@@ -336,7 +356,11 @@ li { margin-bottom: var(--esp-1); }
 @keyframes timer-pulse { 0% { transform: scale(1); } 45% { transform: scale(1.1); } 100% { transform: scale(1); } }
 .timer-num-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 
-.sm-image-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto var(--esp-4); border-radius: var(--radio-l); overflow: hidden; background: var(--superficie-2); }
+/* Sesión en curso al abrir la app: tarjeta fija abajo, por encima de todo lo demás. */
+#resume-prompt { position: fixed; left: var(--esp-4); right: var(--esp-4); bottom: calc(var(--esp-4) + env(safe-area-inset-bottom)); z-index: var(--z-flotante); margin: 0 auto; max-width: var(--ancho-sesion); box-shadow: var(--sombra-flotante); }
+#resume-prompt .btn { min-height: var(--toque-comodo); }
+
+.sm-image-wrap { position: relative; width: var(--lado-imagen); height: var(--lado-imagen); margin: 0 auto var(--esp-4); border-radius: var(--radio-l); overflow: hidden; background: var(--superficie-2); }
 .sm-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .sm-image-a { animation: sm-fade-a 4s ease-in-out infinite; }
 .sm-image-b { animation: sm-fade-b 4s ease-in-out infinite; opacity: 0; }
@@ -348,9 +372,13 @@ li { margin-bottom: var(--esp-1); }
   .sm-image-b { opacity: 0; }
 }
 
-.platebar-wrap { text-align: center; margin: var(--esp-4) 0; }
-.platebar-weight { font-family: var(--font-display); font-size: 1.4rem; margin-bottom: .3rem; }
-.platebar-note { font-size: var(--txt-xs); color: var(--texto-suave); }
+/* Barra cargada: qué discos poner por lado. */
+.platebar-card { padding: var(--esp-4); margin-bottom: var(--esp-4); }
+.platebar-card h3 { font-size: var(--txt-s); font-weight: var(--peso-medio); color: var(--texto-suave); margin-bottom: var(--esp-1); }
+.platebar-wrap { text-align: center; margin: var(--esp-2) 0 0; }
+.platebar-weight { font-family: var(--font-display); font-size: var(--txt-2xl); font-weight: var(--peso-fuerte); line-height: var(--interlinea-titulo); margin-bottom: var(--esp-1); }
+.platebar-diff { font-family: var(--font-body); font-size: var(--txt-s); font-weight: 400; }
+.platebar-note { font-size: var(--txt-s); color: var(--texto-suave); margin: 0; }
 /* Los discos se cargan uno a la vez, de adentro hacia afuera (como en la
  * vida real), con un pequeño desfase entre ellos. */
 .plate-rect { transform-box: fill-box; transform-origin: center; }
@@ -365,8 +393,8 @@ li { margin-bottom: var(--esp-1); }
  * rebote corto y aparece un cartel con el trofeo durante 2s. */
 @media (prefers-reduced-motion: no-preference) { #platebar-top.plate-bounce .platebar { animation: plate-bounce 550ms var(--ease-salida); } }
 @keyframes plate-bounce { 0% { transform: translateY(0); } 28% { transform: translateY(-5px); } 52% { transform: translateY(0); } 72% { transform: translateY(-2px); } 100% { transform: translateY(0); } }
-.record-banner { position: fixed; left: 50%; top: 16%; transform: translate(-50%, -10px); opacity: 0; display: flex; align-items: center; gap: .5rem; background: var(--acento); color: var(--sobre-acento); font-weight: var(--peso-fuerte); font-size: var(--txt-m); padding: .7rem 1.1rem; border-radius: var(--radio-pastilla); box-shadow: var(--sombra-flotante); z-index: var(--z-flotante); pointer-events: none; }
-.record-banner .icon { width: 1.3rem; height: 1.3rem; }
+.record-banner { position: fixed; left: 50%; top: calc(var(--esp-4) + env(safe-area-inset-top)); transform: translate(-50%, calc(-1 * var(--esp-3))); opacity: 0; display: flex; align-items: center; gap: var(--esp-3); background: var(--acento); color: var(--sobre-acento); font-weight: var(--peso-fuerte); font-size: var(--txt-l); padding: var(--esp-4) var(--esp-6); border-radius: var(--radio-pastilla); box-shadow: var(--sombra-flotante); z-index: var(--z-flotante); pointer-events: none; white-space: nowrap; }
+.record-banner .icon { width: var(--icono-m); height: var(--icono-m); }
 .record-banner.show { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: no-preference) { .record-banner { transition: opacity var(--dur-media) var(--ease-salida), transform var(--dur-media) var(--ease-salida); } }
 @media (prefers-reduced-motion: reduce) { .record-banner { transition: none; } }
@@ -380,7 +408,7 @@ li { margin-bottom: var(--esp-1); }
 
 /* Fase 6: comparación del top set del día contra el anterior. */
 .topset-cmp { display: inline-flex; align-items: center; gap: var(--esp-1); font-weight: var(--peso-medio); font-size: var(--txt-s); white-space: nowrap; }
-.topset-cmp .icon { width: .9rem; height: .9rem; }
+.topset-cmp .icon { width: var(--icono-s); height: var(--icono-s); }
 .topset-cmp.cmp-up { color: var(--exito); }
 .topset-cmp.cmp-down { color: var(--texto); }
 .topset-cmp.cmp-flat { color: var(--texto-suave); }
@@ -405,3 +433,4 @@ li { margin-bottom: var(--esp-1); }
 .set-editor .btn-row .btn[type="submit"] { flex: 1 1 100%; }
 .set-editor [data-editor-delete] { color: var(--peligro); border-color: var(--peligro); background: transparent; }
 .sm-set-title { font-weight: var(--peso-medio); margin-bottom: var(--esp-1); }
+.sm-set.editing { margin: var(--esp-3) 0; }
