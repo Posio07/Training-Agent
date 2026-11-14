@@ -19,14 +19,14 @@
     const clase = e.tipo === 'multiarticular' ? 'type-compound' : 'type-isolation';
     const fila = (extra, nombre, reps, series, descanso, rir, etiqueta) => `<div class="ex-row ${extra}">
       <div class="ex-main">
-        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
+        <div class="ex-name">${esc(nombre)}${etiqueta ? ' <span class="ex-tag">Top set</span>' : ''}${e.evidenciaPorVerificar && nombre === e.nombre ? ' <span class="ex-tag ex-tag-evidencia" title="La relación de este ejercicio con el músculo no tiene una fuente leída (DEC-038)">Evidencia por verificar</span>' : ''}</div>
         <div class="ex-fields">
-          <span class="f">${esc(etiquetaGrupo(e.grupo))}</span>
+          <span class="f ex-muscle">${esc(etiquetaGrupo(e.grupo))}</span>
           ${rir ? `<span class="f">${icon('gauge')} RIR ${esc(rango(rir))}</span>` : ''}
           <span class="f">${icon('clock')} ${esc(descanso)}</span>
         </div>
       </div>
-      <div class="ex-sets">${esc(series)} × ${esc(reps)}</div>
+      <div class="ex-sets">${esc(series)} <span class="x">×</span> ${esc(reps)}</div>
     </div>`;
     const reps = v ? rango(v.reps) : '';
     const descanso = `${REGISTRO.valor(e.tipo === 'multiarticular' ? 'DESCANSO_MULTIARTICULAR_S' : 'DESCANSO_AISLAMIENTO_S')} s`;
@@ -38,7 +38,8 @@
     return `<div class="ex-group">${fila(clase, e.nombre, reps, e.series, descanso, null, false)}</div>`;
   }
 
-  function htmlSesion(s, i, esSiguiente, aceptada) {
+  // `pideMasTiempo`: el aviso único propone alargar este día ("Más tiempo en esos días"); ahí no se dice que sobra tiempo.
+  function htmlSesion(s, i, esSiguiente, aceptada, pideMasTiempo) {
     const conteo = { top: 0, compound: 0, isolation: 0 };
     s.ejercicios.forEach(e => {
       const resto = e.topSet ? e.series - 1 : e.series;
@@ -47,19 +48,28 @@
     });
     const pct = n => (s.series ? (n / s.series * 100) : 0);
     const musculos = [...new Set(s.ejercicios.map(e => etiquetaGrupo(e.grupo)))];
-    return `<div class="session">
+    // Leyenda de la barra: qué significa cada color y cuántas series hay de cada tipo (solo los tipos que el día tiene).
+    const leyenda = [['top', conteo.top, 'top set'], ['compound', conteo.compound, 'multiarticular'], ['isolation', conteo.isolation, 'aislamiento']].filter(x => x[1] > 0);
+    // El tiempo de la sesión, con los mismos minutos redondeados que se muestran: cuánto usa, de cuánto, y cuánto sobra (una sesión nunca pasa de su capacidad).
+    const usa = Math.round(s.minutos), tiene = Math.round(s.capacidadMin), sobra = tiene - usa;
+    const margen = sobra > 0 && !pideMasTiempo ? `<span class="session-spare">${sobra === 1 ? 'sobra 1 min' : `sobran ${sobra} min`}</span>` : '';
+    return `<div class="session${esSiguiente ? ' session-next' : ''}">
       <button type="button" class="session-head" data-toggle-day="${i}" aria-expanded="${esSiguiente}" aria-controls="day-body-${i}">
         <div class="session-head-main">
-          <h4>${esc(s.nombre)}${esSiguiente ? ' <span class="day-tag">Siguiente</span>' : ''}${aceptada ? ' <span class="day-tag">Aceptada con lo que falta</span>' : ''}</h4>
-          <div class="session-metrics">
-            <span class="metric"><b>${s.series}</b> series</span>
-            <span class="metric">${icon('clock')} ~${Math.round(s.minutos)} de ${Math.round(s.capacidadMin)} min</span>
+          <h4>${esc(s.nombre)}${esSiguiente ? ' <span class="day-tag">Siguiente</span>' : ''}${aceptada ? ' <span class="day-tag day-tag-aceptada">Aceptada con lo que falta</span>' : ''}</h4>
+          <div class="session-time">
+            <span class="session-time-used">${icon('clock')} <b>~${usa}</b> de ${tiene} min</span>
+            ${margen}
           </div>
-          <div class="session-bar" aria-hidden="true">
-            <span class="top" style="width:${pct(conteo.top)}%"></span>
-            <span class="compound" style="width:${pct(conteo.compound)}%"></span>
-            <span class="isolation" style="width:${pct(conteo.isolation)}%"></span>
+          <div class="session-volume">
+            <div class="session-bar" aria-hidden="true">
+              <span class="top" style="width:${pct(conteo.top)}%"></span>
+              <span class="compound" style="width:${pct(conteo.compound)}%"></span>
+              <span class="isolation" style="width:${pct(conteo.isolation)}%"></span>
+            </div>
+            <span class="session-series"><b>${s.series}</b> series</span>
           </div>
+          <div class="session-legend">${leyenda.map(([clase, n, tipo]) => `<span class="ley ${clase}">${n} ${tipo}</span>`).join('')}</div>
           <div class="session-muscles">${musculos.map(m => `<span class="chip">${esc(m)}</span>`).join('')}</div>
         </div>
         ${icon('chevron', 'chev')}
@@ -67,12 +77,13 @@
       <div class="session-body" id="day-body-${i}" ${esSiguiente ? '' : 'inert'}>
         <div class="session-body-inner">
           <div class="ex-list">${s.ejercicios.map(htmlEjercicio).join('')}</div>
-          <div class="btn-row" style="margin-top:.6rem">
-            <button class="btn btn-primary btn-lg" data-start-session="${i}" style="flex:2">Empezar sesión</button>
-          </div>
-          <div class="btn-row" style="margin-top:.4rem;align-items:flex-end">
-            <div class="fieldwrap" style="flex:1"><input type="number" inputmode="numeric" min="1" step="5" data-hoy-min="${i}" placeholder="min" aria-label="Minutos que tienes hoy"><div class="unit">hoy tengo (min)</div></div>
-            <button class="btn" data-start-session-short="${i}" style="flex:1">Rutina corta</button>
+          <button class="btn btn-primary btn-lg btn-block session-start" data-start-session="${i}">Empezar sesión</button>
+          <div class="session-short">
+            <label class="session-short-label" for="hoy-min-${i}">hoy tengo (min)</label>
+            <div class="session-short-row">
+              <input id="hoy-min-${i}" type="number" inputmode="numeric" min="1" step="5" data-hoy-min="${i}" placeholder="min" aria-label="Minutos que tienes hoy">
+              <button class="btn" data-start-session-short="${i}">Rutina corta</button>
+            </div>
           </div>
         </div>
       </div>
@@ -86,7 +97,7 @@
       const extra = s.id === 'mas-dias' ? ` (${s.dias})` : '';
       return `<button class="btn${s.id === 'mas-tiempo' ? ' btn-primary' : ''}" data-salida="${esc(s.id)}">${esc(s.texto)}${extra}</button>`;
     }).join('');
-    return `<div class="card" style="border-color:var(--alerta)">
+    return `<div class="card card-aviso">
       <h3>${esc(aviso.titulo)}</h3>
       <ul>${aviso.lineas.map(l => `<li>${esc(l)}</li>`).join('')}</ul>
       <div class="btn-row">${botones}</div>
@@ -109,15 +120,21 @@
   function htmlEntreno(ctx) {
     const g = ctx.guardado, plan = g.plan, datos = ctx.datos;
     const estado = PLAN.estadoDelPlan(g, datos);
-    const aviso = AVISO.avisoPendiente(AVISO.construirAviso(plan), datos, g);
+    const avisoDelPlan = AVISO.construirAviso(plan), aviso = AVISO.avisoPendiente(avisoDelPlan, datos, g);
+    // Los días que el aviso propone alargar, si esa salida está disponible. Salen del plan, no de lo pendiente: aceptar la sesión no cambia que le falte.
+    const masTiempo = (avisoDelPlan.salidas || []).find(x => x.id === 'mas-tiempo');
+    const pidenMasTiempo = new Set(masTiempo && masTiempo.disponible !== false ? masTiempo.sesiones : []);
     const cardio = CARDIO.prescribirCardio(datos);
     const siguiente = ctx.siguiente || 0;
     const filasSemana = Object.keys(plan.semanal).map(m => `<tr><td>${esc(K.MUSCLE_LABELS[m] || m)}${plan.semanal[m].rezagado ? ' <span class="cite" title="Grupo rezagado: +25 % de series">rezagado</span>' : ''}</td><td class="num">${n1(plan.semanal[m].cubierto)}</td><td class="num">${n1(plan.semanal[m].objetivo)}</td></tr>`).join('');
     const avisos = avisosDelPlan(plan);
     return `
-      ${estado.versionNueva ? `<div class="card" style="border-color:var(--alerta)"><p>Hay una versión nueva del generador. Tu plan sigue como está hasta que decidas aplicarla.</p><div class="btn-row"><button class="btn btn-primary" data-aplicar-version>Aplicar la versión nueva</button></div></div>` : ''}
-      <div class="card accent">
-        <h2>Entrenamiento · ${plan.sesiones.length} días por semana</h2>
+      ${estado.versionNueva ? `<div class="card card-aviso"><p>Hay una versión nueva del generador. Tu plan sigue como está hasta que decidas aplicarla.</p><div class="btn-row"><button class="btn btn-primary" data-aplicar-version>Aplicar la versión nueva</button></div></div>` : ''}
+      ${htmlAviso(aviso)}
+      ${avisos.length ? `<div class="card"><h3>Avisos del plan</h3><ul>${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      <h2 class="plan-title">Entrenamiento · ${plan.sesiones.length} días por semana</h2>
+      ${plan.sesiones.map((s, i) => htmlSesion(s, i, i === siguiente, PLAN.aceptacionVigente(g, datos, i), pidenMasTiempo.has(i))).join('')}
+      <div class="card">
         <p class="muted">Plan generado el ${esc(g.creadoEn)} (generador ${esc(g.versionMotor)}). No cambia solo: se regenera cuando cambias el tiempo, los días, el objetivo, el nivel, la división, los rezagados, los prioritarios, las lesiones, el remo con barra o la bandera de salud, o cuando lo pides.</p>
         <ul>
           <li><b>Intensidad:</b> ${esc(TEXTOS.intensidad())} ${cite(['HELMS_TRAIN', 'ACSM_RT'])}</li>
@@ -127,9 +144,6 @@
         <div class="src">Fuentes: ${cite(TEXTOS.fuentesDeTextos(datos))}</div>
         <div class="btn-row"><button class="btn" data-regenerar>Regenerar el plan</button></div>
       </div>
-      ${htmlAviso(aviso)}
-      ${avisos.length ? `<div class="card"><h3>Avisos del plan</h3><ul>${avisos.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-      ${plan.sesiones.map((s, i) => htmlSesion(s, i, i === siguiente, PLAN.aceptacionVigente(g, datos, i))).join('')}
       <div class="card">
         <h3>Cardio</h3>
         <p><b>${cardio.sesiones} sesiones × ${cardio.minutos} min</b> · ${esc(cardio.tipo)}</p>

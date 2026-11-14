@@ -14,7 +14,7 @@
         <div class="fieldwrap"><input type="number" inputmode="decimal" step="any" name="weight" value="${esc(weight)}" aria-label="Peso (${esc(unit)})"><div class="unit">peso (${esc(unit)})</div></div>
         <div class="fieldwrap"><input type="number" inputmode="numeric" step="1" name="reps" value="${esc(reps)}" aria-label="Repeticiones"><div class="unit">reps</div></div>
       </div>
-      <div class="btn-row" style="margin:.4rem 0 0"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
+      <div class="btn-row"><button class="btn btn-primary" type="submit">Guardar</button><button class="btn" type="button" data-editor-delete>Borrar serie</button><button class="btn btn-ghost" type="button" data-editor-cancel>Cancelar</button></div>
     </form>`;
   }
   // Conecta el editor que haya dentro de `root`. onSave(vals) debe devolver { ok, error }.

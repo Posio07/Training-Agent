@@ -84,11 +84,11 @@
     const findLast = (type, num) => last && last.sets.find(s => s.setType === type && s.setNumber === num);
     if (hasTop) {
       const topW = findLast('top', 1); const boW = findLast('backoff', 1);
-      return `<div class="card" id="platebar-top" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Top set</h3>${htmlPlateBar(profile, ex.exerciseId, topW && topW.weight)}</div>` +
-        (ex.sets.some(s => s.setType === 'backoff') ? `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga · Back-off</h3>${htmlPlateBar(profile, ex.exerciseId, boW && boW.weight)}</div>` : '');
+      return `<div class="card platebar-card" id="platebar-top"><h3>Carga · Top set</h3>${htmlPlateBar(profile, ex.exerciseId, topW && topW.weight)}</div>` +
+        (ex.sets.some(s => s.setType === 'backoff') ? `<div class="card platebar-card"><h3>Carga · Back-off</h3>${htmlPlateBar(profile, ex.exerciseId, boW && boW.weight)}</div>` : '');
     }
     const firstW = findLast('normal', 1);
-    return `<div class="card" style="margin-bottom:.8rem"><h3 style="font-size:.85rem;margin-bottom:.3rem">Carga sugerida</h3>${htmlPlateBar(profile, ex.exerciseId, firstW && firstW.weight)}</div>`;
+    return `<div class="card platebar-card"><h3>Carga sugerida</h3>${htmlPlateBar(profile, ex.exerciseId, firstW && firstW.weight)}</div>`;
   }
 
   function htmlPlateBar(profile, varianteId, weight) {
@@ -101,7 +101,7 @@
     const exact = Math.abs(res.diff) < 0.01;
     return `<div class="platebar-wrap">
       ${svgBarbell(res, unit)}
-      <div class="platebar-weight">${n1(exact ? weight : res.achieved)} ${unit}${!exact ? ` <span class="muted" style="font-size:.8rem">(objetivo ${n1(weight)} ${unit}, −${n1(Math.abs(res.diff))} ${unit})</span>` : ''}</div>
+      <div class="platebar-weight">${n1(exact ? weight : res.achieved)} ${unit}${!exact ? ` <span class="muted platebar-diff">(objetivo ${n1(weight)} ${unit}, −${n1(Math.abs(res.diff))} ${unit})</span>` : ''}</div>
       <div class="platebar-note">barra ${n1(bar)} ${unit} + ${res.plates.length ? res.plates.map(p => n1(p)).join(' + ') + ' por lado' : 'sin discos'}</div>
     </div>`;
   }
@@ -171,7 +171,7 @@
   function htmlVariantes(opciones, hechas) {
     if (hechas) return '<p class="help">No se puede cambiar la variante con series ya registradas.</p>';
     if (opciones.length < 2) return '';
-    return `<details class="card"><summary>Cambiar la variante</summary><div class="btn-row" style="flex-wrap:wrap">${opciones.map(o => `<button class="btn${o.planificada ? ' active' : ''}" data-sm-variante="${esc(o.varianteId)}">${esc(o.nombre)}${o.ultimaUsada ? ' · la última vez' : ''}</button>`).join('')}</div></details>`;
+    return `<details class="card"><summary>Cambiar la variante</summary><div class="btn-row sm-variantes">${opciones.map(o => `<button class="btn${o.planificada ? ' active' : ''}" data-sm-variante="${esc(o.varianteId)}">${esc(o.nombre)}${o.ultimaUsada ? ' · la última vez' : ''}</button>`).join('')}</div></details>`;
   }
 
   function htmlEjercicioSesion(sm, perfil, ctxEd, opcionesVariante, ultima) {
@@ -184,7 +184,7 @@
       ${ex.restriccion ? `<div class="alert warn">${esc(ex.restriccion.texto)} <span class="ev-tag">E4 · heurística</span> Sin top set ni subida de carga mientras siga marcado.</div>` : ''}
       ${ex.painAdvice ? `<div class="alert danger">Registraste dolor por encima del umbral en ${esc(ZONAS_ETIQUETA[ex.painAdvice.zona])} en ${ex.painAdvice.sesiones} sesiones distintas de las últimas 4 semanas. Te recomendamos consultar a un profesional antes de seguir cargando este movimiento. <span class="ev-tag">E4 · heurística</span></div>` : ''}
       ${htmlVariantes(opcionesVariante, hechas)}
-      ${ex.restriccion && ex.restriccion.sustituciones.length && !hechas ? `<div class="card"><p>Variantes más suaves para ${esc(ZONAS_ETIQUETA[ex.restriccion.zona])}:</p><div class="btn-row" style="flex-wrap:wrap">${ex.restriccion.sustituciones.map(s => `<button class="btn" data-sm-variante="${esc(s.varianteId)}">${esc(s.nombre)}</button>`).join('')}</div></div>` : ''}
+      ${ex.restriccion && ex.restriccion.sustituciones.length && !hechas ? `<div class="card"><p>Variantes más suaves para ${esc(ZONAS_ETIQUETA[ex.restriccion.zona])}:</p><div class="btn-row sm-variantes">${ex.restriccion.sustituciones.map(s => `<button class="btn" data-sm-variante="${esc(s.varianteId)}">${esc(s.nombre)}</button>`).join('')}</div></div>` : ''}
       ${htmlExerciseImage(ex)}
       ${ultima ? `<div class="sm-last ${ultima.sets.some(s => s.setType === 'top') ? 'sm-last-top' : ''}"><b>Última vez</b> (${fmtDate(ultima.date)}): ${ultima.sets.map(s => `${s.setType === 'top' ? icon('trophy') + ' ' : ''}<span class="v">${n1(s.weight)} ${esc(unit)} × ${esc(s.reps)}</span>`).join(' · ')}</div>` : '<div class="sm-last">Primera vez que registras esta variante.</div>'}
       ${htmlPlateBarsForExercise(perfil, { exerciseId: ex.exerciseId, sets: ex.sets }, ultima)}
@@ -379,7 +379,7 @@
           ${htmlEjercicioSesion(sm, perfil, editando, opcionesDe(sm.exIndex), ultima)}
         </div>
         <div class="session-mode-foot"><button class="btn btn-icon" id="sm-prev" ${sm.exIndex === 0 ? 'disabled' : ''} aria-label="Ejercicio anterior">‹</button>
-          <button class="btn btn-primary" id="sm-next" style="flex:1">${sm.exIndex === sm.exercises.length - 1 ? 'Finalizar ejercicios' : 'Siguiente ejercicio'}</button>
+          <button class="btn btn-primary" id="sm-next">${sm.exIndex === sm.exercises.length - 1 ? 'Finalizar ejercicios' : 'Siguiente ejercicio'}</button>
           <button class="btn btn-icon" id="sm-next-arrow" ${sm.exIndex === sm.exercises.length - 1 ? 'disabled' : ''} aria-label="Ejercicio siguiente">›</button></div></div>`;
       conectar();
     }
@@ -423,7 +423,6 @@
       if (!p) { SS.clearActive(ctx.storage); return; }
       const pr = SS.progress(rec);
       const ov = doc.createElement('div'); ov.id = 'resume-prompt'; ov.className = 'card accent'; ov.setAttribute('role', 'alertdialog');
-      ov.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.35)';
       ov.innerHTML = `<h3>Tienes una sesión en curso</h3><p>${esc(rec.dayName)}${rec.short ? ' · rutina corta' : ''} · ${pr.done}/${pr.total} series hechas · empezó ${esc(new Date(rec.startedAt).toLocaleString('es'))}.</p>
         <div class="btn-row"><button class="btn btn-primary" id="resume-yes">Reanudar</button><button class="btn" id="resume-no">Descartar</button></div>`;
       doc.body.appendChild(ov);

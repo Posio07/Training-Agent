@@ -1,0 +1,134 @@
+/* Tokens de diseño: la única fuente de colores, espaciado, radios, sombras,
+ * tipografía y tamaños de la app. `styles.css` y las vistas toman de acá esos
+ * valores; uno nuevo se agrega acá con su nombre, no allá. Quedan escritos en
+ * `styles.css` solo los grosores de trazo y los tiempos de cada animación.
+ *
+ * Identidad: los discos olímpicos. Fondo de grafito, texto de tiza, acento
+ * amarillo y cifras en tipografía condensada. Las media queries no pueden
+ * leer variables: el único corte de ancho (720px) está escrito en styles.css. */
+:root {
+  /* ---------- Color · paleta ----------
+   * Los nombres de material no cambian: `knowledge.js` pinta los discos de la
+   * barra cargada con `--disco-*` y las vistas usan varios de los demás. */
+  --grafito: #23272B;
+  --superficie: #2C3136;
+  --superficie-2: #353B41;
+  --borde: #3A4046;
+  --tiza: #EDEBE6;
+  --acero: #9EA7AE;
+  --disco-rojo: #C8312B;
+  --disco-azul: #2E5EAA;
+  --disco-verde: #3E8E4F;
+  --disco-amarillo: #E8B931;
+  --disco-blanco: #E8E6E1;
+  --disco-gris: #8C9399;
+
+  /* ---------- Color · papeles ---------- */
+  --fondo: var(--grafito);
+  --texto: var(--tiza);
+  --texto-suave: var(--acero);
+  --acento: var(--disco-amarillo);      /* la acción principal y lo que hay que mirar primero */
+  --sobre-acento: #23270a;              /* texto encima del acento */
+  --sobre-claro: #1a1d20;               /* texto encima de tiza (el aviso flotante) */
+  --velo: rgba(35,39,43,.75);           /* fondo de los diálogos */
+  --velo-fuerte: rgba(35,39,43,.97);    /* fondo del cronómetro de descanso: casi opaco, para que solo se lea el tiempo */
+
+  /* Estados. Los cuatro dan al menos 4.5:1 como texto sobre las tres superficies.
+   * El rojo (--peligro) es solo para errores y avisos reales. El ámbar (--aviso)
+   * es más anaranjado que el acento para que no se confundan. */
+  --peligro: #EC8E87;
+  --aviso: #E59F50;
+  --info-ui: #74ABE0;
+  --exito: #66B97D;
+
+  /* Tipo de serie (significado fijo, no decoración). El top set usa el acento:
+   * es lo más importante del día, no un error. Los otros dos son los colores de
+   * disco aclarados para que la marca se distinga sobre el fondo oscuro. */
+  --serie-top: var(--acento);
+  --serie-multiarticular: #5B9BD8;
+  --serie-aislamiento: #5FB077;
+
+  /* Macronutrientes */
+  --macro-proteina: #4FA868;
+  --macro-carbohidrato: #4C8FD1;
+  --macro-grasa: #C98A3A;
+
+  /* ---------- Espaciado (paso de .2rem) ---------- */
+  --esp-1: .2rem;
+  --esp-2: .4rem;
+  --esp-3: .6rem;
+  --esp-4: .8rem;
+  --esp-5: 1rem;
+  --esp-6: 1.2rem;
+  --esp-7: 1.6rem;
+  --esp-8: 2rem;
+
+  /* ---------- Radios ---------- */
+  --radio-2xs: 3px;
+  --radio-xs: 6px;
+  --radio-s: 10px;
+  --radio-m: 12px;
+  --radio-l: 14px;
+  --radio-pastilla: 999px;
+
+  /* ---------- Sombras ---------- */
+  --sombra-flotante: 0 8px 20px rgba(0,0,0,.4);
+
+  /* ---------- Tipografía ---------- */
+  --font-display: 'Big Shoulders Display', system-ui, -apple-system, sans-serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --peso-medio: 600;
+  --peso-fuerte: 700;
+  --interlinea-texto: 1.45;
+  --interlinea-titulo: 1.2;
+  --interlinea-cifra: 1;
+  --txt-xs: .75rem;
+  --txt-s: .85rem;
+  --txt-m: .95rem;
+  --txt-base: 1rem;
+  --txt-l: 1.15rem;
+  --txt-xl: 1.3rem;
+  --txt-2xl: 1.6rem;
+  --txt-3xl: 2rem;
+  --txt-5xl: 3rem;
+  --txt-6xl: 4.5rem;        /* el número del cronómetro de descanso */
+
+  /* ---------- Tamaños ---------- */
+  --toque-min: 44px;        /* objetivo táctil mínimo */
+  --toque-comodo: 48px;
+  --toque-grande: 56px;     /* modo sesión y acciones principales */
+  --tabbar-h: 64px;
+  --icono-s: 1rem;
+  --icono-m: 1.4rem;
+  --marca: 4px;             /* la marca de color a la izquierda de una fila */
+  --barra-fina: 6px;        /* la barra de reparto de series del día */
+  --barra-gruesa: 14px;     /* la barra de macronutrientes */
+  --punto: 8px;             /* el punto de color de una leyenda */
+  --foco: 3px;              /* el anillo de foco */
+  --casilla: 22px;          /* una casilla de verificación */
+  --opacidad-inactivo: .45; /* un control que no se puede usar */
+  --ancho-contenido: 720px;
+  --ancho-sesion: 560px;
+  --ancho-dialogo: 360px;
+  --columna-min: 140px;     /* ancho mínimo de una cifra del resumen antes de pasar a otra columna */
+  --alto-grafico: 160px;
+  --lado-imagen: 140px;     /* la imagen del ejercicio en la sesión */
+  --lado-anillo: min(72vw, 280px);   /* el anillo del cronómetro */
+  --ancho-accion: 7rem;     /* ancho mínimo de un botón del cronómetro */
+  --ancho-dolor: 6rem;      /* el campo de dolor de una serie */
+  --txt-grafico: 12px;      /* texto de los ejes, en unidades del SVG */
+
+  /* ---------- Capas ---------- */
+  --z-barra: 10;
+  --z-sesion: 30;
+  --z-cronometro: 40;
+  --z-dialogo: 50;
+  --z-flotante: 60;
+  --z-toast: 70;            /* el aviso flotante se ve siempre, también sobre el modo sesión */
+
+  /* ---------- Movimiento ---------- */
+  --dur-rapida: 150ms;
+  --dur-media: 250ms;
+  --dur-lenta: 600ms;
+  --ease-salida: cubic-bezier(.2,.8,.2,1);
+}
