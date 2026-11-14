@@ -32,7 +32,15 @@ test('cada tipografía de css/fuentes.css es un woff2 local que existe y que el 
     assert.ok(fs.statSync(path.join(RAIZ, c.archivo)).size > 10000, `${c.archivo} existe y no está vacío`);
     assert.ok(sw.includes(`'./${c.archivo}'`), `sw.js precachea ${c.archivo}`);
     assert.match(c.regla, /font-display:\s*swap/, `${c.familia}: el texto se ve con la tipografía de reserva mientras carga`);
+    // Son fuentes variables: el rango de pesos declarado tiene que cubrir los que usa la app (400 a 700), o el navegador inventa la negrita.
+    const pesos = (c.regla.match(/font-weight:\s*(\d+)\s+(\d+)/) || []).slice(1).map(Number);
+    assert.ok(pesos.length === 2 && pesos[0] <= 400 && pesos[1] >= 700, `${c.familia}: el rango de pesos cubre de 400 a 700`);
   });
+});
+
+test('Source Sans 3 conserva la altura de línea de la versión que servía Google: los tres ajustes de métricas siguen en su cara', () => {
+  const regla = caras().find(c => c.familia === 'Source Sans 3').regla;
+  assert.match(regla, /ascent-override:\s*102\.4%/); assert.match(regla, /descent-override:\s*40%/); assert.match(regla, /line-gap-override:\s*0%/);
 });
 
 test('las dos familias conservan la tipografía del sistema como reserva', () => {
@@ -50,5 +58,9 @@ test('cada archivo de fuente es el que anota fonts/LEEME.md (mismo SHA-256) y tr
   });
   const licencias = fs.readdirSync(path.join(RAIZ, 'fonts')).filter(f => /^LICENCIA-/.test(f));
   assert.equal(licencias.length, 2, 'una licencia por familia');
-  licencias.forEach(f => { assert.match(leer('fonts/' + f), /SIL OPEN FONT LICENSE Version 1\.1/, f); assert.ok(leeme.includes('`' + f + '`'), `LEEME.md nombra ${f}`); });
+  licencias.forEach(f => {
+    // La licencia entera, no solo su título: el aviso de copyright y las cuatro partes del texto.
+    ['Copyright', 'SIL OPEN FONT LICENSE Version 1.1', 'PREAMBLE', 'DEFINITIONS', 'PERMISSION & CONDITIONS', 'TERMINATION', 'DISCLAIMER'].forEach(parte => assert.ok(leer('fonts/' + f).includes(parte), `${f}: falta «${parte}»`));
+    assert.ok(leeme.includes('`' + f + '`'), `LEEME.md nombra ${f}`);
+  });
 });
