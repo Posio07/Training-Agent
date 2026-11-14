@@ -89,7 +89,6 @@
   --txt-xl: 1.3rem;
   --txt-2xl: 1.6rem;
   --txt-3xl: 2rem;
-  --txt-4xl: 2.6rem;
   --txt-5xl: 3rem;
   --txt-6xl: 4.5rem;        /* el número del cronómetro de descanso */
 
@@ -110,6 +109,7 @@
   --ancho-contenido: 720px;
   --ancho-sesion: 560px;
   --ancho-dialogo: 360px;
+  --columna-min: 140px;     /* ancho mínimo de una cifra del resumen antes de pasar a otra columna */
   --alto-grafico: 160px;
   --lado-imagen: 140px;     /* la imagen del ejercicio en la sesión */
   --lado-anillo: min(72vw, 280px);   /* el anillo del cronómetro */
