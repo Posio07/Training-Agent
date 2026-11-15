@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0706">
+<title>FORJA · IFBB Pro Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--c:#0b0706;--brasa:#ff4b0f;--fuego:#ff9a1f;--oro:#ffd23f;--blanco:#fff3dc;--acero:#7d8a99;--frio:#2a6fff;--h:0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;background:var(--c);color:var(--blanco);font-family:'Space Mono',ui-monospace,monospace;overflow:hidden}
+.t{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;text-transform:uppercase;letter-spacing:.01em;line-height:.86}
+#fx{position:fixed;inset:0;z-index:60;pointer-events:none;width:100%;height:100%}
+#app{position:fixed;inset:0;overflow:hidden;transition:background 1.2s}
+#shake{position:absolute;inset:0}
+.pantalla{position:absolute;inset:0;padding:calc(env(safe-area-inset-top) + 14px) 18px calc(env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;overflow-y:auto}
+.fondo{position:fixed;inset:0;pointer-events:none;background:
+ radial-gradient(120% 60% at 50% 120%,rgba(255,75,15,calc(.15 + var(--h)*.6)),transparent 60%),
+ radial-gradient(60% 40% at 80% -10%,rgba(255,154,31,calc(var(--h)*.25)),transparent 70%);transition:opacity .4s}
+.frio .fondo{background:radial-gradient(120% 60% at 50% 120%,rgba(42,111,255,.45),transparent 60%),radial-gradient(60% 40% at 20% -10%,rgba(125,200,255,.18),transparent 70%)}
+.ent{animation:ent .55s cubic-bezier(.2,1.4,.3,1) both}
+@keyframes ent{from{transform:translateY(60px) scale(.9) rotate(-2deg);opacity:0;filter:blur(8px)}to{opacity:1}}
+.mini{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.2em;color:var(--acero);text-transform:uppercase}
+.mini b{color:var(--oro)}
+/* INICIO */
+.hoy{font-size:min(44vw,210px);color:transparent;-webkit-text-stroke:2px var(--fuego);margin:18px 0 0 -6px;animation:flick 3s infinite}
+@keyframes flick{0%,100%{-webkit-text-stroke-color:var(--fuego)}45%{-webkit-text-stroke-color:var(--oro)}50%{-webkit-text-stroke-color:var(--brasa)}}
+.torso{font-size:min(30vw,150px);background:linear-gradient(180deg,var(--oro),var(--brasa) 70%,#7a1500);-webkit-background-clip:text;color:transparent;margin-top:-10px;filter:drop-shadow(0 0 24px rgba(255,75,15,.55))}
+.vertical{position:absolute;right:6px;top:120px;writing-mode:vertical-rl;font-size:12px;letter-spacing:.5em;color:var(--acero)}
+.lingotes{display:flex;gap:6px;margin:22px 0}
+.lg{flex:1;height:46px;background:linear-gradient(180deg,#3a3f46,#15181c);clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);display:grid;place-items:center;font-size:10px;color:#9aa4af;letter-spacing:.1em}
+.lg.hoy-d{background:linear-gradient(180deg,var(--oro),var(--brasa));color:#2a0a00;animation:pulso 1s infinite alternate}
+.lg.des{opacity:.35}
+@keyframes pulso{to{filter:brightness(1.4) drop-shadow(0 0 12px var(--fuego))}}
+.btn-fuego{margin-top:auto;position:relative;border:0;width:100%;padding:26px 10px 22px;font-size:46px;color:#2a0a00;background:linear-gradient(180deg,var(--oro),var(--fuego) 45%,var(--brasa));clip-path:polygon(0 12%,3% 0,97% 0,100% 12%,100% 88%,97% 100%,3% 100%,0 88%);cursor:pointer;transition:transform .08s}
+.btn-fuego:active{transform:scale(.95) rotate(-.6deg)}
+.btn-fuego::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.7) 50%,transparent 65%);transform:translateX(-120%);animation:brillo 2.4s infinite}
+@keyframes brillo{to{transform:translateX(120%)}}
+.enlace{background:none;border:0;color:var(--acero);font:inherit;font-size:11px;letter-spacing:.2em;margin:14px auto 0;padding:8px;text-transform:uppercase}
+/* RUTINA */
+.titulo-r{font-size:68px;margin:14px 0 4px}
+.piezas{display:flex;flex-direction:column;gap:10px;margin:14px 0 110px}
+.pieza{position:relative;background:linear-gradient(90deg,#1a1512,#0f0c0b);border-left:6px solid var(--brasa);padding:12px 12px 12px 74px;overflow:hidden;opacity:0;animation:ent .6s cubic-bezier(.2,1.4,.3,1) forwards}
+.pieza .n{position:absolute;left:10px;top:0;font-size:78px;color:transparent;-webkit-text-stroke:1.5px rgba(255,154,31,.55)}
+.pieza h3{margin:0;font-size:26px}
+.pieza small{display:block;color:var(--acero);font-size:11px;margin:5px 0 8px}
+.yunques{display:flex;gap:5px;flex-wrap:wrap}
+.y{padding:5px 8px;font-size:11px;font-weight:700;background:#262b31;color:#b9c2cc;clip-path:polygon(0 0,100% 0,88% 100%,12% 100%)}
+.y.top{background:var(--brasa);color:#fff;animation:pulso 1s infinite alternate}.y.back{background:var(--fuego);color:#2a0a00}
+.sticky{position:fixed;left:18px;right:18px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:5}
+/* SESION */
+.lingote-bar{height:16px;background:#1a1a1a;position:relative;margin:10px 0 4px;clip-path:polygon(1% 0,99% 0,100% 100%,0 100%)}
+.lingote-bar i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#6b7480,#ff9a1f,#fff3a8);transition:width .8s cubic-bezier(.2,1.5,.4,1);box-shadow:0 0 18px #ff9a1f}
+.ejn{font-size:11px;letter-spacing:.2em;color:var(--acero)}
+.ejt{font-size:52px;margin:6px 0 10px}
+.chips{display:flex;gap:6px;margin-bottom:10px}
+.ch{flex:1;height:38px;display:grid;place-items:center;background:#1c2024;color:#8a94a0;font-size:12px;font-weight:700;clip-path:polygon(0 0,100% 0,90% 100%,10% 100%);transition:.3s}
+.ch.on{background:var(--oro);color:#2a0a00;transform:scaleY(1.25)}.ch.ok{background:linear-gradient(180deg,var(--fuego),var(--brasa));color:#fff}.ch.top{outline:2px solid var(--brasa)}
+.cargas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0}
+.carga{background:#14100e;border:1px solid #2b2420;padding:8px;text-align:center;position:relative}
+.carga label{font-size:10px;letter-spacing:.2em;color:var(--acero)}
+.carga .v{font-size:76px;display:block;color:var(--oro);text-shadow:0 0 22px rgba(255,154,31,.5)}
+.carga .u{font-size:13px;color:var(--acero)}
+.step{display:flex;gap:6px;margin-top:4px}.step button{flex:1;padding:12px 0;background:#241b17;border:0;color:var(--fuego);font:700 20px 'Space Mono';cursor:pointer}.step button:active{background:var(--brasa);color:#fff}
+.discos{height:46px;margin:8px 0;display:flex;align-items:center;justify-content:center;gap:3px}
+.barra{width:60px;height:8px;background:linear-gradient(#aab,#556)}
+.disco{width:11px;border-radius:2px;background:linear-gradient(90deg,#c5ccd5,#5c6672);animation:ent .4s cubic-bezier(.2,1.6,.3,1) both}
+.ult{font-size:11px;color:var(--acero);text-align:center;margin:2px 0}
+.golpe{margin-top:auto;position:relative;border:0;width:100%;height:132px;color:#2a0a00;font-size:60px;cursor:pointer;background:linear-gradient(180deg,var(--oro),var(--fuego) 50%,var(--brasa));clip-path:polygon(0 14%,4% 0,96% 0,100% 14%,100% 86%,96% 100%,4% 100%,0 86%);overflow:hidden;touch-action:none}
+.golpe .carga-b{position:absolute;inset:0;background:#fff;mix-blend-mode:overlay;transform:scaleX(0);transform-origin:left}
+.golpe.top-mode{background:linear-gradient(180deg,#fff,#ff4b0f 60%,#7a0e00);color:#fff;text-shadow:0 0 12px #000;animation:latido .9s infinite}
+@keyframes latido{50%{filter:brightness(1.3);transform:scale(1.015)}}
+.golpe small{display:block;font:700 11px 'Space Mono';letter-spacing:.25em;margin-top:4px}
+.evid{display:flex;gap:6px;overflow-x:auto;padding:10px 0 0;scrollbar-width:none}.evid span{flex:none;font-size:10px;border:1px solid #3a2f29;padding:4px 7px;color:#c9b8a6}.evid b{color:var(--oro)}
+/* DESCANSO */
+.enfria{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,10,24,.0);transition:background 1s;padding:20px;text-align:center}
+.enfria.on{display:flex;background:radial-gradient(circle at 50% 40%,rgba(30,70,160,.95),rgba(4,8,20,.97))}
+.temp{font-size:min(46vw,210px);transition:color .3s}
+.temp-u{font-size:20px;letter-spacing:.3em;color:#9bbcff}
+.term{width:min(80%,320px);height:14px;background:#0a1020;margin:20px 0;position:relative;overflow:hidden}.term i{position:absolute;inset:0;transform-origin:left;background:linear-gradient(90deg,#2a6fff,#ff4b0f)}
+.sk{border:2px solid #9bbcff;color:#9bbcff;background:none;padding:12px 26px;font:700 13px 'Space Mono';letter-spacing:.3em;margin-top:18px}
+/* PLACA RECORD */
+.placa{position:fixed;left:50%;top:0;width:min(88vw,380px);z-index:70;transform:translate(-50%,-140%) rotate(-3deg);background:linear-gradient(135deg,#d7dde6,#7c8794 50%,#c9d1da);color:#1a1006;padding:18px 16px;text-align:center;box-shadow:0 20px 60px #000;border:3px solid #3b434d;pointer-events:none}
+.placa .t{font-size:56px;color:#7a0e00;text-shadow:1px 1px 0 #fff}
+.placa p{margin:6px 0 0;font-weight:700;font-size:14px}
+.flash{position:fixed;inset:0;background:#fff;opacity:0;z-index:65;pointer-events:none}
+.aviso{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:12px;right:12px;z-index:75;background:var(--oro);color:#2a0a00;padding:10px 12px;font-size:12px;font-weight:700;transform:translateY(-200%);transition:transform .4s cubic-bezier(.2,1.5,.4,1)}.aviso.on{transform:none}
+/* RESUMEN */
+.pz{font-size:min(21vw,96px);margin:10px 0 0;background:linear-gradient(180deg,#fff,var(--oro) 40%,var(--brasa));-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 0 30px rgba(255,100,20,.7))}
+.ton{font-size:min(36vw,150px);color:var(--oro);text-shadow:0 0 40px var(--brasa)}
+.tl{font-size:12px;letter-spacing:.3em;color:var(--acero)}
+.gr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.gr div{background:#14100e;border:1px solid #2b2420;padding:10px;text-align:center}.gr .t{font-size:34px;color:var(--fuego);display:block}.gr small{font-size:10px;color:var(--acero)}
+.fila{display:flex;justify-content:space-between;font-size:12px;border-bottom:1px solid #2b2420;padding:9px 0;opacity:0;animation:ent .5s forwards}.fila b{color:var(--oro)}
+.sello{position:absolute;right:10px;top:210px;width:120px;height:120px;border:5px solid var(--brasa);border-radius:50%;display:grid;place-items:center;color:var(--brasa);font-size:26px;transform:rotate(-14deg) scale(3);opacity:0;text-align:center;line-height:.9}
+.sello.on{animation:estampa .5s .9s cubic-bezier(.2,1.4,.3,1) forwards}@keyframes estampa{to{transform:rotate(-14deg) scale(1);opacity:.9}}
+/* menú mock */
+#nav{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom) + 4px);z-index:90;display:flex;gap:3px;font-size:9px}
+#nav a{color:#6b5a50;background:#000a;padding:3px 5px;text-decoration:none;letter-spacing:.1em}#nav a.act{color:var(--oro)}
+</style></head>
+<body>
+<canvas id="fx"></canvas>
+<div class="flash" id="flash"></div><div class="aviso" id="aviso"></div>
+<div class="placa" id="placa"><div class="t">¡Forjado!</div><p id="placa-t"></p><p style="font-size:10px;letter-spacing:.2em">NUEVO RÉCORD · 1RM ESTIMADO</p></div>
+<div id="app"><div class="fondo"></div><div id="shake"></div></div>
+<div id="nav"></div>
+<script src="../_comun/nucleo.js"></script>
+<script>
+(function(){
+'use strict';
+const {A,haptic,fmtS,n1,rnd,clamp}=IFBB; const $=s=>document.querySelector(s), app=$('#shake'), appEl=$('#app');
+let S=null, vals={weight:0,reps:0}, calor=0;
+
+/* ======== Partículas: chispas con física, brasas, vapor ======== */
+const cv=$('#fx'), cx=cv.getContext('2d'); let W,H,P=[];
+function size(){const d=Math.min(2,devicePixelRatio||1);W=cv.width=innerWidth*d;H=cv.height=innerHeight*d;cx.setTransform(d,0,0,d,0,0)}addEventListener('resize',size);size();
+function chispas(x,y,n,pot,col){for(let i=0;i<n;i++){const a=rnd(0,Math.PI*2),v=rnd(.3,1)*pot;P.push({k:'s',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-pot*.3,l:rnd(.8,1.8),t:0,r:rnd(1,3.2),c:col||(Math.random()<.5?'#ffd23f':'#ff7a1a'),b:0})}}
+function onda(x,y,c){P.push({k:'o',x,y,t:0,l:.7,c:c||'#fff3dc'})}
+function vapor(n){for(let i=0;i<n;i++)P.push({k:'v',x:rnd(0,innerWidth),y:innerHeight+20,vx:rnd(-12,12),vy:rnd(-90,-40),l:rnd(2,4),t:0,r:rnd(20,60)})}
+function brasa(){if(Math.random()<.5+calor*.6)P.push({k:'b',x:rnd(0,innerWidth),y:innerHeight+5,vx:rnd(-15,15),vy:-rnd(30,90)*(1+calor),l:rnd(2,5),t:0,r:rnd(1,2.6)})}
+let last=performance.now();
+(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;cx.clearRect(0,0,innerWidth,innerHeight);brasa();
+ cx.globalCompositeOperation='lighter';
+ P=P.filter(p=>{p.t+=dt;if(p.t>p.l)return false;const f=1-p.t/p.l;
+  if(p.k==='s'){p.vy+=900*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.y>innerHeight-6&&p.b<3){p.y=innerHeight-6;p.vy*=-.45;p.vx*=.7;p.b++}cx.strokeStyle=p.c;cx.globalAlpha=f;cx.lineWidth=p.r;cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x-p.vx*.03,p.y-p.vy*.03);cx.stroke()}
+  else if(p.k==='o'){const r=p.t/p.l*Math.max(innerWidth,innerHeight)*.8;cx.strokeStyle=p.c;cx.globalAlpha=f*.8;cx.lineWidth=14*f;cx.beginPath();cx.arc(p.x,p.y,r,0,7);cx.stroke()}
+  else if(p.k==='b'){p.x+=p.vx*dt+Math.sin(p.t*4+p.r)*.4;p.y+=p.vy*dt;cx.fillStyle='#ff7a1a';cx.globalAlpha=f*.9;cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fill()}
+  else{p.x+=p.vx*dt;p.y+=p.vy*dt;p.r+=18*dt;const g=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);g.addColorStop(0,'rgba(190,215,255,.16)');g.addColorStop(1,'rgba(190,215,255,0)');cx.globalCompositeOperation='source-over';cx.globalAlpha=f;cx.fillStyle=g;cx.fillRect(p.x-p.r,p.y-p.r,p.r*2,p.r*2);cx.globalCompositeOperation='lighter'}
+  return true});
+ cx.globalCompositeOperation='source-over';cx.globalAlpha=1;requestAnimationFrame(loop)})(last);
+
+/* ======== Efectos de cuerpo: temblor, destello ======== */
+function temblor(mag,ms){const t0=performance.now();(function f(n){const k=(n-t0)/ms;if(k>=1){appEl.style.transform='';return}const m=mag*(1-k);appEl.style.transform=`translate(${rnd(-m,m)}px,${rnd(-m,m)}px) rotate(${rnd(-m,m)/20}deg)`;requestAnimationFrame(f)})(t0)}
+function flash(o,ms){const f=$('#flash');f.style.transition='none';f.style.opacity=o;requestAnimationFrame(()=>{f.style.transition=`opacity ${ms}ms`;f.style.opacity=0})}
+function aviso(t){const a=$('#aviso');a.textContent=t;a.classList.add('on');setTimeout(()=>a.classList.remove('on'),3200)}
+function setCalor(h){calor=clamp(h,0,1);document.documentElement.style.setProperty('--h',calor)}
+function placa(t){const p=$('#placa');$('#placa-t').textContent=t;p.animate([{transform:'translate(-50%,-140%) rotate(-3deg)'},{transform:'translate(-50%,24vh) rotate(-3deg)',offset:.45},{transform:'translate(-50%,16vh) rotate(-3deg)',offset:.55},{transform:'translate(-50%,24vh) rotate(-3deg)',offset:.65},{transform:'translate(-50%,22vh) rotate(-3deg)',offset:.75},{transform:'translate(-50%,22vh) rotate(-3deg)',offset:.92},{transform:'translate(-50%,-140%) rotate(-3deg)'}],{duration:4200,easing:'ease-out'});}
+
+/* ======== Pantallas ======== */
+function pinta(h,cls){app.innerHTML='<div class="pantalla '+(cls||'')+'">'+h+'</div>';appEl.classList.remove('frio')}
+function inicio(){S=null;setCalor(0);
+ const D=IFBB.DIA;
+ pinta(`<div class="mini"><span>Definición · <b>semana 3</b></span><span>${new Date().toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})}</span></div>
+ <div class="vertical">IFBB PRO AGENT · LA FORJA</div>
+ <div class="t hoy ent">Hoy</div><div class="t torso ent" style="animation-delay:.12s">${D.nombre}</div>
+ <div class="lingotes">${D.semana.map((d,i)=>`<div class="lg ${i===0?'hoy-d':''} ${d==='Descanso'?'des':''}">${d.split(' ')[0].slice(0,3).toUpperCase()}</div>`).join('')}</div>
+ <p style="font-size:12px;color:var(--acero);line-height:1.6">5 piezas · 16 golpes · ~${D.minutos} min<br>Siguiente en la fragua: <b style="color:var(--oro)">${D.siguiente}</b></p>
+ <button class="t btn-fuego" id="go">Encender la forja</button><button class="enlace" id="r">Ver las piezas de hoy ›</button>`);
+ $('#go').onclick=e=>{A.clang(.8);A.riser(.6);const r=e.target.getBoundingClientRect();chispas(r.left+r.width/2,r.top,120,520);onda(r.left+r.width/2,r.top+30,'#ff9a1f');temblor(10,350);haptic(30);setTimeout(()=>location.hash='#sesion',450)};
+ $('#r').onclick=()=>location.hash='#rutina';
+ for(let i=0;i<30;i++)setTimeout(()=>chispas(innerWidth*Math.random(),innerHeight,2,300),i*60)}
+function rutina(){setCalor(.25);const D=IFBB.DIA,s=IFBB.crearSesion();
+ pinta(`<div class="mini"><span onclick="location.hash='#inicio'" style="cursor:pointer">‹ Fragua</span><span><b>${D.minutos} min</b></span></div>
+ <div class="t titulo-r ent">${D.nombre}</div><div class="mini" style="justify-content:flex-start;gap:14px"><span>${D.fase}</span><span>RIR 1–3</span></div>
+ <div class="piezas">${s.ex.map((e,i)=>`<div class="pieza" style="animation-delay:${.12*i}s"><div class="t n">${i+1}</div><h3 class="t">${e.name}</h3>
+  <small>${e.muscle} · descanso ${e.sets.map(x=>fmtS(x.restS))[0]} · última: ${e.u[0][0]}×${e.u[0][1]}</small>
+  <div class="yunques">${e.sets.map(st=>`<span class="y ${st.setType==='top'?'top':st.setType==='backoff'?'back':''}">${st.setType==='top'?'★ TOP ':''}${st.setType==='backoff'?'BO ':''}${st.repsLabel}</span>`).join('')}</div></div>`).join('')}</div>
+ <div class="sticky"><button class="t btn-fuego" id="go" style="font-size:38px;padding:20px 0">Forjar</button></div>`);
+ $('#go').onclick=()=>{A.clang(.9);flash(.5,300);temblor(8,300);location.hash='#sesion'}}
+
+function sesion(h){
+ if(!S||S.finalizada)nuevaSesion(); if(h==='top'&&S.hechas)nuevaSesion();
+ dibujaSesion();}
+function nuevaSesion(){S=IFBB.crearSesion();setCalor(0);
+ S.on('serie',p=>{setCalor(p.pct*.9);$('#lg-i')&&($('#lg-i').style.width=(p.pct*100)+'%')});
+ S.on('a5',p=>{aviso(`A5 · El back-off pesa más que el 90 % del top set: se guarda como serie de trabajo.`)});
+ S.on('record',p=>{setTimeout(()=>{placa(`${n1(p.weight)} kg × ${p.reps} = ${n1(p.e1)} kg`);A.fanfare()},550)});
+ S.on('descanso',d=>enfria(d));
+ S.on('tick',t=>{const el=$('#temp');if(!el)return;const grados=Math.round(200+1000*(1-(1-t.restante/t.real)));el.textContent=t.label;$('#term').style.transform=`scaleX(${1-t.f})`;el.style.color=`hsl(${210-(1-t.f)*200},90%,${60+(1-t.f)*10}%)`;$('#grados').textContent=`${Math.round(1200-1000*t.f)} °C`;if(Math.random()<.3)vapor(1)});
+ S.on('descansoFin',e=>{const f=$('#enf');if(f){f.classList.remove('on');appEl.classList.remove('frio')}A.bell();haptic([200,100,200]);flash(.5,500);chispas(innerWidth/2,innerHeight*.6,80,420,'#ffd23f');onda(innerWidth/2,innerHeight/2,'#ff9a1f');dibujaSesion()});
+ S.on('fin',r=>{setTimeout(()=>location.hash='#resumen',1600);window.__res=r});
+ vals=S.sug(0,0);}
+function dibujaSesion(){const {ei,si}=S.pos,e=S.ex[ei],st=e.sets[si];vals=Object.assign({},vals,S.sug(ei,si));
+ const top=st.setType==='top';
+ pinta(`<div class="mini"><span onclick="location.hash='#rutina'" style="cursor:pointer">‹ Piezas</span><span>Golpe <b>${S.hechas+1}</b>/${S.total}</span></div>
+ <div class="lingote-bar"><i id="lg-i" style="width:${S.hechas/S.total*100}%"></i></div>
+ <div class="ejn">PIEZA ${ei+1}/${S.ex.length} · ${e.muscle.toUpperCase()}</div>
+ <div class="t ejt ent" id="ejt">${e.name}</div>
+ <div class="chips">${e.sets.map((x,i)=>`<div class="ch ${S.v[ei][i].done?'ok':''} ${i===si?'on':''} ${x.setType==='top'?'top':''}">${x.setType==='top'?'★':x.setType==='backoff'?'BO':i+1}</div>`).join('')}</div>
+ <div class="cargas"><div class="carga"><label>CARGA</label><span class="t v" id="vw">${n1(vals.weight)}</span><span class="u">kg</span><div class="step"><button data-w="-2.5">−</button><button data-w="2.5">+</button></div></div>
+ <div class="carga"><label>REPS · obj ${st.repsLabel}</label><span class="t v" id="vr">${vals.reps}</span><span class="u">reps</span><div class="step"><button data-r="-1">−</button><button data-r="1">+</button></div></div></div>
+ ${e.barra?`<div class="discos" id="dsc"></div>`:''}
+ <div class="ult">Última vez: ${e.u.map(s=>s[0]+'×'+s[1]).slice(0,3).join(' · ')}${e.mejor?` · mejor 1RM ${n1(e.mejor)}`:''}</div>
+ <button class="t golpe ${top?'top-mode':''}" id="golpe"><div class="carga-b" id="cb"></div><span style="position:relative">${top?'Mantén para el golpe':'Golpear'}</span><small style="position:relative">${top?'TOP SET · SUELTA CUANDO ARDA':'REGISTRAR SERIE'}</small></button>
+ <div class="evid">${S.evidencia(ei,si).map(x=>`<span><b>${x.nivel}</b> ${x.titulo} · ${x.dec}</span>`).join('')}</div>
+ <div class="enfria" id="enf"><div class="temp-u">ENFRIANDO · PRÓXIMO GOLPE</div><div class="t temp" id="temp">0:00</div><div class="temp-u" id="grados">1200 °C</div><div class="term"><i id="term"></i></div><div class="ult" id="prox" style="color:#9bbcff"></div><button class="sk" id="sk">SALTAR</button></div>`);
+ if(e.barra)discos();
+ appEl.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{vals.weight=Math.max(0,vals.weight+parseFloat(b.dataset.w));A.tick();haptic(8);$('#vw').textContent=n1(vals.weight);$('#vw').animate([{transform:'scale(1.25)',color:'#fff'},{transform:'scale(1)'}],200);if(e.barra)discos()});
+ appEl.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{vals.reps=Math.max(1,vals.reps+parseInt(b.dataset.r));A.tick();haptic(8);$('#vr').textContent=vals.reps;$('#vr').animate([{transform:'scale(1.25)',color:'#fff'},{transform:'scale(1)'}],200)});
+ $('#sk').onclick=()=>S.saltar();
+ armaGolpe(top);
+ if(top&&!S.hechas){setTimeout(()=>aviso('TOP SET: 4–6 reps, RIR 1–2. Mantén el botón, suelta al llegar al blanco.'),500)}}
+function discos(){const el=$('#dsc');if(!el)return;const d=S.discos(vals.weight);el.innerHTML='<div class="barra"></div>'+d.map(x=>`<div class="disco" style="height:${22+x*1.1}px"></div>`).join('')+`<span style="font-size:10px;color:var(--acero);margin-left:8px">${d.join(' + ')||'barra'} /lado</span>`}
+function armaGolpe(top){const b=$('#golpe');let t0=0,raf=0,carg=0;const {ei,si}=S.pos;
+ const registra=pot=>{const r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;const p=S.registrar(ei,si,vals);if(!p)return;
+  const big=p.esTop||pot>.8;A.clang(big?.6:1+p.hechas*.02);if(big)A.boom();haptic(big?[60,30,120]:35);temblor(big?30:9,big?700:260);flash(big?.9:.25,big?800:220);chispas(x,y,big?380:90+p.fraccionEj*60,big?900:480);onda(x,y,big?'#ffd23f':'#ff9a1f');
+  if(p.compl&&!p.todo)setTimeout(()=>{chispas(innerWidth/2,innerHeight/3,160,600,'#fff3dc');aviso(`${p.ex.name}: pieza terminada`)},250)};
+ const arranca=ev=>{ev.preventDefault();if(!top){const r=b.getBoundingClientRect();registra(0);return}t0=performance.now();A.riser(1.3);(function f(n){carg=clamp((n-t0)/1300,0,1);$('#cb').style.transform=`scaleX(${carg})`;b.style.filter=`brightness(${1+carg*.8})`;if(carg>.1)appEl.style.transform=`translate(${rnd(-1,1)*carg*5}px,${rnd(-1,1)*carg*5}px)`;if(carg>.2&&Math.random()<.4){const r=b.getBoundingClientRect();chispas(r.left+rnd(0,r.width),r.top,2,200+carg*300)}haptic&&carg>.5&&Math.random()<.2&&haptic(10);raf=requestAnimationFrame(f)})(t0)};
+ const suelta=ev=>{if(!top||!t0)return;cancelAnimationFrame(raf);appEl.style.transform='';t0=0;if(carg<.55){$('#cb').style.transform='scaleX(0)';b.style.filter='';aviso('Aún no. Mantén hasta que arda.');return}registra(carg)};
+ b.addEventListener('pointerdown',arranca);b.addEventListener('pointerup',suelta);b.addEventListener('pointerleave',suelta)}
+function enfria(d){const f=$('#enf');if(!f)return;appEl.classList.add('frio');f.classList.add('on');const n=S.pos,e=S.ex[n.ei]&&S.ex[n.ei].sets[n.si];$('#prox').textContent=e?`Siguiente: ${S.ex[n.ei].name} · ${e.setType==='top'?'TOP SET':e.setType==='backoff'?'back-off':'serie '+e.setNumber}`:'';vapor(14);haptic(20)}
+
+function resumen(){const r=window.__res||(()=>{const s=IFBB.crearSesion();s.autocompletar();return s.resumen()})();setCalor(1);
+ pinta(`<div class="mini"><span onclick="location.hash='#inicio'" style="cursor:pointer">‹ Fragua</span><span>${r.minutos} min</span></div>
+ <div class="t pz ent">Pieza terminada</div><div class="sello t ${'on'}">${r.nota}<br><span style="font-size:11px;font-family:'Space Mono'">${r.records.length?'RÉCORD':'FORJADO'}</span></div>
+ <div class="tl">TONELAJE FORJADO</div><div class="t ton" id="ton">0</div><div class="tl">KILOS MOVIDOS · ${r.delta>=0?'+':''}${r.delta}% vs. la vez pasada</div>
+ <div class="gr"><div><span class="t">${r.sets}</span><small>GOLPES</small></div><div><span class="t">${r.topSets}</span><small>TOP SET</small></div><div><span class="t">${r.records.length}</span><small>RÉCORDS</small></div></div>
+ ${r.records.map(x=>`<div class="fila" style="animation-delay:1.2s;color:var(--oro)"><span>★ ${x.name}</span><b>${n1(x.weight)}×${x.reps} → 1RM ${n1(x.e1)}</b></div>`).join('')}
+ ${r.filas.map((f,i)=>`<div class="fila" style="animation-delay:${1.3+i*.12}s"><span>${f.name}</span><b>${f.series}/${f.de} · ${Math.round(f.vol)} kg</b></div>`).join('')}
+ <div class="sticky" style="position:static;margin-top:20px"><button class="t btn-fuego" id="fin" style="font-size:34px;padding:18px 0">Apagar la forja</button></div>`);
+ const el=$('#ton'),t0=performance.now();(function f(n){const k=clamp((n-t0)/2200,0,1),e=1-Math.pow(1-k,4);el.textContent=Math.round(r.vol*e).toLocaleString('es');if(Math.random()<.5)A.tick();if(k<1)requestAnimationFrame(f);else{A.boom();temblor(24,500);chispas(innerWidth/2,200,260,800);flash(.6,600)}})(t0);
+ setTimeout(()=>{A.fanfare();for(let i=0;i<8;i++)setTimeout(()=>chispas(rnd(40,innerWidth-40),rnd(100,400),70,500),i*220)},900);haptic([50,40,50,40,200]);
+ $('#fin').onclick=()=>{A.clang(.7);location.hash='#inicio'}}
+
+const nav=$('#nav');['inicio','rutina','sesion','top','resumen'].forEach(n=>{const a=document.createElement('a');a.href='#'+n;a.textContent=n;nav.appendChild(a)});
+addEventListener('hashchange',()=>nav.querySelectorAll('a').forEach(a=>a.classList.toggle('act',a.hash===location.hash)));
+addEventListener('pointerdown',()=>A.c(),{once:true});
+IFBB.router({inicio,rutina,sesion,top:sesion,resumen},'inicio');
+})();
+</script></body></html>
