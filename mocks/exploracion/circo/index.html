@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#8E130E">
+<title>El Gran Circo del Hierro · mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Oswald:wght@400;500;700&family=Rye&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<main id="escena" aria-live="polite"></main>
+
+<!-- El telón: la transición entre pantallas y el fondo del intermedio (descanso). -->
+<div id="telon" aria-hidden="true"><div class="hoja izq"></div><div class="hoja der"></div><div class="cenefa"></div></div>
+<div id="intermedio" hidden></div>
+<div id="anuncio" hidden></div>
+<div id="fiesta" hidden></div>
+<canvas id="papelitos" aria-hidden="true"></canvas>
+<div id="pregon" role="status"></div>
+
+<script src="../comun/datos.js"></script>
+<script src="../comun/motor.js"></script>
+<script src="../comun/sonido.js"></script>
+<script src="../comun/menu.js"></script>
+<script src="mock.js"></script>
+</body>
+</html>

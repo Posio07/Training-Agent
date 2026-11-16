@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1A1140">
+<title>Jefe Final · mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@700&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<main id="escena"></main>
+<div id="hoguera" hidden></div>   <!-- descanso: punto de guardado -->
+<div id="alerta" hidden></div>    <!-- llega el jefe: top set -->
+<div id="record" hidden></div>    <!-- récord del top set -->
+<canvas id="pixeles" aria-hidden="true"></canvas>   <!-- monedas y explosiones -->
+<canvas id="cortina" aria-hidden="true"></canvas>   <!-- transición en mosaico -->
+<div id="crt" aria-hidden="true"></div>             <!-- líneas del tubo -->
+<div id="texto-sistema" role="status"></div>
+
+<script src="../comun/datos.js"></script>
+<script src="../comun/motor.js"></script>
+<script src="../comun/sonido.js"></script>
+<script src="../comun/menu.js"></script>
+<script src="mock.js"></script>
+</body>
+</html>

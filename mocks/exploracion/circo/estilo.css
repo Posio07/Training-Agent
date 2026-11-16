@@ -1,0 +1,256 @@
+/* El Gran Circo del Hierro: cartel de forzudo impreso con tipos de madera. Todo entra como en una función: telón, focos, redoble. */
+:root {
+  --papel: #F1E2BC; --crema: #FFF6DC; --rojo: #D3261C; --rojo-osc: #8E130E; --azul: #1F3F94; --noche: #0E1740; --oro: #F7B90F; --tinta: #1B1410;
+  --rye: 'Rye', 'Alfa Slab One', Georgia, serif; --slab: 'Alfa Slab One', 'Rockwell', Georgia, serif; --cond: 'Oswald', 'Arial Narrow', sans-serif; --script: 'Yellowtail', cursive;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--rojo-osc); overscroll-behavior: none; }
+body { font-family: var(--cond); color: var(--tinta); overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+
+#escena, #telon, #intermedio, #anuncio, #fiesta, #papelitos { position: fixed; top: 0; bottom: 0; left: max(0px, calc(50vw - 240px)); width: min(100vw, 480px); }
+#escena { background: var(--papel); overflow: hidden; }
+/* Grano de papel y mancha de tinta sobre todo el cartel */
+#escena::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 50; mix-blend-mode: multiply; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .33 0 0 0 0 .18 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+.pantalla { position: absolute; inset: 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; padding: 0 16px calc(18px + env(safe-area-inset-bottom)); }
+.rayos { position: absolute; left: 50%; top: 30%; width: 220vmax; height: 220vmax; margin: -110vmax; pointer-events: none; z-index: 0;
+  background: repeating-conic-gradient(rgba(211, 38, 28, .17) 0 7.5deg, transparent 7.5deg 15deg); animation: girar 90s linear infinite; }
+.pantalla > * { position: relative; z-index: 1; }
+.pantalla > .rayos { position: absolute; z-index: 0; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* Tipos de madera con registro corrido: rojo con sombra azul */
+.madera { font-family: var(--rye); color: var(--rojo); text-shadow: 3px 3px 0 var(--azul); line-height: .9; margin: 0; letter-spacing: .01em; }
+.script { font-family: var(--script); color: var(--azul); font-size: 26px; margin: 0; transform: rotate(-4deg); }
+.cinta { display: inline-block; background: var(--azul); color: var(--crema); font: 500 14px/1.2 var(--cond); letter-spacing: .06em; text-transform: uppercase; padding: 7px 22px; margin: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%); }
+.letra { display: inline-block; animation: sello .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes sello { 0% { transform: translateY(-140%) rotate(-14deg) scale(1.7); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes golpe { 0% { transform: scale(3.2) rotate(-9deg); opacity: 0; } 55% { transform: scale(.92) rotate(2deg); opacity: 1; } 75% { transform: scale(1.06) rotate(-1deg); } 100% { transform: scale(1) rotate(var(--giro, -3deg)); opacity: 1; } }
+@keyframes temblor { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-5px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, -2px); } 80% { transform: translate(3px, 4px); } }
+.tiembla { animation: temblor .28s linear; }
+
+/* Banderines */
+.banderines { display: flex; justify-content: center; gap: 3px; height: 46px; margin: 0 -16px; border-top: 3px solid var(--tinta); flex: none; }
+.banderines i { width: 31px; height: 40px; clip-path: polygon(0 0, 100% 0, 50% 100%); background: var(--rojo); transform-origin: 50% 0; animation: mecer 1.6s ease-in-out infinite alternate; }
+.banderines i:nth-child(3n+1) { background: var(--azul); animation-delay: -.5s; } .banderines i:nth-child(3n+2) { background: var(--oro); animation-delay: -1s; }
+@keyframes mecer { from { transform: rotate(-9deg) skewX(4deg); } to { transform: rotate(9deg) skewX(-4deg); } }
+
+/* ---------- Inicio: el cartel ---------- */
+.p-inicio { text-align: center; align-items: center; }
+.p-inicio .script { margin-top: 6px; font-size: clamp(22px, 7vw, 30px); }
+.p-inicio h1 { margin-top: 4px; }
+.p-inicio h1 > span { display: block; font-family: var(--slab); font-size: clamp(26px, 9vw, 40px); color: var(--tinta); text-shadow: none; letter-spacing: .12em; }
+.p-inicio h1 > b { display: block; white-space: nowrap; font-weight: 400; font-size: clamp(62px, 21.5vw, 104px); text-shadow: 5px 5px 0 var(--azul); }
+.p-inicio .cinta { margin-top: 10px; }
+.boleto { position: relative; display: block; width: 100%; margin: 22px 0 6px; padding: 20px 24px 16px; background: var(--oro); color: var(--tinta); text-align: center; border: 3px solid var(--tinta); border-radius: 6px;
+  box-shadow: 7px 7px 0 var(--tinta); transform: rotate(-2deg); transition: transform .12s, box-shadow .12s; animation: caer .7s .5s cubic-bezier(.2, 1.5, .4, 1) both; }
+.boleto:active { transform: rotate(-2deg) translate(6px, 6px); box-shadow: 1px 1px 0 var(--tinta); }
+@keyframes caer { from { transform: translateY(-120vh) rotate(18deg); } to { transform: rotate(-2deg); } }
+.boleto .hoy { display: inline-block; font: 700 13px/1 var(--cond); letter-spacing: .3em; background: var(--tinta); color: var(--oro); padding: 6px 12px; }
+.boleto strong { display: block; font: 400 clamp(46px, 16vw, 70px)/1 var(--rye); color: var(--rojo); text-shadow: 3px 3px 0 var(--tinta); margin: 8px 0 4px; }
+.boleto span.linea { display: block; font: 500 16px/1.35 var(--cond); }
+.boleto span.estelar { display: block; font: 400 15px/1.3 var(--slab); margin-top: 6px; border-top: 2px dashed var(--tinta); padding-top: 8px; }
+.boleto em { display: block; font: 400 24px/1 var(--slab); background: var(--rojo); color: var(--crema); margin: 12px -8px 0; padding: 12px 6px; border: 3px solid var(--tinta); letter-spacing: .05em; animation: latido .8s ease-in-out infinite alternate; }
+@keyframes latido { to { transform: scale(1.05) rotate(-1deg); background: var(--azul); } }
+.foco { position: absolute; width: 9px; height: 9px; margin: -4.5px; border-radius: 50%; background: #FFF3C2; box-shadow: 0 0 9px 3px #FFC400; animation: titilar .7s steps(1) infinite; pointer-events: none; z-index: 3; }
+.foco:nth-child(even) { animation-delay: -.35s; }
+.foco.apagado { animation: none; background: #5a1a12; box-shadow: none; }
+@keyframes titilar { 0% { opacity: 1; } 50% { opacity: .25; } }
+.gira { display: flex; gap: 8px; width: calc(100% + 32px); margin: 16px -16px 0; padding: 4px 16px 12px; overflow-x: auto; scrollbar-width: none; }
+.gira button { flex: none; width: 104px; padding: 8px 6px 9px; background: var(--crema); border: 2px solid var(--tinta); text-align: center; box-shadow: 3px 3px 0 var(--tinta); }
+.gira button:nth-child(odd) { transform: rotate(-2.5deg); } .gira button:nth-child(even) { transform: rotate(2deg) translateY(4px); }
+.gira button b { display: block; font: 400 30px/1 var(--rye); color: var(--azul); }
+.gira button span { display: block; font: 500 12px/1.2 var(--cond); text-transform: uppercase; letter-spacing: .04em; min-height: 29px; }
+.gira button small { display: block; font: 400 11px/1.2 var(--cond); opacity: .75; }
+.gira button.hoy { background: var(--rojo); color: var(--crema); } .gira button.hoy b { color: var(--oro); }
+.sello { font: 400 15px/1.15 var(--slab); color: var(--rojo); border: 3px double var(--rojo); padding: 8px 14px; margin: 8px 0 0; transform: rotate(-5deg); --giro: -5deg; animation: golpe .5s 1.3s both; text-transform: uppercase; max-width: 250px; }
+
+/* ---------- Rutina: el programa de mano ---------- */
+.p-rutina { text-align: center; }
+.cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; flex: none; }
+.redondo { width: 44px; height: 44px; border-radius: 50%; background: var(--tinta); color: var(--crema); font: 400 22px/1 var(--slab); flex: none; box-shadow: 3px 3px 0 var(--rojo); }
+.redondo:active { transform: translate(3px, 3px); box-shadow: none; }
+.p-rutina h1 { font-size: clamp(60px, 22vw, 96px); margin-top: 2px; }
+.p-rutina .cinta { margin: 8px auto 0; }
+.taquilla { display: flex; gap: 10px; margin: 16px 0 4px; }
+.taquilla button { flex: 1; padding: 10px 6px; background: var(--crema); border: 2px dashed var(--tinta); font: 500 14px/1.2 var(--cond); text-transform: uppercase; letter-spacing: .04em; transition: transform .15s cubic-bezier(.2, 1.8, .4, 1); }
+.taquilla button b { display: block; font: 400 21px/1.1 var(--slab); }
+.taquilla button.activo { background: var(--azul); color: var(--crema); border-style: solid; transform: rotate(-2deg) scale(1.04); box-shadow: 4px 4px 0 var(--tinta); }
+.actos { list-style: none; margin: 10px 0 0; padding: 0; }
+.acto { position: relative; padding: 14px 4px 13px; border-top: 2px solid var(--tinta); animation: sube .45s both; }
+.acto:last-child { border-bottom: 2px solid var(--tinta); }
+@keyframes sube { from { transform: translateY(40px) rotate(2deg); opacity: 0; } }
+.acto .orden { font: 400 15px/1 var(--slab); color: var(--azul); letter-spacing: .1em; }
+.acto h2 { margin: 3px 0 2px; font: 400 clamp(24px, 7.6vw, 31px)/1.02 var(--slab); text-transform: uppercase; }
+.acto:nth-child(even) h2 { font: 700 clamp(27px, 8.6vw, 36px)/1 var(--cond); letter-spacing: .02em; }
+.acto:nth-child(3n) h2 { font: 400 clamp(22px, 7vw, 29px)/1.05 var(--rye); color: var(--azul); text-transform: none; }
+.acto p { margin: 2px 0 0; font: 500 16px/1.3 var(--cond); }
+.acto p.chico { font-weight: 400; font-size: 14px; opacity: .8; }
+.acto.estelar { background: var(--tinta); color: var(--crema); margin: 0 -16px; padding: 18px 16px 16px; border: 0; }
+.acto.estelar + .acto { border-top: 0; }
+.acto.estelar .orden { color: var(--oro); font-size: 17px; }
+.acto.estelar h2 { font: 400 clamp(34px, 11vw, 48px)/.98 var(--rye); color: var(--oro); text-shadow: 3px 3px 0 var(--rojo); text-transform: none; }
+.sello-ev { display: inline-block; margin-top: 7px; font: 400 12px/1.1 var(--slab); text-transform: uppercase; color: var(--rojo); border: 2px solid var(--rojo); padding: 4px 8px; transform: rotate(-3deg); --giro: -3deg; animation: golpe .45s 1s both; }
+.detalle { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s; }
+.acto.abierto .detalle { grid-template-rows: 1fr; }
+.detalle > div { overflow: hidden; font: 400 14px/1.35 var(--cond); }
+.detalle > div p { font-weight: 400; font-size: 14px; margin-top: 6px; }
+.nivel { display: inline-block; font: 400 11px/1 var(--slab); border: 2px solid currentColor; border-radius: 50%; padding: 6px 5px; margin-right: 5px; transform: rotate(-8deg); }
+.gran-boton { display: block; width: 100%; margin: 18px 0 0; padding: 20px 10px; font: 400 clamp(22px, 7.4vw, 30px)/1 var(--slab); text-transform: uppercase; color: var(--crema); background: var(--rojo); border: 3px solid var(--tinta); box-shadow: 7px 7px 0 var(--tinta); flex: none; transition: transform .1s, box-shadow .1s; }
+.gran-boton:active { transform: translate(6px, 6px); box-shadow: 1px 1px 0 var(--tinta); }
+.gran-boton.late { animation: llamar 1.1s ease-in-out infinite; }
+@keyframes llamar { 0%, 100% { transform: rotate(-1.2deg) scale(1); } 50% { transform: rotate(1.2deg) scale(1.03); } }
+
+/* ---------- Sesión: la pista ---------- */
+.p-pista { padding: 0 0 calc(12px + env(safe-area-inset-bottom)); overflow: hidden; }
+.p-pista .cabecera { padding: 10px 12px 8px; background: var(--tinta); color: var(--crema); }
+.p-pista .cabecera .redondo { background: var(--crema); color: var(--tinta); width: 38px; height: 38px; font-size: 17px; }
+.prog { font: 500 14px/1.2 var(--cond); text-transform: uppercase; letter-spacing: .06em; text-align: center; }
+.prog b { color: var(--oro); font-weight: 700; }
+.terminar { font: 500 13px/1 var(--cond); text-transform: uppercase; letter-spacing: .06em; border: 2px solid var(--crema); padding: 9px 10px; }
+.cuerpo { flex: 1; display: flex; min-height: 0; }
+.centro { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 6px 0 14px; }
+.tipo-serie { font: 400 15px/1 var(--slab); letter-spacing: .08em; text-transform: uppercase; background: var(--azul); color: var(--crema); padding: 7px 16px; transform: rotate(-2deg); }
+.p-pista h1 { font: 400 clamp(25px, 8.4vw, 38px)/.98 var(--rye); color: var(--rojo); text-shadow: 2px 2px 0 var(--azul); margin: 10px 0 2px; }
+.grupo { margin: 4px 0 0; font: 500 15px/1.2 var(--cond); text-transform: uppercase; letter-spacing: .05em; }
+.retador { margin-top: 8px; font: 400 14px/1.25 var(--cond); border-top: 2px solid var(--tinta); border-bottom: 2px solid var(--tinta); padding: 5px 2px; width: 100%; }
+.retador b { font: 400 17px/1 var(--slab); color: var(--azul); white-space: nowrap; }
+#haltera { flex: 1; min-height: 64px; width: 100%; display: flex; align-items: center; justify-content: center; }
+.haltera { width: 100%; max-width: 320px; height: 100%; max-height: 170px; overflow: visible; }
+.haltera .bola { transition: r .25s cubic-bezier(.2, 1.8, .4, 1); }
+.haltera.arriba { animation: alzar .9s cubic-bezier(.2, .9, .3, 1); }
+@keyframes alzar { 0% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-46px) rotate(-5deg) scale(1.08); } 45% { transform: translateY(-52px) rotate(4deg) scale(1.08); } 100% { transform: none; } }
+.discos { margin: 0; font: 400 13px/1.2 var(--cond); min-height: 16px; opacity: .85; }
+.diales { display: flex; gap: 10px; width: 100%; margin-top: 8px; }
+.dial { flex: 1; background: var(--crema); border: 3px solid var(--tinta); box-shadow: 4px 4px 0 var(--tinta); display: grid; grid-template-columns: 1fr 1fr; }
+.dial .valor { grid-column: 1 / 3; font: 400 clamp(34px, 11vw, 46px)/1 var(--slab); padding: 8px 0 2px; overflow: hidden; }
+.dial .valor span { display: inline-block; }
+.dial .valor span.cae { animation: cae .22s cubic-bezier(.2, 1.9, .4, 1); }
+@keyframes cae { from { transform: translateY(-70%) scale(1.3); opacity: .2; } }
+.dial .rotulo { grid-column: 1 / 3; font: 500 11px/1 var(--cond); letter-spacing: .2em; text-transform: uppercase; padding-bottom: 6px; }
+.dial button { font: 400 26px/1 var(--slab); padding: 9px 0 11px; background: var(--tinta); color: var(--crema); }
+.dial button + button { border-left: 2px solid var(--crema); background: var(--rojo); }
+.dial button:active { background: var(--oro); color: var(--tinta); }
+.luces { display: flex; gap: 9px; justify-content: center; margin: 12px 0 2px; flex-wrap: wrap; }
+.luces i { display: block; width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--tinta); background: #c9b98f; font: 400 11px/16px var(--slab); font-style: normal; color: var(--tinta); }
+.luces i.top { border-radius: 0; border: 0; width: 28px; height: 28px; margin-top: -3px; background: #c9b98f; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 35%); }
+.luces i.lista { background: var(--oro); box-shadow: 0 0 12px 4px #FFC400; animation: prende .4s cubic-bezier(.2, 2.4, .4, 1); }
+.luces i.top.lista { background: var(--rojo); box-shadow: none; filter: drop-shadow(0 0 6px #FFC400); }
+.luces i.ahora { animation: titilar .6s steps(1) infinite; background: var(--crema); }
+@keyframes prende { from { transform: scale(2.4); } }
+/* El martillo de feria: el taco sube según cómo quedó la serie frente a la última vez y, si la iguala o la supera, toca la campana */
+.torre { width: 58px; flex: none; margin: 8px 10px 0 4px; position: relative; display: flex; flex-direction: column; align-items: center; }
+.torre .campana { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF3C2, var(--oro) 45%, #9c6b00); border: 3px solid var(--tinta); flex: none; z-index: 2; }
+.torre .campana.suena { animation: campana .5s linear; }
+@keyframes campana { 0%, 100% { transform: rotate(0) scale(1); } 15% { transform: rotate(-24deg) scale(1.35); } 35% { transform: rotate(20deg) scale(1.3); } 55% { transform: rotate(-14deg) scale(1.15); } 75% { transform: rotate(8deg); } }
+.torre .carril { flex: 1; width: 30px; position: relative; border: 3px solid var(--tinta); border-top: 0; margin-top: -4px;
+  background: repeating-linear-gradient(0deg, var(--crema) 0 18px, var(--rojo) 18px 36px); }
+.torre .carril span { position: absolute; left: 100%; margin-left: 3px; font: 500 9px/1 var(--cond); text-transform: uppercase; letter-spacing: .04em; writing-mode: vertical-rl; transform: translateY(50%); white-space: nowrap; }
+.torre .taco { position: absolute; left: -7px; right: -7px; height: 16px; bottom: 0; background: var(--azul); border: 3px solid var(--tinta); border-radius: 3px; }
+.torre .base { width: 54px; height: 14px; background: var(--tinta); flex: none; }
+.pie { display: flex; gap: 10px; align-items: stretch; padding: 10px 12px 0; flex: none; }
+.pie .redondo { align-self: center; }
+.pie .redondo:disabled { opacity: .25; }
+.hecha { flex: 1; font: 400 clamp(26px, 9vw, 36px)/1 var(--slab); color: var(--crema); background: var(--rojo); border: 3px solid var(--tinta); box-shadow: 6px 6px 0 var(--tinta); padding: 16px 4px; text-transform: uppercase; transition: transform .08s, box-shadow .08s; }
+.hecha:active { transform: translate(5px, 5px) scale(.98); box-shadow: 1px 1px 0 var(--tinta); }
+.hecha.otra { background: var(--azul); font-size: clamp(19px, 6.2vw, 25px); }
+/* Onomatopeya */
+.pum { position: absolute; z-index: 30; left: 50%; top: 38%; font: 400 clamp(54px, 19vw, 86px)/.9 var(--rye); color: var(--oro); -webkit-text-stroke: 2px var(--tinta); text-shadow: 5px 5px 0 var(--rojo); pointer-events: none; white-space: nowrap; animation: pum .9s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes pum { 0% { transform: translate(-50%, -50%) scale(.1) rotate(-30deg); opacity: 0; } 25% { transform: translate(-50%, -50%) scale(1.25) rotate(-8deg); opacity: 1; } 70% { transform: translate(-50%, -50%) scale(1) rotate(-6deg); opacity: 1; } 100% { transform: translate(-50%, -90%) scale(1.1) rotate(-6deg); opacity: 0; } }
+/* Modo estelar: la pista a oscuras con un foco */
+.p-pista.estelar { background: radial-gradient(ellipse 80% 55% at 42% 46%, #FFE9A8 0, #F7B90F 28%, #3a2a5e 70%, var(--noche) 100%); }
+.p-pista.estelar .tipo-serie { background: var(--rojo); font-size: 19px; animation: llamar .7s infinite; }
+.p-pista.estelar .hecha { background: var(--oro); color: var(--tinta); animation: llamar .7s ease-in-out infinite; }
+
+/* ---------- Telón ---------- */
+#telon { pointer-events: none; z-index: 60; overflow: hidden; }
+#telon .hoja { position: absolute; top: 0; bottom: 0; width: 52%; transition: transform .5s cubic-bezier(.7, 0, .3, 1);
+  background: repeating-linear-gradient(90deg, #6d0c08 0, #c2261c 18px, #e03a2e 26px, #a31a12 38px, #6d0c08 52px); box-shadow: inset 0 -40px 60px rgba(0, 0, 0, .45); }
+#telon .izq { left: 0; transform: translateX(-104%) skewX(-3deg); } #telon .der { right: 0; transform: translateX(104%) skewX(3deg); }
+#telon.cerrado { pointer-events: auto; } #telon.cerrado .hoja { transform: none; transition-timing-function: cubic-bezier(.3, 1.3, .5, 1); }
+#telon .cenefa { position: absolute; left: 0; right: 0; top: 0; height: 58px; transform: translateY(-110%); transition: transform .45s cubic-bezier(.3, 1.4, .5, 1);
+  background: radial-gradient(circle at 50% 0, #8E130E 0 26px, transparent 27px) 0 28px / 52px 52px repeat-x, linear-gradient(#8E130E 0 30px, transparent 30px); filter: drop-shadow(0 4px 0 var(--oro)); }
+#telon.cerrado .cenefa { transform: none; }
+#telon.tiembla-telon .hoja { animation: temblor .2s linear infinite; }
+
+/* ---------- Intermedio (descanso) ---------- */
+#intermedio { z-index: 62; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 22px 24px; color: var(--crema); text-align: center; }
+#intermedio[hidden], #anuncio[hidden], #fiesta[hidden] { display: none; }
+.cartel-colgante { position: relative; width: 100%; background: var(--noche); border: 4px solid var(--oro); padding: 24px 16px 20px; transform-origin: 50% -80px; animation: descuelga .9s cubic-bezier(.3, 1.5, .5, 1) both; box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
+.cartel-colgante::before, .cartel-colgante::after { content: ''; position: absolute; bottom: 100%; width: 3px; height: 90px; background: var(--oro); left: 18%; } .cartel-colgante::after { left: auto; right: 18%; }
+@keyframes descuelga { 0% { transform: translateY(-130%) rotate(-7deg); } 60% { transform: rotate(3deg); } 80% { transform: rotate(-1.5deg); } 100% { transform: none; } }
+#intermedio.fuera .cartel-colgante { animation: recoge .35s ease-in both; } @keyframes recoge { to { transform: translateY(-140%); } }
+.cartel-colgante h2 { margin: 0; font: 400 clamp(30px, 10vw, 42px)/1 var(--rye); color: var(--oro); letter-spacing: .04em; }
+.reloj { font: 400 clamp(88px, 31vw, 150px)/.95 var(--slab); color: var(--crema); margin: 6px 0 2px; font-variant-numeric: tabular-nums; text-shadow: 4px 4px 0 var(--rojo); }
+.reloj.tic { animation: tic .25s cubic-bezier(.2, 2, .4, 1); } @keyframes tic { from { transform: scale(1.14); } }
+.sigue { font: 400 16px/1.3 var(--cond); margin: 4px 0 0; } .sigue b { font: 400 17px/1.2 var(--slab); color: var(--oro); display: block; }
+.botones { display: flex; gap: 10px; margin-top: 16px; }
+.botones button { flex: 1; font: 400 20px/1 var(--slab); padding: 14px 4px; border: 3px solid var(--crema); color: var(--crema); text-transform: uppercase; }
+.botones button.lleno { background: var(--oro); color: var(--tinta); border-color: var(--oro); }
+.botones button:active { transform: scale(.94); }
+.urgente .reloj { color: var(--oro); animation: temblor .25s linear infinite; }
+.urgente h2 { animation: titilar .4s steps(1) infinite; }
+.nota-demo { font: 400 12px/1.3 var(--cond); opacity: .7; margin-top: 12px; }
+
+/* ---------- El anuncio del top set ---------- */
+#anuncio { z-index: 70; background: var(--noche); color: var(--crema); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+.foco-luz { position: absolute; top: -10%; width: 70%; height: 130%; background: linear-gradient(180deg, rgba(255, 240, 180, .85), rgba(255, 240, 180, 0) 85%); clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); mix-blend-mode: screen; transform-origin: 50% 0; animation: barrido 2.6s ease-in-out infinite alternate; }
+.foco-luz.b { animation-duration: 3.4s; animation-direction: alternate-reverse; background: linear-gradient(180deg, rgba(255, 120, 100, .7), rgba(255, 120, 100, 0) 85%); }
+@keyframes barrido { from { transform: translateX(-40%) rotate(26deg); } to { transform: translateX(70%) rotate(-26deg); } }
+#anuncio .linea { position: relative; opacity: 0; margin: 0; }
+#anuncio .linea.ya { animation: golpe .5s both; --giro: 0deg; }
+#anuncio .l1 { font: 400 clamp(28px, 9vw, 38px)/1 var(--script); color: var(--oro); }
+#anuncio .l2 { font: 500 clamp(15px, 4.6vw, 19px)/1.25 var(--cond); letter-spacing: .14em; text-transform: uppercase; margin-top: 12px; }
+#anuncio .l3 { font: 400 clamp(52px, 18vw, 86px)/.9 var(--rye); color: var(--rojo); text-shadow: 4px 4px 0 var(--oro); margin: 14px 0; }
+#anuncio .l4 { font: 400 clamp(22px, 7vw, 30px)/1.05 var(--slab); text-transform: uppercase; }
+#anuncio .l5 { font: 500 16px/1.3 var(--cond); margin-top: 14px; border: 2px solid var(--oro); padding: 8px 14px; --giro: -2deg; } #anuncio .l5 b { font: 400 20px/1 var(--slab); color: var(--oro); }
+#anuncio .gran-boton { position: relative; margin-top: 26px; background: var(--oro); color: var(--tinta); border-color: var(--crema); box-shadow: 7px 7px 0 var(--rojo); opacity: 0; }
+#anuncio .gran-boton.ya { opacity: 1; animation: llamar .8s ease-in-out infinite; }
+
+/* ---------- La fiesta del récord ---------- */
+#fiesta { z-index: 80; overflow: hidden; background: var(--oro); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+#fiesta.oscuro { background: #000; }
+#fiesta.oscuro > *:not(.suspenso) { visibility: hidden; }
+.suspenso { display: none; font: 400 26px/1.2 var(--script); color: var(--crema); animation: temblor .12s linear infinite; }
+#fiesta.oscuro .suspenso { display: block; }
+#fiesta .rayos { top: 50%; background: repeating-conic-gradient(var(--rojo) 0 7.5deg, var(--oro) 7.5deg 15deg); animation-duration: 9s; }
+#fiesta.destello::before { content: ''; position: absolute; inset: 0; background: #fff; z-index: 9; animation: destello .5s ease-out both; pointer-events: none; } @keyframes destello { to { opacity: 0; } }
+#fiesta > * { position: relative; }
+#fiesta > .rayos { position: absolute; }
+#fiesta h2 { margin: 0; font: 400 clamp(50px, 17vw, 82px)/.9 var(--rye); color: var(--crema); -webkit-text-stroke: 2px var(--tinta); text-shadow: 6px 6px 0 var(--tinta); }
+#fiesta h2 span.pal { display: block; white-space: nowrap; }
+#fiesta .cinta { font-size: 16px; margin-top: 16px; background: var(--tinta); animation: golpe .5s 1.9s both; --giro: -3deg; }
+#fiesta .marca { font: 400 clamp(44px, 15vw, 70px)/1 var(--slab); color: var(--tinta); background: var(--crema); border: 4px solid var(--tinta); box-shadow: 8px 8px 0 var(--tinta); padding: 10px 18px; margin-top: 14px; animation: golpe .55s 2.2s both; --giro: 2deg; white-space: nowrap; }
+#fiesta .rm { font: 500 17px/1.3 var(--cond); margin: 16px 0 0; background: var(--crema); padding: 6px 12px; border: 2px solid var(--tinta); animation: golpe .5s 2.6s both; --giro: -1deg; } #fiesta .rm b { font: 400 19px/1 var(--slab); color: var(--rojo); }
+#fiesta .gran-boton { margin-top: 18px; background: var(--azul); animation: golpe .5s 3.1s both; --giro: 0deg; }
+#fiesta .corre { font: 500 14px/1 var(--cond); margin-top: 12px; color: var(--tinta); letter-spacing: .05em; text-transform: uppercase; min-height: 14px; }
+#papelitos { z-index: 85; pointer-events: none; height: 100%; }
+
+/* ---------- Resumen: el cartel de la mañana siguiente ---------- */
+.p-resumen { text-align: center; align-items: center; }
+.p-resumen .script { margin-top: 8px; }
+.p-resumen h1 { font-size: clamp(40px, 13.2vw, 64px); margin-top: 6px; }
+.p-resumen h1 .pal { display: block; white-space: nowrap; }
+.cifras { display: flex; gap: 12px; width: 100%; margin-top: 18px; }
+.cifra { flex: 1; background: var(--crema); border: 3px solid var(--tinta); box-shadow: 5px 5px 0 var(--tinta); padding: 10px 4px 8px; animation: golpe .5s both; }
+.cifra:nth-child(1) { --giro: -3deg; animation-delay: .9s; } .cifra:nth-child(2) { --giro: 2deg; animation-delay: 1.2s; } .cifra:nth-child(3) { --giro: -1.5deg; animation-delay: 1.5s; }
+.cifra b { display: block; font: 400 clamp(30px, 10vw, 42px)/1 var(--slab); color: var(--rojo); white-space: nowrap; }
+.cifra span { font: 500 12px/1.2 var(--cond); text-transform: uppercase; letter-spacing: .08em; }
+.cronica { width: 100%; margin-top: 20px; border-top: 4px double var(--tinta); border-bottom: 4px double var(--tinta); padding: 12px 0; animation: sube .5s 1.9s both; }
+.cronica h3 { margin: 0 0 6px; font: 400 15px/1 var(--slab); letter-spacing: .12em; text-transform: uppercase; color: var(--azul); }
+.cronica p { margin: 4px 0; font: 500 18px/1.25 var(--cond); }
+.cronica .sube { color: var(--rojo); font: 400 17px/1 var(--slab); white-space: nowrap; }
+.cronica ul { list-style: none; margin: 0; padding: 0; font: 400 16px/1.4 var(--cond); }
+.p-resumen .sello { animation-delay: 2.4s; font-size: 20px; }
+
+/* Pregón: los avisos de la app en la voz del maestro de ceremonias */
+#pregon { position: fixed; left: 50vw; bottom: 110px; z-index: 90; width: min(88vw, 420px); transform: translate(-50%, 260px); opacity: 0; background: var(--tinta); color: var(--crema); font: 500 15px/1.3 var(--cond); padding: 12px 14px; border: 3px solid var(--oro); transition: transform .35s cubic-bezier(.2, 1.6, .4, 1), opacity .2s; pointer-events: none; text-align: center; }
+#pregon.ya { transform: translate(-50%, 0) rotate(-1deg); opacity: 1; }
+
+@media (max-height: 700px) {
+  .p-inicio h1 > b { font-size: clamp(56px, 19vw, 90px); } .boleto { margin-top: 14px; padding: 14px 20px 12px; } .boleto strong { font-size: 46px; }
+  .retador { margin-top: 5px; } .luces { margin-top: 8px; } .dial .valor { font-size: 32px; padding-top: 5px; } .dial button { padding: 6px 0 8px; } .hecha { padding: 12px 4px; }
+}

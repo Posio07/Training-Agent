@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Exploración de diseño · IFBB Pro Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rye&family=Saira+Condensed:wght@400;600&family=Saira+Stencil+One&family=VT323&family=Yellowtail&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; }
+  body { font: 400 17px/1.4 'Saira Condensed', 'Arial Narrow', sans-serif; color: #fff; }
+  header { padding: 22px 18px 16px; max-width: 480px; margin: 0 auto; }
+  header h1 { margin: 0; font: 600 24px/1.1 'Saira Condensed', sans-serif; }
+  header p { margin: 6px 0 0; color: #b9b9b9; }
+  main { max-width: 480px; margin: 0 auto; }
+  .puerta { display: block; position: relative; padding: 30px 18px 22px; overflow: hidden; min-height: 31vh; }
+  .entrar { display: block; position: relative; color: inherit; text-decoration: none; transition: transform .15s; }
+  .entrar:active { transform: scale(.97); }
+  .puerta h2 { margin: 0; position: relative; }
+  .puerta p { margin: 10px 0 0; max-width: 34ch; position: relative; }
+  .saltos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; position: relative; }
+  .saltos a { font: 600 13px/1 'Saira Condensed', sans-serif; letter-spacing: .06em; text-transform: uppercase; text-decoration: none; padding: 8px 9px 7px; border: 2px solid currentColor; color: inherit; }
+  /* Circo */
+  .circo { background: #F1E2BC; color: #1B1410; }
+  .circo::before { content: ''; position: absolute; left: 80%; top: 30%; width: 900px; height: 900px; margin: -450px; background: repeating-conic-gradient(rgba(211, 38, 28, .2) 0 7.5deg, transparent 7.5deg 15deg); animation: girar 60s linear infinite; }
+  .circo h2 { font: 400 clamp(38px, 12vw, 54px)/.95 'Rye', serif; color: #D3261C; text-shadow: 3px 3px 0 #1F3F94; }
+  .circo h2 small { display: block; font: 400 24px/1 'Yellowtail', cursive; color: #1F3F94; text-shadow: none; transform: rotate(-3deg); margin-bottom: 4px; }
+  /* Fundición */
+  .fundicion { background: radial-gradient(ellipse 90% 80% at 80% 110%, #ff5a1f, #7a1d06 45%, #120C0A 78%); }
+  .fundicion h2 { font: 400 clamp(44px, 14vw, 64px)/.9 'Saira Stencil One', sans-serif; text-transform: uppercase; color: #FFF1C9; text-shadow: 0 0 8px #FFC531, 0 0 28px #FF5A1F; animation: arder 1s ease-in-out infinite alternate; }
+  /* Arcade */
+  .arcade { background: linear-gradient(180deg, #120B33 0 30%, #2A1466 30% 55%, #5B1F8A 55% 70%, #B02A8F 70% 82%, #FF4F9A 82%); font: 400 22px/1.05 'VT323', monospace; text-transform: uppercase; }
+  .arcade h2 { font: 400 clamp(30px, 9.6vw, 44px)/1.15 'Press Start 2P', monospace; color: #FFD23F; text-shadow: 4px 4px 0 #FF4F9A, 8px 8px 0 #0B0A1A; }
+  .arcade h2 span { display: inline-block; animation: bote .6s steps(2) infinite; }
+  .arcade .saltos a { font: 400 18px/1 'VT323', monospace; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @keyframes arder { to { filter: brightness(1.25); } }
+  @keyframes bote { 50% { transform: translateY(-6px); } }
+  footer { max-width: 480px; margin: 0 auto; padding: 18px; color: #9a9a9a; font-size: 15px; }
+  footer a { color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tres universos para entrenar</h1>
+  <p>Exploración de diseño de IFBB Pro Agent. Cada puerta abre un mock navegable con los datos reales del plan: inicio, rutina del día, sesión con descanso, top set y resumen. Ábrelos en el teléfono, con sonido.</p>
+</header>
+<main>
+  <section class="puerta circo"><a class="entrar" href="circo/index.html">
+    <h2><small>Damas y caballeros…</small>El Gran Circo del Hierro</h2>
+    <p>La sesión es una función de forzudos: telón, redoble, martillo de feria y un maestro de ceremonias que anuncia tu top set.</p>
+    </a><div class="saltos" id="s-circo"></div>
+  </section>
+  <section class="puerta fundicion"><a class="entrar" href="fundicion/index.html">
+    <h2>Fundición</h2>
+    <p>El peso es materia. Cada serie es un martillazo con chispas, el descanso es el metal que se enfría y al final queda el montón de hierro que moviste.</p>
+    </a><div class="saltos" id="s-fundicion"></div>
+  </section>
+  <section class="puerta arcade"><a class="entrar" href="arcade/index.html">
+    <h2><span>Jefe</span> <span style="animation-delay:-.3s">Final</span></h2>
+    <p>Un juego de rol de 16 bits: cada ejercicio es un enemigo, el top set es el jefe y el descanso es la hoguera donde se guarda la partida.</p>
+    </a><div class="saltos" id="s-arcade"></div>
+  </section>
+</main>
+<footer>Dentro de cada mock, la pestaña «MOCK» del borde derecho salta a cualquier pantalla, apaga el sonido y vuelve aquí. El porqué de cada dirección está en el <a href="README.md">README</a>.</footer>
+<script>
+  // Atajos a las pantallas clave de cada dirección.
+  const PANTALLAS = [['inicio', 'Inicio'], ['rutina', 'Rutina'], ['sesion', 'Sesión'], ['descanso', 'Descanso'], ['topset', 'Top set'], ['record', 'Récord'], ['resumen', 'Resumen']];
+  ['circo', 'fundicion', 'arcade'].forEach(d => { document.getElementById('s-' + d).innerHTML = PANTALLAS.map(p => `<a href="${d}/index.html#${p[0]}">${p[1]}</a>`).join(''); });
+</script>
+</body>
+</html>
