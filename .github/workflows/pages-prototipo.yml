@@ -1,0 +1,40 @@
+name: Publicar prototipo manga en GitHub Pages
+
+# Solo para la rama del prototipo. Publica la app tal cual (para no pisar el
+# sitio) y agrega el prototipo en /prototipos/manga/. Cuando main vuelva a
+# desplegar, el sitio vuelve a ser solo la app.
+on:
+  push:
+    branches: [prototipo-manga]
+    paths: ['prototipos/**', '.github/workflows/pages-prototipo.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p sitio/prototipos
+          cp -r ifbb-pro-agent/. sitio/
+          cp -r prototipos/. sitio/prototipos/
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sitio
+      - id: deployment
+        uses: actions/deploy-pages@v4
